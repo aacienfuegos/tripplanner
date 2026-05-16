@@ -1,18 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-
-const documentSchema = z.object({
-  type: z.enum(["PASSPORT", "VISA", "INSURANCE", "TICKET", "VOUCHER", "OTHER"]),
-  name: z.string().min(1),
-  fileUrl: z.string().url().optional().or(z.literal("")),
-  expiresAt: z.string().optional(),
-  notes: z.string().optional(),
-});
+import { documentSchema } from "@/lib/schemas";
 
 async function requireTripOwner(tripId: string) {
   const session = await auth();

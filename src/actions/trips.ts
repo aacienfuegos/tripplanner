@@ -2,19 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const tripSchema = z.object({
-  name: z.string().min(1, "El nombre es obligatorio"),
-  description: z.string().optional(),
-  startDate: z.string().min(1, "La fecha de inicio es obligatoria"),
-  endDate: z.string().min(1, "La fecha de fin es obligatoria"),
-  currency: z.string().default("EUR"),
-  budget: z.string().optional(),
-  coverImage: z.string().optional(),
-});
+import { tripSchema } from "@/lib/schemas";
 
 async function requireUser() {
   const session = await auth();

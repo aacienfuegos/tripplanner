@@ -1,25 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-
-const activitySchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(["ACTIVITY", "RESTAURANT", "MUSEUM", "TOUR", "TRANSPORT", "SHOW", "OTHER"]).default("ACTIVITY"),
-  description: z.string().optional(),
-  location: z.string().optional(),
-  city: z.string().optional(),
-  scheduledAt: z.string().optional(),
-  duration: z.string().optional(),
-  bookingRef: z.string().optional(),
-  confirmationUrl: z.string().url().optional().or(z.literal("")),
-  price: z.string().optional(),
-  status: z.enum(["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"]).default("PENDING"),
-  notes: z.string().optional(),
-});
+import { activitySchema } from "@/lib/schemas";
 
 async function requireTripOwner(tripId: string) {
   const session = await auth();

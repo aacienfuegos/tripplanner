@@ -1,25 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-
-const flightSchema = z.object({
-  airline: z.string().min(1),
-  flightNumber: z.string().min(1),
-  origin: z.string().min(1),
-  destination: z.string().min(1),
-  departureAt: z.string().min(1),
-  arrivalAt: z.string().min(1),
-  bookingRef: z.string().optional(),
-  confirmationUrl: z.string().url().optional().or(z.literal("")),
-  seatNumber: z.string().optional(),
-  class: z.enum(["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"]).default("ECONOMY"),
-  price: z.string().optional(),
-  notes: z.string().optional(),
-});
+import { flightSchema } from "@/lib/schemas";
 
 async function requireTripOwner(tripId: string) {
   const session = await auth();

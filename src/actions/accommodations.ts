@@ -1,24 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-
-const accommodationSchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(["HOTEL", "HOSTEL", "AIRBNB", "APARTMENT", "RESORT", "OTHER"]).default("HOTEL"),
-  address: z.string().optional(),
-  city: z.string().min(1),
-  checkIn: z.string().min(1),
-  checkOut: z.string().min(1),
-  bookingRef: z.string().optional(),
-  confirmationUrl: z.string().url().optional().or(z.literal("")),
-  price: z.string().optional(),
-  pricePerNight: z.string().optional(),
-  notes: z.string().optional(),
-});
+import { accommodationSchema } from "@/lib/schemas";
 
 async function requireTripOwner(tripId: string) {
   const session = await auth();
