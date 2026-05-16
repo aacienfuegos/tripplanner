@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,17 @@ import { format } from "date-fns";
 interface FlightFormProps {
   tripId: string;
   flight?: Flight;
+  tripStartDate: Date;
   onSuccess: () => void;
 }
 
-export function FlightForm({ tripId, flight, onSuccess }: FlightFormProps) {
+export function FlightForm({ tripId, flight, tripStartDate, onSuccess }: FlightFormProps) {
   const [isPending, startTransition] = useTransition();
+
+  const fmtDatetime = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
+
+  const defaultDeparture = flight ? fmtDatetime(flight.departureAt) : fmtDatetime(tripStartDate);
+  const [departure, setDeparture] = useState(defaultDeparture);
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -36,8 +42,6 @@ export function FlightForm({ tripId, flight, onSuccess }: FlightFormProps) {
       }
     });
   }
-
-  const fmtDatetime = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
 
   return (
     <form action={handleSubmit} className="space-y-4">
@@ -64,11 +68,25 @@ export function FlightForm({ tripId, flight, onSuccess }: FlightFormProps) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="departureAt">Salida *</Label>
-          <Input id="departureAt" name="departureAt" type="datetime-local" defaultValue={flight ? fmtDatetime(flight.departureAt) : ""} required />
+          <Input
+            id="departureAt"
+            name="departureAt"
+            type="datetime-local"
+            value={departure}
+            onChange={(e) => setDeparture(e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="arrivalAt">Llegada *</Label>
-          <Input id="arrivalAt" name="arrivalAt" type="datetime-local" defaultValue={flight ? fmtDatetime(flight.arrivalAt) : ""} required />
+          <Input
+            key={departure}
+            id="arrivalAt"
+            name="arrivalAt"
+            type="datetime-local"
+            defaultValue={flight ? fmtDatetime(flight.arrivalAt) : departure}
+            required
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">

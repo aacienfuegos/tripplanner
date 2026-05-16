@@ -26,7 +26,7 @@ const statusVariants: Record<BookingStatus, "default" | "secondary" | "outline" 
 };
 const statusCycle: BookingStatus[] = ["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"];
 
-export function ActivitiesList({ tripId, activities }: { tripId: string; activities: Activity[] }) {
+export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: string; activities: Activity[]; tripStartDate: Date }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Activity | null>(null);
 
@@ -108,7 +108,7 @@ export function ActivitiesList({ tripId, activities }: { tripId: string; activit
           <DialogHeader>
             <DialogTitle>{editing ? "Editar actividad" : "Añadir actividad"}</DialogTitle>
           </DialogHeader>
-          <ActivityForm tripId={tripId} activity={editing ?? undefined} onSuccess={() => setOpen(false)} />
+          <ActivityForm tripId={tripId} activity={editing ?? undefined} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

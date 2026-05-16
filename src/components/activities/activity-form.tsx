@@ -11,9 +11,9 @@ import { createActivity, updateActivity } from "@/actions/activities";
 import type { Activity } from "@/types";
 import { format } from "date-fns";
 
-interface Props { tripId: string; activity?: Activity; onSuccess: () => void; }
+interface Props { tripId: string; activity?: Activity; tripStartDate: Date; onSuccess: () => void; }
 
-export function ActivityForm({ tripId, activity: a, onSuccess }: Props) {
+export function ActivityForm({ tripId, activity: a, tripStartDate, onSuccess }: Props) {
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
@@ -59,7 +59,7 @@ export function ActivityForm({ tripId, activity: a, onSuccess }: Props) {
         <div className="space-y-1.5">
           <Label htmlFor="scheduledAt">Fecha y hora</Label>
           <Input id="scheduledAt" name="scheduledAt" type="datetime-local"
-            defaultValue={a?.scheduledAt ? format(a.scheduledAt, "yyyy-MM-dd'T'HH:mm") : ""} />
+            defaultValue={a?.scheduledAt ? format(a.scheduledAt, "yyyy-MM-dd'T'HH:mm") : format(tripStartDate, "yyyy-MM-dd'T'HH:mm")} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="duration">Duración (min)</Label>

@@ -25,9 +25,10 @@ interface Props {
   budget: number | null;
   total: number;
   paid: number;
+  tripStartDate: Date;
 }
 
-export function ExpensesList({ tripId, expenses, currency, budget, total, paid }: Props) {
+export function ExpensesList({ tripId, expenses, currency, budget, total, paid, tripStartDate }: Props) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
 
@@ -134,7 +135,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid }
           <DialogHeader>
             <DialogTitle>{editing ? "Editar gasto" : "Añadir gasto"}</DialogTitle>
           </DialogHeader>
-          <ExpenseForm tripId={tripId} expense={editing ?? undefined} currency={currency} onSuccess={() => setOpen(false)} />
+          <ExpenseForm tripId={tripId} expense={editing ?? undefined} currency={currency} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

@@ -22,7 +22,7 @@ export default async function FlightsPage({ params }: { params: Promise<{ tripId
         title="Vuelos"
         icon={<Plane className="h-5 w-5" />}
       />
-      <FlightsList tripId={trip.id} flights={trip.flights} />
+      <FlightsList tripId={trip.id} flights={trip.flights} tripStartDate={trip.startDate} />
     </div>
   );
 }

@@ -11,9 +11,9 @@ import { createExpense, updateExpense } from "@/actions/expenses";
 import type { Expense } from "@/types";
 import { format } from "date-fns";
 
-interface Props { tripId: string; expense?: Expense; currency: string; onSuccess: () => void; }
+interface Props { tripId: string; expense?: Expense; currency: string; tripStartDate: Date; onSuccess: () => void; }
 
-export function ExpenseForm({ tripId, expense: e, currency, onSuccess }: Props) {
+export function ExpenseForm({ tripId, expense: e, currency, tripStartDate, onSuccess }: Props) {
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
@@ -54,7 +54,7 @@ export function ExpenseForm({ tripId, expense: e, currency, onSuccess }: Props) 
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="date">Fecha *</Label>
-          <Input id="date" name="date" type="date" required defaultValue={e ? format(e.date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")} />
+          <Input id="date" name="date" type="date" required defaultValue={e ? format(e.date, "yyyy-MM-dd") : format(tripStartDate, "yyyy-MM-dd")} />
         </div>
       </div>
       <div className="space-y-1.5">

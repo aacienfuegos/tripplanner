@@ -19,7 +19,7 @@ const classLabels: Record<string, string> = {
   BUSINESS: "Business", FIRST: "Primera",
 };
 
-export function FlightsList({ tripId, flights }: { tripId: string; flights: Flight[] }) {
+export function FlightsList({ tripId, flights, tripStartDate }: { tripId: string; flights: Flight[]; tripStartDate: Date }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Flight | null>(null);
 
@@ -95,7 +95,7 @@ export function FlightsList({ tripId, flights }: { tripId: string; flights: Flig
           <DialogHeader>
             <DialogTitle>{editing ? "Editar vuelo" : "Añadir vuelo"}</DialogTitle>
           </DialogHeader>
-          <FlightForm tripId={tripId} flight={editing ?? undefined} onSuccess={() => setOpen(false)} />
+          <FlightForm tripId={tripId} flight={editing ?? undefined} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

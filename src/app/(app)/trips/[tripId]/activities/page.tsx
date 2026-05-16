@@ -17,7 +17,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ tri
   return (
     <div className="space-y-6">
       <SectionHeader tripId={trip.id} tripName={trip.name} title="Actividades" icon={<Star className="h-5 w-5" />} />
-      <ActivitiesList tripId={trip.id} activities={trip.activities} />
+      <ActivitiesList tripId={trip.id} activities={trip.activities} tripStartDate={trip.startDate} />
     </div>
   );
 }

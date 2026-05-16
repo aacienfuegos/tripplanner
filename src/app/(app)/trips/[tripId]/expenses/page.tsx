@@ -27,6 +27,7 @@ export default async function ExpensesPage({ params }: { params: Promise<{ tripI
         budget={trip.budget}
         total={total}
         paid={paid}
+        tripStartDate={trip.startDate}
       />
     </div>
   );

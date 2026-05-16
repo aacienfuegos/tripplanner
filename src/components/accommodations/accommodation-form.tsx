@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,15 @@ import { createAccommodation, updateAccommodation } from "@/actions/accommodatio
 import type { Accommodation } from "@/types";
 import { format } from "date-fns";
 
-interface Props { tripId: string; accommodation?: Accommodation; onSuccess: () => void; }
+interface Props { tripId: string; accommodation?: Accommodation; tripStartDate: Date; onSuccess: () => void; }
 
-export function AccommodationForm({ tripId, accommodation: a, onSuccess }: Props) {
+export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onSuccess }: Props) {
   const [isPending, startTransition] = useTransition();
+
+  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+
+  const defaultCheckIn = a ? fmt(a.checkIn) : fmt(tripStartDate);
+  const [checkIn, setCheckIn] = useState(defaultCheckIn);
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -25,8 +30,6 @@ export function AccommodationForm({ tripId, accommodation: a, onSuccess }: Props
       } catch { toast.error("Error al guardar"); }
     });
   }
-
-  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 
   return (
     <form action={handleSubmit} className="space-y-4">
@@ -52,11 +55,25 @@ export function AccommodationForm({ tripId, accommodation: a, onSuccess }: Props
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="checkIn">Check-in *</Label>
-          <Input id="checkIn" name="checkIn" type="date" defaultValue={a ? fmt(a.checkIn) : ""} required />
+          <Input
+            id="checkIn"
+            name="checkIn"
+            type="date"
+            value={checkIn}
+            onChange={(e) => setCheckIn(e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="checkOut">Check-out *</Label>
-          <Input id="checkOut" name="checkOut" type="date" defaultValue={a ? fmt(a.checkOut) : ""} required />
+          <Input
+            key={checkIn}
+            id="checkOut"
+            name="checkOut"
+            type="date"
+            defaultValue={a ? fmt(a.checkOut) : checkIn}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="pricePerNight">€/noche</Label>

@@ -19,7 +19,7 @@ const typeLabels: Record<string, string> = {
   APARTMENT: "Apartamento", RESORT: "Resort", OTHER: "Otro",
 };
 
-export function AccommodationsList({ tripId, accommodations }: { tripId: string; accommodations: Accommodation[] }) {
+export function AccommodationsList({ tripId, accommodations, tripStartDate }: { tripId: string; accommodations: Accommodation[]; tripStartDate: Date }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Accommodation | null>(null);
 
@@ -97,7 +97,7 @@ export function AccommodationsList({ tripId, accommodations }: { tripId: string;
           <DialogHeader>
             <DialogTitle>{editing ? "Editar alojamiento" : "Añadir alojamiento"}</DialogTitle>
           </DialogHeader>
-          <AccommodationForm tripId={tripId} accommodation={editing ?? undefined} onSuccess={() => setOpen(false)} />
+          <AccommodationForm tripId={tripId} accommodation={editing ?? undefined} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

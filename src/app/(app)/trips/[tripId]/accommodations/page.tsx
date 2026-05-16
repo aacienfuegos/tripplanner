@@ -17,7 +17,7 @@ export default async function AccommodationsPage({ params }: { params: Promise<{
   return (
     <div className="space-y-6">
       <SectionHeader tripId={trip.id} tripName={trip.name} title="Alojamiento" icon={<Hotel className="h-5 w-5" />} />
-      <AccommodationsList tripId={trip.id} accommodations={trip.accommodations} />
+      <AccommodationsList tripId={trip.id} accommodations={trip.accommodations} tripStartDate={trip.startDate} />
     </div>
   );
 }
