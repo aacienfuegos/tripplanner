@@ -5,10 +5,11 @@ import { AccommodationsList } from "@/components/accommodations/accommodations-l
 import { SectionHeader } from "@/components/layout/section-header";
 import { Hotel } from "lucide-react";
 
-export default async function AccommodationsPage({ params }: { params: { tripId: string } }) {
+export default async function AccommodationsPage({ params }: { params: Promise<{ tripId: string }> }) {
+  const { tripId } = await params;
   const session = await auth();
   const trip = await prisma.trip.findUnique({
-    where: { id: params.tripId },
+    where: { id: tripId },
     include: { accommodations: { orderBy: { checkIn: "asc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();

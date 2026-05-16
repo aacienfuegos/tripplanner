@@ -3,9 +3,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TripForm } from "@/components/trips/trip-form";
 
-export default async function EditTripPage({ params }: { params: { tripId: string } }) {
+export default async function EditTripPage({ params }: { params: Promise<{ tripId: string }> }) {
+  const { tripId } = await params;
   const session = await auth();
-  const trip = await prisma.trip.findUnique({ where: { id: params.tripId } });
+  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
   return (

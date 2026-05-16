@@ -12,10 +12,11 @@ import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
 
-export default async function TripDetailPage({ params }: { params: { tripId: string } }) {
+export default async function TripDetailPage({ params }: { params: Promise<{ tripId: string }> }) {
+  const { tripId } = await params;
   const session = await auth();
   const trip = await prisma.trip.findUnique({
-    where: { id: params.tripId },
+    where: { id: tripId },
     include: {
       destinations: { orderBy: { order: "asc" } },
       _count: {

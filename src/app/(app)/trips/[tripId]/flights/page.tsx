@@ -5,10 +5,11 @@ import { FlightsList } from "@/components/flights/flights-list";
 import { SectionHeader } from "@/components/layout/section-header";
 import { Plane } from "lucide-react";
 
-export default async function FlightsPage({ params }: { params: { tripId: string } }) {
+export default async function FlightsPage({ params }: { params: Promise<{ tripId: string }> }) {
+  const { tripId } = await params;
   const session = await auth();
   const trip = await prisma.trip.findUnique({
-    where: { id: params.tripId },
+    where: { id: tripId },
     include: { flights: { orderBy: { departureAt: "asc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();

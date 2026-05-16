@@ -5,10 +5,11 @@ import { ActivitiesList } from "@/components/activities/activities-list";
 import { SectionHeader } from "@/components/layout/section-header";
 import { Star } from "lucide-react";
 
-export default async function ActivitiesPage({ params }: { params: { tripId: string } }) {
+export default async function ActivitiesPage({ params }: { params: Promise<{ tripId: string }> }) {
+  const { tripId } = await params;
   const session = await auth();
   const trip = await prisma.trip.findUnique({
-    where: { id: params.tripId },
+    where: { id: tripId },
     include: { activities: { orderBy: { scheduledAt: "asc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();

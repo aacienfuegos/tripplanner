@@ -5,10 +5,11 @@ import { DocumentsList } from "@/components/documents/documents-list";
 import { SectionHeader } from "@/components/layout/section-header";
 import { FileText } from "lucide-react";
 
-export default async function DocumentsPage({ params }: { params: { tripId: string } }) {
+export default async function DocumentsPage({ params }: { params: Promise<{ tripId: string }> }) {
+  const { tripId } = await params;
   const session = await auth();
   const trip = await prisma.trip.findUnique({
-    where: { id: params.tripId },
+    where: { id: tripId },
     include: { documents: { orderBy: { createdAt: "asc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();

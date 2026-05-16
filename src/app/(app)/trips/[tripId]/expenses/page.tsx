@@ -5,10 +5,11 @@ import { ExpensesList } from "@/components/expenses/expenses-list";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DollarSign } from "lucide-react";
 
-export default async function ExpensesPage({ params }: { params: { tripId: string } }) {
+export default async function ExpensesPage({ params }: { params: Promise<{ tripId: string }> }) {
+  const { tripId } = await params;
   const session = await auth();
   const trip = await prisma.trip.findUnique({
-    where: { id: params.tripId },
+    where: { id: tripId },
     include: { expenses: { orderBy: { date: "desc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();

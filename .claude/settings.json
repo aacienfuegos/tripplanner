@@ -3,6 +3,8 @@
     "allow": [
       "Bash(npm *)",
       "Bash(npx *)",
+      "Bash(source ~/.nvm/nvm.sh && npm *)",
+      "Bash(source ~/.nvm/nvm.sh && npx *)",
       "Bash(git *)",
       "Bash(mkdir *)",
       "Bash(cp *)",
