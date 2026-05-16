@@ -45,7 +45,7 @@ export function FlightsList({ tripId, flights, tripStartDate }: { tripId: string
       ) : (
         <div className="space-y-3">
           {flights.map((flight) => (
-            <Card key={flight.id}>
+            <Card key={flight.id} id={flight.id} className="scroll-mt-16 target:ring-2 target:ring-primary/40">
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2 flex-1">

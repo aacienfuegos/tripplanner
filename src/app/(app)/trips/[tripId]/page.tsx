@@ -306,7 +306,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
                   {day.events.length > 0 ? (
                     <div className="space-y-1">
                       {day.events.map((event, ei) => (
-                        <EventRow key={ei} event={event} />
+                        <EventRow key={ei} event={event} tripId={trip.id} />
                       ))}
                     </div>
                   ) : (
@@ -324,7 +324,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             <p className="text-xs font-medium text-muted-foreground mb-2">Sin fecha asignada</p>
             <div className="space-y-1">
               {undatedActivities.map((act) => (
-                <EventRow key={act.id} event={{ type: "activity", data: act }} />
+                <EventRow key={act.id} event={{ type: "activity", data: act }} tripId={trip.id} />
               ))}
             </div>
           </div>
@@ -346,12 +346,17 @@ const ACTIVITY_ICONS: Record<string, React.ElementType> = {
   OTHER:      Star,
 };
 
-function EventRow({ event }: { event: DayEvent }) {
+function EventRow({ event, tripId }: { event: DayEvent; tripId: string }) {
+  const href =
+    event.type === "flight"        ? `/trips/${tripId}/flights#${event.data.id}` :
+    event.type === "accommodation" ? `/trips/${tripId}/accommodations#${event.data.id}` :
+                                     `/trips/${tripId}/activities#${event.data.id}`;
+
   if (event.type === "flight") {
     const { data: f, role } = event;
     const time = role === "departure" ? f.departureAt : f.arrivalAt;
     return (
-      <div className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
+      <Link href={href} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 hover:brightness-95 transition-[filter]">
         <Plane className={`h-3 w-3 text-blue-600 shrink-0 ${role === "arrival" ? "scale-x-[-1]" : ""}`} />
         <span className="font-medium text-blue-700 dark:text-blue-400 shrink-0">
           {role === "departure" ? "Salida" : "Llegada"}
@@ -363,14 +368,14 @@ function EventRow({ event }: { event: DayEvent }) {
           {format(time, "HH:mm")}
         </span>
         <ConfirmBadge confirmed={!!f.bookingRef} />
-      </div>
+      </Link>
     );
   }
 
   if (event.type === "accommodation") {
     const { data: a, role } = event;
     return (
-      <div className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900">
+      <Link href={href} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 hover:brightness-95 transition-[filter]">
         <Hotel className="h-3 w-3 text-emerald-600 shrink-0" />
         <span className="font-medium text-emerald-700 dark:text-emerald-400 shrink-0">
           {role === "checkin" ? "Check-in" : "Check-out"}
@@ -378,7 +383,7 @@ function EventRow({ event }: { event: DayEvent }) {
         <span className="text-muted-foreground truncate">{a.name}</span>
         {a.city && <span className="text-muted-foreground shrink-0 hidden sm:block">· {a.city}</span>}
         <ConfirmBadge confirmed={!!a.bookingRef} className="ml-auto" />
-      </div>
+      </Link>
     );
   }
 
@@ -393,7 +398,7 @@ function EventRow({ event }: { event: DayEvent }) {
   }[act.status];
 
   return (
-    <div className={`flex items-center gap-2 text-xs py-1 px-2 rounded border ${rowColor}`}>
+    <Link href={href} className={`flex items-center gap-2 text-xs py-1 px-2 rounded border hover:brightness-95 transition-[filter] ${rowColor}`}>
       <Icon className="h-3 w-3 text-amber-500 shrink-0" />
       <span className="font-medium truncate">{act.name}</span>
       {act.scheduledAt && (
@@ -409,7 +414,7 @@ function EventRow({ event }: { event: DayEvent }) {
         </span>
       )}
       <ActivityStatusBadge status={act.status} className="ml-auto shrink-0" />
-    </div>
+    </Link>
   );
 }
 
