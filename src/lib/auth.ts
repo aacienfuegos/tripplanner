@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import Resend from "next-auth/providers/resend";
@@ -7,7 +7,7 @@ import { authConfig } from "@/lib/auth.config";
 
 const DEV_USER_ID = "dev-local-user-001";
 
-const providers: Parameters<typeof NextAuth>[0]["providers"] = [
+const providers: NextAuthConfig["providers"] = [
   ...authConfig.providers,
 ];
 
