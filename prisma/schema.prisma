@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth (NextAuth) ────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  accounts Account[]
+  sessions Session[]
+  trips    Trip[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core ───────────────────────────────────────────────────────────────────
+
+model Trip {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  coverImage  String?
+  startDate   DateTime
+  endDate     DateTime
+  status      TripStatus @default(PLANNING)
+  currency    String     @default("EUR")
+  budget      Float?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destinations Destination[]
+  flights     Flight[]
+  accommodations Accommodation[]
+  activities  Activity[]
+  documents   Document[]
+  expenses    Expense[]
+  packingItems PackingItem[]
+}
+
+enum TripStatus {
+  PLANNING
+  BOOKED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+model Destination {
+  id        String   @id @default(cuid())
+  tripId    String
+  city      String
+  country   String
+  arrivalDate  DateTime
+  departureDate DateTime
+  notes     String?
+  order     Int      @default(0)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// ─── Flights ────────────────────────────────────────────────────────────────
+
+model Flight {
+  id             String   @id @default(cuid())
+  tripId         String
+  airline        String
+  flightNumber   String
+  origin         String
+  destination    String
+  departureAt    DateTime
+  arrivalAt      DateTime
+  bookingRef     String?
+  confirmationUrl String?
+  seatNumber     String?
+  class          FlightClass @default(ECONOMY)
+  price          Float?
+  notes          String?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+enum FlightClass {
+  ECONOMY
+  PREMIUM_ECONOMY
+  BUSINESS
+  FIRST
+}
+
+// ─── Accommodations ─────────────────────────────────────────────────────────
+
+model Accommodation {
+  id              String   @id @default(cuid())
+  tripId          String
+  name            String
+  type            AccommodationType @default(HOTEL)
+  address         String?
+  city            String
+  checkIn         DateTime
+  checkOut        DateTime
+  bookingRef      String?
+  confirmationUrl String?
+  price           Float?
+  pricePerNight   Float?
+  notes           String?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+enum AccommodationType {
+  HOTEL
+  HOSTEL
+  AIRBNB
+  APARTMENT
+  RESORT
+  OTHER
+}
+
+// ─── Activities ─────────────────────────────────────────────────────────────
+
+model Activity {
+  id              String   @id @default(cuid())
+  tripId          String
+  name            String
+  type            ActivityType @default(ACTIVITY)
+  description     String?
+  location        String?
+  city            String?
+  scheduledAt     DateTime?
+  duration        Int?     // minutes
+  bookingRef      String?
+  confirmationUrl String?
+  price           Float?
+  status          BookingStatus @default(PENDING)
+  notes           String?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+enum ActivityType {
+  ACTIVITY
+  RESTAURANT
+  MUSEUM
+  TOUR
+  TRANSPORT
+  SHOW
+  OTHER
+}
+
+enum BookingStatus {
+  PENDING
+  RESERVED
+  CONFIRMED
+  CANCELLED
+}
+
+// ─── Documents ──────────────────────────────────────────────────────────────
+
+model Document {
+  id         String       @id @default(cuid())
+  tripId     String
+  type       DocumentType
+  name       String
+  fileUrl    String?
+  expiresAt  DateTime?
+  notes      String?
+  createdAt  DateTime     @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+enum DocumentType {
+  PASSPORT
+  VISA
+  INSURANCE
+  TICKET
+  VOUCHER
+  OTHER
+}
+
+// ─── Expenses ────────────────────────────────────────────────────────────────
+
+model Expense {
+  id          String          @id @default(cuid())
+  tripId      String
+  category    ExpenseCategory
+  description String
+  amount      Float
+  currency    String          @default("EUR")
+  date        DateTime
+  paid        Boolean         @default(false)
+  notes       String?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+enum ExpenseCategory {
+  FLIGHT
+  ACCOMMODATION
+  FOOD
+  TRANSPORT
+  ACTIVITY
+  SHOPPING
+  OTHER
+}
+
+// ─── Packing List ────────────────────────────────────────────────────────────
+
+model PackingItem {
+  id       String  @id @default(cuid())
+  tripId   String
+  category String
+  name     String
+  packed   Boolean @default(false)
+  quantity Int     @default(1)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
