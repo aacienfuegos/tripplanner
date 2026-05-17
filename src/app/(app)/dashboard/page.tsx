@@ -102,31 +102,67 @@ export default async function DashboardPage() {
             {(() => {
               const trip = (activeTrip ?? nextTrip)!;
               const daysUntil = differenceInDays(trip.startDate, new Date());
+              const nextFlight = upcomingFlights.find((f) => f.trip.id === trip.id);
+              const nextAccom  = upcomingAccommodations.find((a) => a.trip.id === trip.id);
               return (
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold">{trip.name}</h2>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {format(trip.startDate, "d MMM", { locale: es })} —{" "}
-                      {format(trip.endDate, "d MMM yyyy", { locale: es })}
-                      {!activeTrip && daysUntil > 0 && (
-                        <Badge variant="secondary" className="ml-2">En {daysUntil} días</Badge>
-                      )}
-                    </p>
-                    {trip.destinations.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold">{trip.name}</h2>
                       <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {trip.destinations.map((d) => d.city).join(" → ")}
+                        <Calendar className="h-3.5 w-3.5" />
+                        {format(trip.startDate, "d MMM", { locale: es })} —{" "}
+                        {format(trip.endDate, "d MMM yyyy", { locale: es })}
+                        {!activeTrip && daysUntil > 0 && (
+                          <Badge variant="secondary" className="ml-2">En {daysUntil} días</Badge>
+                        )}
                       </p>
-                    )}
+                      {trip.destinations.length > 0 && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {trip.destinations.map((d) => d.city).join(" → ")}
+                        </p>
+                      )}
+                    </div>
+                    <Link
+                      href={`/trips/${trip.id}`}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Ver viaje
+                    </Link>
                   </div>
-                  <Link
-                    href={`/trips/${trip.id}`}
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
-                  >
-                    Ver viaje
-                  </Link>
+                  {(nextFlight || nextAccom) && (
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      {nextFlight && (
+                        <Link
+                          href={`/trips/${trip.id}/flights#${nextFlight.id}`}
+                          className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 hover:brightness-95 transition-[filter]"
+                        >
+                          <Plane className="h-3 w-3 text-blue-600 shrink-0" />
+                          <span className="font-medium text-blue-700 dark:text-blue-400 shrink-0">Vuelo</span>
+                          <span className="text-muted-foreground truncate">
+                            {nextFlight.airline} {nextFlight.flightNumber} · {nextFlight.origin} → {nextFlight.destination}
+                          </span>
+                          <span className="text-muted-foreground shrink-0 ml-auto font-mono">
+                            {format(nextFlight.departureAt, "d MMM, HH:mm", { locale: es })}
+                          </span>
+                        </Link>
+                      )}
+                      {nextAccom && (
+                        <Link
+                          href={`/trips/${trip.id}/accommodations#${nextAccom.id}`}
+                          className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 hover:brightness-95 transition-[filter]"
+                        >
+                          <Hotel className="h-3 w-3 text-emerald-600 shrink-0" />
+                          <span className="font-medium text-emerald-700 dark:text-emerald-400 shrink-0">Check-in</span>
+                          <span className="text-muted-foreground truncate">{nextAccom.name} · {nextAccom.city}</span>
+                          <span className="text-muted-foreground shrink-0 ml-auto">
+                            {format(nextAccom.checkIn, "d MMM", { locale: es })}
+                          </span>
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })()}
