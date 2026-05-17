@@ -21,6 +21,7 @@ model User {
   emailVerified DateTime?
   image         String?
   status        UserStatus @default(PENDING)
+  isAdmin       Boolean    @default(false)
   createdAt     DateTime   @default(now())
 
   accounts Account[]
