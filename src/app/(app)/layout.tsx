@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { status: true, name: true, image: true },
+    select: { status: true, name: true, image: true, isAdmin: true },
   });
 
   if (!user || user.status === "DENIED") redirect("/auth/error?error=AccessDenied");
@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar user={{ name: user.name, email: session.user.email, image: user.image }} />
+      <Navbar user={{ name: user.name, email: session.user.email, image: user.image, isAdmin: user.isAdmin }} />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
         {children}
       </main>
