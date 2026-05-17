@@ -15,6 +15,8 @@ async function main() {
       id: DEV_USER_ID,
       email: "admin@dev.local",
       name: "Andrés García",
+      status: "APPROVED",
+      isAdmin: true,
     },
   });
 

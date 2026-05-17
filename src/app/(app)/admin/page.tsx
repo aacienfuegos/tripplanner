@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/dashboard");
+  if (!session?.user?.id) redirect("/auth/signin");
 
   const currentUser = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -21,9 +21,9 @@ export default async function AdminPage() {
   if (!currentUser?.isAdmin) redirect("/dashboard");
 
   const [pendingUsers, approvedUsers, deniedUsers, settings] = await Promise.all([
-    prisma.user.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "asc" } }),
+    prisma.user.findMany({ where: { status: "PENDING" }, select: { id: true, name: true, email: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     prisma.user.findMany({ where: { status: "APPROVED" }, select: { id: true, name: true, email: true, isAdmin: true }, orderBy: { createdAt: "asc" } }),
-    prisma.user.findMany({ where: { status: "DENIED" }, orderBy: { createdAt: "desc" } }),
+    prisma.user.findMany({ where: { status: "DENIED" }, select: { id: true, name: true, email: true, createdAt: true }, orderBy: { createdAt: "desc" } }),
     prisma.settings.findUnique({ where: { id: "global" } }),
   ]);
 

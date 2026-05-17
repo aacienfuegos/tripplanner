@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Clock } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +41,9 @@ export default async function PendingPage() {
           <p className="text-sm text-muted-foreground">
             Si ya te han aprobado, haz clic en Verificar para comprobarlo.
           </p>
-          <a href="/auth/pending" className={buttonVariants({ variant: "outline" })}>
+          <Link href="/auth/pending" className={buttonVariants({ variant: "outline" })}>
             Verificar acceso
-          </a>
+          </Link>
           <form action={handleSignOut}>
             <button type="submit" className={buttonVariants({ variant: "ghost", size: "sm" }) + " w-full"}>
               Cerrar sesión
