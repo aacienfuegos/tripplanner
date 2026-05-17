@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plane, Hotel, Calendar, MapPin, Plus, TrendingUp } from "lucide-react";
+import { Plane, Hotel, Star, Calendar, MapPin, Plus, TrendingUp } from "lucide-react";
 import { format, differenceInDays, isFuture, isPast } from "date-fns";
 import { es } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
@@ -26,13 +26,13 @@ export default async function DashboardPage() {
     }),
     prisma.flight.findMany({
       where: { trip: { userId }, departureAt: { gte: new Date() } },
-      include: { trip: { select: { name: true } } },
+      include: { trip: { select: { id: true, name: true } } },
       orderBy: { departureAt: "asc" },
       take: 3,
     }),
     prisma.accommodation.findMany({
       where: { trip: { userId }, checkIn: { gte: new Date() } },
-      include: { trip: { select: { name: true } } },
+      include: { trip: { select: { id: true, name: true } } },
       orderBy: { checkIn: "asc" },
       take: 3,
     }),
@@ -120,6 +120,20 @@ export default async function DashboardPage() {
                         {trip.destinations.map((d) => d.city).join(" → ")}
                       </p>
                     )}
+                    <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
+                      <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                        <Plane className="h-3 w-3" />
+                        {trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}
+                      </Link>
+                      <Link href={`/trips/${trip.id}/accommodations`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                        <Hotel className="h-3 w-3" />
+                        {trip._count.accommodations} aloj.
+                      </Link>
+                      <Link href={`/trips/${trip.id}/activities`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                        <Star className="h-3 w-3" />
+                        {trip._count.activities} activ.
+                      </Link>
+                    </div>
                   </div>
                   <Link
                     href={`/trips/${trip.id}`}
@@ -146,13 +160,17 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {upcomingFlights.map((f) => (
-                  <div key={f.id} className="text-sm">
-                    <p className="font-medium">{f.origin} → {f.destination}</p>
+                  <Link
+                    key={f.id}
+                    href={`/trips/${f.trip.id}/flights#${f.id}`}
+                    className="block text-sm rounded px-2 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 hover:brightness-95 transition-[filter]"
+                  >
+                    <p className="font-medium text-blue-700 dark:text-blue-400">{f.origin} → {f.destination}</p>
                     <p className="text-muted-foreground text-xs">
                       {f.airline} {f.flightNumber} · {format(f.departureAt, "d MMM, HH:mm", { locale: es })}
                     </p>
                     <p className="text-muted-foreground text-xs">{f.trip.name}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -170,13 +188,17 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {upcomingAccommodations.map((a) => (
-                  <div key={a.id} className="text-sm">
-                    <p className="font-medium">{a.name}</p>
+                  <Link
+                    key={a.id}
+                    href={`/trips/${a.trip.id}/accommodations#${a.id}`}
+                    className="block text-sm rounded px-2 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 hover:brightness-95 transition-[filter]"
+                  >
+                    <p className="font-medium text-emerald-700 dark:text-emerald-400">{a.name}</p>
                     <p className="text-muted-foreground text-xs">
                       {a.city} · Check-in {format(a.checkIn, "d MMM", { locale: es })}
                     </p>
                     <p className="text-muted-foreground text-xs">{a.trip.name}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -194,9 +216,9 @@ export default async function DashboardPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {trips.map((trip) => (
-              <Link key={trip.id} href={`/trips/${trip.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                  <CardContent className="pt-4">
+              <Card key={trip.id} className="hover:shadow-md transition-shadow h-full">
+                <CardContent className="pt-4 flex flex-col h-full">
+                  <Link href={`/trips/${trip.id}`} className="block flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold leading-tight">{trip.name}</h3>
                       <TripStatusBadge status={trip.status} />
@@ -211,14 +233,21 @@ export default async function DashboardPage() {
                         {trip.destinations.map((d) => d.city).join(", ")}
                       </p>
                     )}
-                    <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
-                      <span>{trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}</span>
-                      <span>{trip._count.accommodations} aloj.</span>
-                      <span>{trip._count.activities} activ.</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </Link>
+                  <div className="flex gap-3 mt-3 pt-2 border-t text-xs text-muted-foreground">
+                    <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                      <Plane className="h-3 w-3" />
+                      {trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}
+                    </Link>
+                    <Link href={`/trips/${trip.id}/accommodations`} className="hover:text-foreground hover:underline transition-colors">
+                      {trip._count.accommodations} aloj.
+                    </Link>
+                    <Link href={`/trips/${trip.id}/activities`} className="hover:text-foreground hover:underline transition-colors">
+                      {trip._count.activities} activ.
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
