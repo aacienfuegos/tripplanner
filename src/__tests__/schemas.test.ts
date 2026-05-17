@@ -7,6 +7,7 @@ import {
   activitySchema,
   documentSchema,
   packingItemSchema,
+  profileSchema,
 } from "@/lib/schemas";
 
 // ─── Trip schema ──────────────────────────────────────────────────────────────
@@ -184,6 +185,42 @@ describe("packingItemSchema", () => {
 
   it("rejects missing category", () => {
     const result = packingItemSchema.safeParse({ ...valid, category: "" });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── Profile schema ───────────────────────────────────────────────────────────
+
+describe("profileSchema", () => {
+  const valid = { name: "Andrés García" };
+
+  it("accepts a minimal valid profile", () => {
+    const result = profileSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty name", () => {
+    const result = profileSchema.safeParse({ ...valid, name: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a valid image URL", () => {
+    const result = profileSchema.safeParse({ ...valid, image: "https://example.com/photo.jpg" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty string for image", () => {
+    const result = profileSchema.safeParse({ ...valid, image: "" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid image URL", () => {
+    const result = profileSchema.safeParse({ ...valid, image: "not-a-url" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects whitespace-only name", () => {
+    const result = profileSchema.safeParse({ ...valid, name: "   " });
     expect(result.success).toBe(false);
   });
 });

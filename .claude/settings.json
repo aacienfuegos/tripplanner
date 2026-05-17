@@ -30,6 +30,7 @@
       "Bash(pgrep *)",
       "Bash(gh issue *)",
       "Bash(gh pr *)",
+      "Bash(gh release *)",
       "Bash(gh project *)",
       "Bash(gh repo view*)",
       "Read",

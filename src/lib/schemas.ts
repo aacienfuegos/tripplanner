@@ -79,3 +79,8 @@ export const packingItemSchema = z.object({
   category: z.string().min(1),
   quantity: z.string().default("1"),
 });
+
+export const profileSchema = z.object({
+  name: z.string().trim().min(1, "El nombre es obligatorio"),
+  image: z.string().url("La URL de la imagen no es válida").optional().or(z.literal("")),
+});
