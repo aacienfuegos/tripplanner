@@ -2,16 +2,13 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER:-tripuser}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio en producción}
-      POSTGRES_DB: ${DB_NAME:-tripplanner}
+    env_file: .env.prod        # postgres lee POSTGRES_USER/PASSWORD/DB directamente
     volumes:
       - db_data_prod:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tripuser} -d ${DB_NAME:-tripplanner}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
