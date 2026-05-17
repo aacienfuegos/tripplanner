@@ -26,13 +26,13 @@ export default async function DashboardPage() {
     }),
     prisma.flight.findMany({
       where: { trip: { userId }, departureAt: { gte: new Date() } },
-      include: { trip: { select: { name: true } } },
+      include: { trip: { select: { id: true, name: true } } },
       orderBy: { departureAt: "asc" },
       take: 3,
     }),
     prisma.accommodation.findMany({
       where: { trip: { userId }, checkIn: { gte: new Date() } },
-      include: { trip: { select: { name: true } } },
+      include: { trip: { select: { id: true, name: true } } },
       orderBy: { checkIn: "asc" },
       take: 3,
     }),
@@ -146,13 +146,17 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {upcomingFlights.map((f) => (
-                  <div key={f.id} className="text-sm">
-                    <p className="font-medium">{f.origin} → {f.destination}</p>
+                  <Link
+                    key={f.id}
+                    href={`/trips/${f.trip.id}/flights#${f.id}`}
+                    className="block text-sm rounded px-2 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 hover:brightness-95 transition-[filter]"
+                  >
+                    <p className="font-medium text-blue-700 dark:text-blue-400">{f.origin} → {f.destination}</p>
                     <p className="text-muted-foreground text-xs">
                       {f.airline} {f.flightNumber} · {format(f.departureAt, "d MMM, HH:mm", { locale: es })}
                     </p>
                     <p className="text-muted-foreground text-xs">{f.trip.name}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -170,13 +174,17 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {upcomingAccommodations.map((a) => (
-                  <div key={a.id} className="text-sm">
-                    <p className="font-medium">{a.name}</p>
+                  <Link
+                    key={a.id}
+                    href={`/trips/${a.trip.id}/accommodations#${a.id}`}
+                    className="block text-sm rounded px-2 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 hover:brightness-95 transition-[filter]"
+                  >
+                    <p className="font-medium text-emerald-700 dark:text-emerald-400">{a.name}</p>
                     <p className="text-muted-foreground text-xs">
                       {a.city} · Check-in {format(a.checkIn, "d MMM", { locale: es })}
                     </p>
                     <p className="text-muted-foreground text-xs">{a.trip.name}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
