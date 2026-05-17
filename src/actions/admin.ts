@@ -7,10 +7,12 @@ import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
   const session = await auth();
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail || !session?.user?.email || session.user.email !== adminEmail) {
-    redirect("/dashboard");
-  }
+  if (!session?.user?.id) redirect("/dashboard");
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  });
+  if (!user?.isAdmin) redirect("/dashboard");
 }
 
 export async function approveUser(formData: FormData) {
@@ -23,6 +25,8 @@ export async function approveUser(formData: FormData) {
 export async function denyUser(formData: FormData) {
   await requireAdmin();
   const userId = formData.get("userId") as string;
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+  if (target?.isAdmin) return;
   await prisma.user.update({ where: { id: userId }, data: { status: "DENIED" } });
   revalidatePath("/admin");
 }
@@ -30,6 +34,8 @@ export async function denyUser(formData: FormData) {
 export async function revokeUser(formData: FormData) {
   await requireAdmin();
   const userId = formData.get("userId") as string;
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+  if (target?.isAdmin) return;
   await prisma.user.update({ where: { id: userId }, data: { status: "PENDING" } });
   revalidatePath("/admin");
 }

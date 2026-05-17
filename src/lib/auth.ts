@@ -106,9 +106,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     async createUser({ user }) {
-      // Auto-aprobar al administrador
+      // Auto-aprobar y marcar como admin al primer usuario con ese email
       if (user.email && user.email === process.env.ADMIN_EMAIL) {
-        await prisma.user.update({ where: { id: user.id! }, data: { status: "APPROVED" } });
+        await prisma.user.update({ where: { id: user.id! }, data: { status: "APPROVED", isAdmin: true } });
         return;
       }
       // Auto-aprobar si el registro está abierto
@@ -124,12 +124,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user.id === DEV_USER_ID) {
         await prisma.user.upsert({
           where: { id: DEV_USER_ID },
-          update: { status: "APPROVED" },
+          update: { status: "APPROVED", isAdmin: true },
           create: {
             id: DEV_USER_ID,
             email: process.env.DEV_ADMIN_EMAIL!,
             name: "Dev Admin",
             status: "APPROVED",
+            isAdmin: true,
           },
         });
       }

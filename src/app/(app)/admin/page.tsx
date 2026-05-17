@@ -12,13 +12,17 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const session = await auth();
-  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!session?.user?.id) redirect("/dashboard");
 
-  if (!adminEmail || session?.user?.email !== adminEmail) redirect("/dashboard");
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  });
+  if (!currentUser?.isAdmin) redirect("/dashboard");
 
   const [pendingUsers, approvedUsers, deniedUsers, settings] = await Promise.all([
     prisma.user.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "asc" } }),
-    prisma.user.findMany({ where: { status: "APPROVED" }, orderBy: { createdAt: "asc" } }),
+    prisma.user.findMany({ where: { status: "APPROVED" }, select: { id: true, name: true, email: true, isAdmin: true }, orderBy: { createdAt: "asc" } }),
     prisma.user.findMany({ where: { status: "DENIED" }, orderBy: { createdAt: "desc" } }),
     prisma.settings.findUnique({ where: { id: "global" } }),
   ]);
@@ -148,7 +152,7 @@ export default async function AdminPage() {
                       <p className="text-sm font-medium truncate">{user.name ?? "Sin nombre"}</p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
-                    {user.email !== adminEmail && (
+                    {!user.isAdmin && (
                       <form action={revokeUser}>
                         <input type="hidden" name="userId" value={user.id} />
                         <Button type="submit" size="sm" variant="ghost" className="text-muted-foreground hover:text-red-600">
