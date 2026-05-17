@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-tripuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio en producción}
+      POSTGRES_DB: ${DB_NAME:-tripplanner}
+    volumes:
+      - db_data_prod:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tripuser} -d ${DB_NAME:-tripplanner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.prod
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"  # sólo escucha en loopback; nginx del host hace el proxy
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data_prod:
+
+networks:
+  internal:
+    driver: bridge

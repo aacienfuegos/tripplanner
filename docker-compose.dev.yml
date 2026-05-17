@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-tripuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tripdev123}
+      POSTGRES_DB: ${DB_NAME:-tripplanner_dev}
+    volumes:
+      - db_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tripuser} -d ${DB_NAME:-tripplanner_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Descomenta para conectar con un cliente local de BD:
+    # ports:
+    #   - "5432:5432"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    env_file: .env.dev
+    volumes:
+      - .:/app                          # código fuente (hot reload)
+      - node_modules_dev:/app/node_modules  # node_modules del contenedor
+      - next_cache_dev:/app/.next           # caché de Next.js
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data_dev:
+  node_modules_dev:
+  next_cache_dev:
