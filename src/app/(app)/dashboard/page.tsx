@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plane, Hotel, Calendar, MapPin, Plus, TrendingUp } from "lucide-react";
+import { Plane, Hotel, Star, Calendar, MapPin, Plus, TrendingUp } from "lucide-react";
 import { format, differenceInDays, isFuture, isPast } from "date-fns";
 import { es } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
@@ -125,10 +125,12 @@ export default async function DashboardPage() {
                         <Plane className="h-3 w-3" />
                         {trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}
                       </Link>
-                      <Link href={`/trips/${trip.id}/accommodations`} className="hover:text-foreground hover:underline transition-colors">
+                      <Link href={`/trips/${trip.id}/accommodations`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                        <Hotel className="h-3 w-3" />
                         {trip._count.accommodations} aloj.
                       </Link>
-                      <Link href={`/trips/${trip.id}/activities`} className="hover:text-foreground hover:underline transition-colors">
+                      <Link href={`/trips/${trip.id}/activities`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                        <Star className="h-3 w-3" />
                         {trip._count.activities} activ.
                       </Link>
                     </div>
