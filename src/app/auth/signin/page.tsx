@@ -1,4 +1,5 @@
 import { signIn } from "@/lib/auth";
+import { connection } from "next/server";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,10 +25,31 @@ async function devSignIn(formData: FormData) {
   }
 }
 
-export default function SignInPage() {
+async function resendSignIn(formData: FormData) {
+  "use server";
+  await signIn("resend", {
+    email: formData.get("email") as string,
+    redirectTo: "/dashboard",
+  });
+}
+
+function OAuthSeparator() {
+  return (
+    <div className="flex items-center gap-2">
+      <Separator className="flex-1" />
+      <span className="text-xs text-muted-foreground">o</span>
+      <Separator className="flex-1" />
+    </div>
+  );
+}
+
+export default async function SignInPage() {
+  await connection(); // opt into dynamic rendering so process.env is read at request time
   const hasGoogle = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   const hasGitHub = !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
-  const hasDev = !!(process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD);
+  const hasResend = !!process.env.RESEND_API_KEY;
+  const hasDev = process.env.NODE_ENV !== "production" && !!(process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD);
+  const hasOAuth = hasGoogle || hasGitHub;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30">
@@ -71,13 +93,27 @@ export default function SignInPage() {
             </form>
           )}
 
-          {(hasGoogle || hasGitHub) && hasDev && (
-            <div className="flex items-center gap-2">
-              <Separator className="flex-1" />
-              <span className="text-xs text-muted-foreground">o</span>
-              <Separator className="flex-1" />
-            </div>
+          {hasOAuth && hasResend && <OAuthSeparator />}
+
+          {hasResend && (
+            <form action={resendSignIn} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="resend-email">Email</Label>
+                <Input
+                  id="resend-email"
+                  name="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  required
+                />
+              </div>
+              <Button variant="outline" className="w-full" type="submit">
+                Enviar enlace de acceso
+              </Button>
+            </form>
           )}
+
+          {(hasOAuth || hasResend) && hasDev && <OAuthSeparator />}
 
           {hasDev && (
             <form action={devSignIn} className="space-y-3">
@@ -87,7 +123,7 @@ export default function SignInPage() {
                   id="email"
                   name="email"
                   type="email"
-                  defaultValue={process.env.DEV_ADMIN_EMAIL}
+                  placeholder={process.env.DEV_ADMIN_EMAIL}
                   required
                 />
               </div>
@@ -97,7 +133,6 @@ export default function SignInPage() {
                   id="password"
                   name="password"
                   type="password"
-                  defaultValue={process.env.DEV_ADMIN_PASSWORD}
                   required
                 />
               </div>

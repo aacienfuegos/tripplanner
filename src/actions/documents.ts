@@ -31,7 +31,7 @@ export async function updateDocument(tripId: string, id: string, formData: FormD
   await requireTripOwner(tripId);
   const data = documentSchema.parse(Object.fromEntries(formData));
   await prisma.document.update({
-    where: { id },
+    where: { id, tripId },
     data: {
       ...data,
       fileUrl: data.fileUrl || null,
@@ -43,6 +43,6 @@ export async function updateDocument(tripId: string, id: string, formData: FormD
 
 export async function deleteDocument(tripId: string, id: string) {
   await requireTripOwner(tripId);
-  await prisma.document.delete({ where: { id } });
+  await prisma.document.delete({ where: { id, tripId } });
   revalidatePath(`/trips/${tripId}/documents`);
 }

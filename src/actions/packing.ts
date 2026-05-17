@@ -24,13 +24,13 @@ export async function createPackingItem(tripId: string, formData: FormData) {
 
 export async function togglePackingItem(tripId: string, id: string, packed: boolean) {
   await requireTripOwner(tripId);
-  await prisma.packingItem.update({ where: { id }, data: { packed } });
+  await prisma.packingItem.update({ where: { id, tripId }, data: { packed } });
   revalidatePath(`/trips/${tripId}/packing`);
 }
 
 export async function deletePackingItem(tripId: string, id: string) {
   await requireTripOwner(tripId);
-  await prisma.packingItem.delete({ where: { id } });
+  await prisma.packingItem.delete({ where: { id, tripId } });
   revalidatePath(`/trips/${tripId}/packing`);
 }
 

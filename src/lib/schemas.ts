@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const tripStatusSchema = z.enum(["PLANNING", "BOOKED", "ONGOING", "COMPLETED", "CANCELLED"]);
+
 export const tripSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   description: z.string().optional(),

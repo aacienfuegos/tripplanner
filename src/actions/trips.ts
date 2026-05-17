@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { tripSchema } from "@/lib/schemas";
+import { tripSchema, tripStatusSchema } from "@/lib/schemas";
 
 async function requireUser() {
   const session = await auth();
@@ -70,10 +70,11 @@ export async function deleteTrip(tripId: string) {
 export async function updateTripStatus(tripId: string, status: string) {
   const userId = await requireUser();
   await assertTripOwner(tripId, userId);
+  const parsed = tripStatusSchema.parse(status);
 
   await prisma.trip.update({
     where: { id: tripId },
-    data: { status: status as any },
+    data: { status: parsed },
   });
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/trips");

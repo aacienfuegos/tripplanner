@@ -36,7 +36,7 @@ export async function updateActivity(tripId: string, id: string, formData: FormD
   const data = activitySchema.parse(Object.fromEntries(formData));
 
   await prisma.activity.update({
-    where: { id },
+    where: { id, tripId },
     data: {
       ...data,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
@@ -51,12 +51,13 @@ export async function updateActivity(tripId: string, id: string, formData: FormD
 
 export async function updateActivityStatus(tripId: string, id: string, status: string) {
   await requireTripOwner(tripId);
-  await prisma.activity.update({ where: { id }, data: { status: status as any } });
+  const parsed = activitySchema.shape.status.parse(status);
+  await prisma.activity.update({ where: { id, tripId }, data: { status: parsed } });
   revalidatePath(`/trips/${tripId}/activities`);
 }
 
 export async function deleteActivity(tripId: string, id: string) {
   await requireTripOwner(tripId);
-  await prisma.activity.delete({ where: { id } });
+  await prisma.activity.delete({ where: { id, tripId } });
   revalidatePath(`/trips/${tripId}/activities`);
 }

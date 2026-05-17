@@ -38,7 +38,7 @@ export async function updateFlight(tripId: string, flightId: string, formData: F
   const data = flightSchema.parse(Object.fromEntries(formData));
 
   await prisma.flight.update({
-    where: { id: flightId },
+    where: { id: flightId, tripId },
     data: {
       ...data,
       departureAt: new Date(data.departureAt),
@@ -53,6 +53,6 @@ export async function updateFlight(tripId: string, flightId: string, formData: F
 
 export async function deleteFlight(tripId: string, flightId: string) {
   await requireTripOwner(tripId);
-  await prisma.flight.delete({ where: { id: flightId } });
+  await prisma.flight.delete({ where: { id: flightId, tripId } });
   revalidatePath(`/trips/${tripId}/flights`);
 }

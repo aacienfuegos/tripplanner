@@ -32,7 +32,7 @@ export async function updateExpense(tripId: string, id: string, formData: FormDa
   await requireTripOwner(tripId);
   const data = expenseSchema.parse(Object.fromEntries(formData));
   await prisma.expense.update({
-    where: { id },
+    where: { id, tripId },
     data: {
       ...data,
       amount: parseFloat(data.amount),
@@ -45,12 +45,12 @@ export async function updateExpense(tripId: string, id: string, formData: FormDa
 
 export async function toggleExpensePaid(tripId: string, id: string, paid: boolean) {
   await requireTripOwner(tripId);
-  await prisma.expense.update({ where: { id }, data: { paid } });
+  await prisma.expense.update({ where: { id, tripId }, data: { paid } });
   revalidatePath(`/trips/${tripId}/expenses`);
 }
 
 export async function deleteExpense(tripId: string, id: string) {
   await requireTripOwner(tripId);
-  await prisma.expense.delete({ where: { id } });
+  await prisma.expense.delete({ where: { id, tripId } });
   revalidatePath(`/trips/${tripId}/expenses`);
 }

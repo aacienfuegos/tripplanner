@@ -37,7 +37,7 @@ export async function updateAccommodation(tripId: string, id: string, formData: 
   const data = accommodationSchema.parse(Object.fromEntries(formData));
 
   await prisma.accommodation.update({
-    where: { id },
+    where: { id, tripId },
     data: {
       ...data,
       checkIn: new Date(data.checkIn),
@@ -53,6 +53,6 @@ export async function updateAccommodation(tripId: string, id: string, formData: 
 
 export async function deleteAccommodation(tripId: string, id: string) {
   await requireTripOwner(tripId);
-  await prisma.accommodation.delete({ where: { id } });
+  await prisma.accommodation.delete({ where: { id, tripId } });
   revalidatePath(`/trips/${tripId}/accommodations`);
 }
