@@ -238,9 +238,9 @@ export default async function DashboardPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {trips.map((trip) => (
-              <Link key={trip.id} href={`/trips/${trip.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                  <CardContent className="pt-4">
+              <Card key={trip.id} className="hover:shadow-md transition-shadow h-full">
+                <CardContent className="pt-4 flex flex-col h-full">
+                  <Link href={`/trips/${trip.id}`} className="block flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold leading-tight">{trip.name}</h3>
                       <TripStatusBadge status={trip.status} />
@@ -255,14 +255,21 @@ export default async function DashboardPage() {
                         {trip.destinations.map((d) => d.city).join(", ")}
                       </p>
                     )}
-                    <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
-                      <span>{trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}</span>
-                      <span>{trip._count.accommodations} aloj.</span>
-                      <span>{trip._count.activities} activ.</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </Link>
+                  <div className="flex gap-3 mt-3 pt-2 border-t text-xs text-muted-foreground">
+                    <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                      <Plane className="h-3 w-3" />
+                      {trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}
+                    </Link>
+                    <Link href={`/trips/${trip.id}/accommodations`} className="hover:text-foreground hover:underline transition-colors">
+                      {trip._count.accommodations} aloj.
+                    </Link>
+                    <Link href={`/trips/${trip.id}/activities`} className="hover:text-foreground hover:underline transition-colors">
+                      {trip._count.activities} activ.
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
