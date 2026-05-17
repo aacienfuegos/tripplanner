@@ -61,7 +61,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
       accommodations: { orderBy: { checkIn: "asc" } },
       activities:     { orderBy: { scheduledAt: "asc" } },
       expenses:       { select: { amount: true } },
-      _count:         { select: { documents: true, packingItems: true } },
+      packingItems:   { select: { packed: true } },
+      _count:         { select: { documents: true } },
     },
   });
 
@@ -103,13 +104,18 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
   // ── Quick stats ─────────────────────────────────────────────────────────
 
-  const totalExpenses   = trip.expenses.reduce((s, e) => s + e.amount, 0);
-  const budgetPct       = trip.budget ? Math.min(100, (totalExpenses / trip.budget) * 100) : null;
-  const confirmedActs   = trip.activities.filter((a) => a.status === "CONFIRMED" || a.status === "RESERVED").length;
-  const pendingActs     = trip.activities.filter((a) => a.status === "PENDING").length;
-  const today           = startOfDay(new Date());
-  const daysUntilTrip   = differenceInDays(tripStart, today);
-  const isOngoing       = today >= tripStart && today <= tripEnd;
+  const totalExpenses    = trip.expenses.reduce((s, e) => s + e.amount, 0);
+  const budgetPct        = trip.budget ? Math.min(100, (totalExpenses / trip.budget) * 100) : null;
+  const confirmedActs    = trip.activities.filter((a) => a.status === "CONFIRMED" || a.status === "RESERVED").length;
+  const pendingActs      = trip.activities.filter((a) => a.status === "PENDING").length;
+  const today            = startOfDay(new Date());
+  const daysUntilTrip    = differenceInDays(tripStart, today);
+  const isOngoing        = today >= tripStart && today <= tripEnd;
+  const isPast           = today > tripEnd;
+  const daysElapsed      = isOngoing ? differenceInDays(today, tripStart) + 1 : isPast ? totalDays : 0;
+  const countdownPct     = (daysElapsed / totalDays) * 100;
+  const packedItems      = trip.packingItems.filter((i) => i.packed).length;
+  const totalPackItems   = trip.packingItems.length;
 
   const sections = [
     { href: "flights",        label: "Vuelos",      icon: Plane,       count: trip.flights.length },
@@ -117,59 +123,95 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
     { href: "activities",     label: "Actividades", icon: Star,        count: trip.activities.length },
     { href: "documents",      label: "Documentos",  icon: FileText,    count: trip._count.documents },
     { href: "expenses",       label: "Gastos",      icon: DollarSign,  count: trip.expenses.length },
-    { href: "packing",        label: "Equipaje",    icon: ShoppingBag, count: trip._count.packingItems },
+    { href: "packing",        label: "Equipaje",    icon: ShoppingBag, count: totalPackItems },
   ];
+
+  const hasQuickStatus =
+    (trip.budget !== null && trip.budget > 0) ||
+    totalPackItems > 0 ||
+    trip.activities.length > 0;
 
   return (
     <div className="space-y-6">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold">{trip.name}</h1>
-            <TripStatusBadge status={trip.status} />
-          </div>
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              {format(trip.startDate, "d MMM", { locale: es })} —{" "}
-              {format(trip.endDate, "d MMM yyyy", { locale: es })}
-              <Badge variant="outline" className="ml-1 text-xs">{totalDays} días</Badge>
-            </span>
-            {trip.destinations.length > 0 && (
-              <span className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
-                {trip.destinations.map((d) => d.city).join(" → ")}
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-4xl font-bold tracking-tight leading-none">{trip.name}</h1>
+              <TripStatusBadge status={trip.status} />
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                <span className="font-mono text-xs">
+                  {format(trip.startDate, "dd MMM yyyy", { locale: es })}
+                  {" — "}
+                  {format(trip.endDate, "dd MMM yyyy", { locale: es })}
+                </span>
+                <Badge variant="outline" className="text-xs">{totalDays} días</Badge>
               </span>
+              {trip.destinations.length > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="text-sm">{trip.destinations.map((d) => d.city).join(" → ")}</span>
+                </span>
+              )}
+            </div>
+            {trip.description && (
+              <p className="text-sm text-muted-foreground">{trip.description}</p>
             )}
           </div>
-          {trip.description && (
-            <p className="text-sm text-muted-foreground">{trip.description}</p>
-          )}
+          <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+            Editar
+          </Link>
         </div>
-        <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          <Pencil className="h-3.5 w-3.5 mr-1.5" />
-          Editar
-        </Link>
+
+        {/* Countdown progress bar — solo visible si el viaje ha empezado */}
+        {(isOngoing || isPast) && (
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground/60 font-mono">
+                {format(trip.startDate, "d MMM", { locale: es })}
+              </span>
+              <span className="text-xs text-muted-foreground font-medium">
+                {isOngoing
+                  ? `Día ${daysElapsed} de ${totalDays}`
+                  : "Viaje completado"}
+              </span>
+              <span className="text-xs text-muted-foreground/60 font-mono">
+                {format(trip.endDate, "d MMM", { locale: es })}
+              </span>
+            </div>
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${isPast ? "bg-muted-foreground/40" : "bg-primary/50"}`}
+                style={{ width: `${countdownPct}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Quick stats ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Countdown / progress */}
         <Card>
-          <CardContent className="pt-3 pb-3">
-            <p className="text-xs text-muted-foreground mb-0.5">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-1">
               {isOngoing ? "En curso" : daysUntilTrip > 0 ? "Faltan" : "Hace"}
             </p>
             {isOngoing ? (
-              <p className="text-sm font-semibold">
-                Día {differenceInDays(today, tripStart) + 1} de {totalDays}
+              <p className="text-3xl font-bold leading-none">
+                {daysElapsed}
+                <span className="text-sm font-normal text-muted-foreground ml-1.5">/ {totalDays}</span>
               </p>
             ) : (
-              <p className="text-2xl font-bold leading-none">
+              <p className="text-3xl font-bold leading-none">
                 {Math.abs(daysUntilTrip)}
-                <span className="text-sm font-normal text-muted-foreground ml-1">días</span>
+                <span className="text-sm font-normal text-muted-foreground ml-1.5">días</span>
               </p>
             )}
           </CardContent>
@@ -177,20 +219,22 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
         {/* Budget */}
         <Card>
-          <CardContent className="pt-3 pb-3">
-            <p className="text-xs text-muted-foreground mb-0.5">
-              {trip.budget ? "Presupuesto" : "Gastos"}
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-1">
+              {trip.budget ? "Gastado" : "Gastos"}
             </p>
-            {trip.budget ? (
+            <p className="text-3xl font-bold leading-none">
+              {totalExpenses.toLocaleString("es-ES", { maximumFractionDigits: 0 })}
+              <span className="text-xs font-normal text-muted-foreground ml-1.5">{trip.currency}</span>
+            </p>
+            {trip.budget && (
               <>
-                <p className="text-sm font-semibold leading-snug">
-                  {totalExpenses.toLocaleString("es-ES", { maximumFractionDigits: 0 })}
-                  {" / "}
-                  {trip.budget.toLocaleString("es-ES", { maximumFractionDigits: 0 })} {trip.currency}
+                <p className="text-xs text-muted-foreground mt-1">
+                  de {trip.budget.toLocaleString("es-ES", { maximumFractionDigits: 0 })} {trip.currency}
                 </p>
-                <div className="mt-1.5 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${
+                    className={`h-full rounded-full transition-all ${
                       budgetPct! > 90 ? "bg-destructive" :
                       budgetPct! > 70 ? "bg-yellow-500" :
                       "bg-green-500"
@@ -199,34 +243,29 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
                   />
                 </div>
               </>
-            ) : (
-              <p className="text-2xl font-bold leading-none">
-                {totalExpenses.toLocaleString("es-ES", { maximumFractionDigits: 0 })}
-                <span className="text-sm font-normal text-muted-foreground ml-1">{trip.currency}</span>
-              </p>
             )}
           </CardContent>
         </Card>
 
         {/* Flights */}
         <Card>
-          <CardContent className="pt-3 pb-3">
-            <p className="text-xs text-muted-foreground mb-0.5">Vuelos</p>
-            <div className="flex items-baseline gap-1.5">
-              <p className="text-2xl font-bold leading-none">{trip.flights.length}</p>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-1">Vuelos</p>
+            <p className="text-3xl font-bold leading-none">
+              {trip.flights.length}
               {trip.flights.length === 0 && (
-                <span className="text-xs text-muted-foreground">sin añadir</span>
+                <span className="text-xs font-normal text-muted-foreground ml-1.5">sin añadir</span>
               )}
-            </div>
+            </p>
           </CardContent>
         </Card>
 
         {/* Activities */}
         <Card>
-          <CardContent className="pt-3 pb-3">
-            <p className="text-xs text-muted-foreground mb-0.5">Actividades</p>
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <p className="text-2xl font-bold leading-none">{trip.activities.length}</p>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-1">Actividades</p>
+            <p className="text-3xl font-bold leading-none">{trip.activities.length}</p>
+            <div className="mt-1 flex gap-1.5 flex-wrap">
               {pendingActs > 0 && (
                 <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-600 px-1 h-4">
                   {pendingActs} pendientes
@@ -241,6 +280,62 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Quick status widget ──────────────────────────────────────────── */}
+      {hasQuickStatus && (
+        <Card>
+          <CardContent className="py-3 px-4">
+            <div className="flex gap-6 flex-wrap">
+              {trip.budget !== null && trip.budget > 0 && budgetPct !== null && (
+                <div className="flex-1 min-w-28">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                    <span>Presupuesto</span>
+                    <span className="font-mono tabular-nums">{Math.round(budgetPct)}%</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        budgetPct > 90 ? "bg-destructive" :
+                        budgetPct > 70 ? "bg-yellow-500" :
+                        "bg-green-500"
+                      }`}
+                      style={{ width: `${budgetPct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {totalPackItems > 0 && (
+                <div className="flex-1 min-w-28">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                    <span>Equipaje</span>
+                    <span className="font-mono tabular-nums">{packedItems}/{totalPackItems}</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${(packedItems / totalPackItems) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {trip.activities.length > 0 && (
+                <div className="flex-1 min-w-28">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                    <span>Actividades confirmadas</span>
+                    <span className="font-mono tabular-nums">{confirmedActs}/{trip.activities.length}</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${(confirmedActs / trip.activities.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Section navigation ───────────────────────────────────────────── */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -266,17 +361,41 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         <div>
           {days.map((day, index) => {
             const isToday  = isSameDay(day.date, today);
-            const isPast   = day.date < today && !isToday;
+            const isDayPast = day.date < today && !isToday;
             const isLast   = index === days.length - 1;
+            const isEmpty  = day.events.length === 0 && !isToday;
+
+            if (isEmpty) {
+              return (
+                <div key={day.dayNumber} className="flex gap-3 items-start">
+                  {/* Spine — smaller dot for empty days */}
+                  <div className="flex flex-col items-center w-6 shrink-0">
+                    <div className="mt-1.5 w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
+                    {!isLast && <div className="w-px flex-1 bg-border/50 mt-1 min-h-[12px]" />}
+                  </div>
+                  {/* Compact row */}
+                  <div className="pb-2 flex-1 flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground/70 capitalize">
+                      Día {day.dayNumber} · {format(day.date, "EEE d MMM", { locale: es })}
+                    </span>
+                    {day.city && (
+                      <span className="text-xs text-muted-foreground/50">
+                        <MapPin className="h-2.5 w-2.5 inline mr-0.5" />{day.city}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div key={day.dayNumber} className="flex gap-3">
                 {/* Spine */}
                 <div className="flex flex-col items-center w-6 shrink-0">
                   <div className={`mt-1.5 w-2.5 h-2.5 rounded-full border-2 shrink-0 ${
-                    isToday  ? "bg-primary border-primary ring-2 ring-primary/20" :
-                    isPast   ? "bg-muted-foreground/40 border-muted-foreground/40" :
-                               "bg-background border-border"
+                    isToday    ? "bg-primary border-primary ring-2 ring-primary/20" :
+                    isDayPast  ? "bg-muted-foreground/40 border-muted-foreground/40" :
+                                 "bg-background border-border"
                   }`} />
                   {!isLast && <div className="w-px flex-1 bg-border mt-1" />}
                 </div>
@@ -284,8 +403,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
                 {/* Day content */}
                 <div className="pb-5 flex-1 min-w-0">
                   {/* Day header */}
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className={`text-sm font-semibold ${isPast ? "text-muted-foreground" : ""}`}>
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className={`text-sm font-semibold ${isDayPast ? "text-muted-foreground" : ""}`}>
                       Día {day.dayNumber}
                     </span>
                     <span className="text-xs text-muted-foreground capitalize">
@@ -303,15 +422,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
                   </div>
 
                   {/* Events */}
-                  {day.events.length > 0 ? (
-                    <div className="space-y-1">
-                      {day.events.map((event, ei) => (
-                        <EventRow key={ei} event={event} tripId={trip.id} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground/60 italic">Sin eventos planificados</p>
-                  )}
+                  <div className="space-y-1">
+                    {day.events.map((event, ei) => (
+                      <EventRow key={ei} event={event} tripId={trip.id} />
+                    ))}
+                  </div>
                 </div>
               </div>
             );
