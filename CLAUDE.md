@@ -103,8 +103,31 @@ export const config = { matcher: [...] };
 
 ## Workflow de desarrollo
 
-1. Hacer cambios
-2. `npx tsc --noEmit` — verificar tipos
-3. `npm test` — pasar los 33 tests
-4. Probar visualmente en `http://localhost:3000`
-5. `git commit` con mensaje descriptivo (feat/fix/test/refactor)
+1. Crear issue en GitHub con labels (`feature`/`bug`, `size:xs/s/m/l/xl`, categoría)
+2. Crear rama desde main: `feat/nombre-issue-N` o `fix/nombre-issue-N`
+3. Implementar los cambios
+4. `npx tsc --noEmit` — verificar tipos sin excepción
+5. `npm test` — pasar todos los tests sin excepción
+6. Probar visualmente en `http://localhost:3000`
+7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
+8. PR hacia main con `Closes #N` en el body
+9. Nunca trabajar directo en main
+
+**Project board:** https://github.com/users/aacienfuegos/projects/1
+
+## Patrones extra
+
+### redirect() en server actions — Next.js
+`redirect()` lanza un error especial que los bloques `catch` capturan como error real:
+```ts
+import { isRedirectError } from "next/dist/client/components/redirect-error";
+try {
+  await someAction(formData);
+} catch (error) {
+  if (isRedirectError(error)) throw error; // dejar pasar el redirect
+  toast.error("Error");
+}
+```
+
+### Después de cualquier `prisma migrate dev`
+Siempre ejecutar también `npx prisma generate` — la migración actualiza la DB pero no el cliente TypeScript.
