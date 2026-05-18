@@ -33,6 +33,9 @@
       "Bash(gh release *)",
       "Bash(gh project *)",
       "Bash(gh repo view*)",
+      "Bash(gh api *)",
+      "Bash(jq *)",
+      "Bash(openssl *)",
       "Read",
       "Write",
       "Edit"
