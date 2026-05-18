@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createTrip, updateTrip } from "@/actions/trips";
 import type { Trip } from "@/types";
 import { format } from "date-fns";
@@ -33,7 +34,8 @@ export function TripForm({ trip }: TripFormProps) {
         } else {
           await createTrip(formData);
         }
-      } catch {
+      } catch (error) {
+        if (isRedirectError(error)) throw error;
         toast.error("Error al guardar el viaje");
       }
     });
