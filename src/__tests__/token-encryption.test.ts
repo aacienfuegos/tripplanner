@@ -16,6 +16,7 @@ describe("token-encryption", () => {
     const original = "ya29.GoogleAccessToken_example";
     const encrypted = encryptToken(original);
     expect(encrypted).not.toBe(original);
+    expect(encrypted.startsWith("v1:")).toBe(true);
     expect(decryptToken(encrypted)).toBe(original);
   });
 
@@ -29,15 +30,26 @@ describe("token-encryption", () => {
     expect(decryptToken(encryptToken(refresh))).toBe(refresh);
   });
 
-  it("passes through when TOKEN_ENCRYPTION_KEY is not set", () => {
+  it("passes through plaintext when TOKEN_ENCRYPTION_KEY is not set", () => {
     delete process.env.TOKEN_ENCRYPTION_KEY;
     const token = "plain-token";
     expect(encryptToken(token)).toBe(token);
-    expect(decryptToken(token)).toBe(token);
   });
 
-  it("returns value as-is when decryption fails (plaintext in DB)", () => {
-    const plaintext = "not-encrypted-legacy-token";
+  it("returns legacy plaintext as-is (no v1: prefix = not encrypted)", () => {
+    const plaintext = "ya29.legacy-unencrypted-token";
     expect(decryptToken(plaintext)).toBe(plaintext);
+  });
+
+  it("returns null for corrupted ciphertext (auth tag mismatch)", () => {
+    const encrypted = encryptToken("valid-token");
+    const corrupted = encrypted.slice(0, -4) + "XXXX";
+    expect(decryptToken(corrupted)).toBeNull();
+  });
+
+  it("returns null when key is missing but value looks encrypted", () => {
+    const encrypted = encryptToken("token");
+    delete process.env.TOKEN_ENCRYPTION_KEY;
+    expect(decryptToken(encrypted)).toBeNull();
   });
 });
