@@ -68,6 +68,23 @@ src/
 │   ├── prisma.ts       # Singleton PrismaClient con PrismaPg adapter
 │   └── schemas.ts      # Schemas Zod compartidos entre actions y tests
 └── proxy.ts            # Next.js 16: reemplaza middleware.ts
+
+# Infraestructura de despliegue
+.github/workflows/
+├── deploy-staging.yml      # Auto-deploy a staging en cada push a develop
+└── deploy-production.yml   # Deploy manual a producción (workflow_dispatch + confirm)
+docker/
+├── nginx-host.conf         # Template nginx host para producción (:3000)
+├── nginx-staging-host.conf # Template nginx host para staging (:3001, con SSL)
+├── entrypoint.sh           # Entrypoint prod: prisma migrate deploy + next start
+└── entrypoint.dev.sh       # Entrypoint dev: prisma generate + migrate + next dev
+scripts/
+└── deploy.sh               # Script de deploy unificado (staging|production)
+docker-compose.prod.yml     # Producción: puerto 3000, volumen db_data_prod
+docker-compose.staging.yml  # Staging: puerto 3001, volumen db_data_staging
+docker-compose.dev.yml      # Desarrollo local con hot-reload
+.env.prod.example           # Variables requeridas en el servidor para producción
+.env.staging.example        # Variables requeridas en el servidor para staging
 ```
 
 ## Patrones importantes
@@ -101,17 +118,63 @@ export async function proxy(request: NextRequest) { return auth(request as any);
 export const config = { matcher: [...] };
 ```
 
+## Entornos
+
+| Entorno | URL | Rama | Deploy |
+|---|---|---|---|
+| Local | `http://localhost:3000` | cualquiera | `npm run dev` |
+| Staging | `https://staging.DOMINIO` | `develop` | Automático al hacer push a `develop` |
+| Producción | `https://DOMINIO` | `main` | Manual vía GitHub Actions (ver abajo) |
+
+Cada entorno tiene su propia base de datos PostgreSQL y su propio fichero `.env` en el servidor (nunca en git):
+- `.env` → local (sí va en git para dev)
+- `.env.staging` → staging (en el servidor)
+- `.env.prod` → producción (en el servidor)
+
+### Deploy manual desde el servidor
+
+```bash
+bash scripts/deploy.sh staging     # rebuild staging y arranca
+bash scripts/deploy.sh production  # rebuild prod y arranca
+```
+
+### Deploy desde GitHub Actions
+
+```
+Staging:     automático — cualquier push a develop lo dispara
+Producción:  Actions → "Deploy to Production" → Run workflow → escribir "yes"
+```
+
+El script `scripts/deploy.sh` es el mismo en ambos casos: hace `git reset --hard origin/main`, reconstruye la imagen Docker y espera a que la app responda antes de declarar éxito.
+
 ## Workflow de desarrollo
 
+### Estrategia de ramas
+
+```
+feat/nombre-N  ──PR──►  develop  ──PR──►  main
+                            │                │
+                         staging          producción
+                       (auto-deploy)       (manual)
+```
+
+- `develop` es la rama de integración: recibe features, auto-despliega a staging.
+- `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado.
+- Nunca trabajar directo en `develop` ni en `main`.
+
+### Pasos para cada feature
+
 1. Crear issue en GitHub con labels (`feature`/`bug`, `size:xs/s/m/l/xl`, categoría)
-2. Crear rama desde main: `feat/nombre-issue-N` o `fix/nombre-issue-N`
+2. Crear rama desde `develop`: `feat/nombre-issue-N` o `fix/nombre-issue-N`
 3. Implementar los cambios
 4. `npx tsc --noEmit` — verificar tipos sin excepción
 5. `npm test` — pasar todos los tests sin excepción
 6. Probar visualmente en `http://localhost:3000`
 7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
-8. PR hacia main con `Closes #N` en el body
-9. Nunca trabajar directo en main
+8. PR hacia `develop` con `Closes #N` en el body
+9. El merge a `develop` dispara el deploy automático a staging
+10. Revisar en staging (`https://staging.DOMINIO`). Si está bien, PR de `develop → main`
+11. Merge a `main` → ir a GitHub Actions → "Deploy to Production" → Run workflow → escribir `"yes"`
 
 **Project board:** https://github.com/users/aacienfuegos/projects/1
 
