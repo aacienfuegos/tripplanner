@@ -23,11 +23,13 @@ if [[ "$ENVIRONMENT" == "staging" ]]; then
   COMPOSE_FILE="docker-compose.staging.yml"
   ENV_FILE=".env.staging"
   HEALTH_PORT="3001"
+  GIT_BRANCH="develop"
 else
   COMPOSE_PROJECT="tripplanner-prod"
   COMPOSE_FILE="docker-compose.prod.yml"
   ENV_FILE=".env.prod"
   HEALTH_PORT="3000"
+  GIT_BRANCH="main"
 fi
 
 # ── Raíz del repo ──────────────────────────────────────────────────────────────
@@ -49,11 +51,17 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+# Leer APP_PORT del .env si está definido (permite personalizar el puerto sin tocar el script)
+ENV_APP_PORT=$(grep -E '^APP_PORT=' "$ENV_FILE" | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d ' ')
+if [[ -n "$ENV_APP_PORT" ]]; then
+  HEALTH_PORT="$ENV_APP_PORT"
+fi
+
 # ── Actualizar código ──────────────────────────────────────────────────────────
-echo "==> [$ENVIRONMENT] Actualizando código desde origin/main..."
-git fetch origin main
-git checkout main
-git reset --hard origin/main
+echo "==> [$ENVIRONMENT] Actualizando código desde origin/$GIT_BRANCH..."
+git fetch origin "$GIT_BRANCH"
+git checkout "$GIT_BRANCH"
+git reset --hard "origin/$GIT_BRANCH"
 
 # ── Construir y arrancar ───────────────────────────────────────────────────────
 echo "==> [$ENVIRONMENT] Construyendo y arrancando contenedores..."
