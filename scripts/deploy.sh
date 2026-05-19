@@ -60,8 +60,7 @@ fi
 # ── Actualizar código ──────────────────────────────────────────────────────────
 echo "==> [$ENVIRONMENT] Actualizando código desde origin/$GIT_BRANCH..."
 git fetch origin "$GIT_BRANCH"
-git checkout "$GIT_BRANCH"
-git reset --hard "origin/$GIT_BRANCH"
+git checkout -B "$GIT_BRANCH" "origin/$GIT_BRANCH"
 
 # ── Construir y arrancar ───────────────────────────────────────────────────────
 echo "==> [$ENVIRONMENT] Construyendo y arrancando contenedores..."
