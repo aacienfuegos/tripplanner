@@ -75,13 +75,13 @@ src/
 └── deploy-production.yml   # Deploy manual a producción (workflow_dispatch + confirm)
 docker/
 ├── nginx-host.conf         # Template nginx host para producción (:3000)
-├── nginx-staging-host.conf # Template nginx host para staging (:3001, con SSL)
+├── nginx-staging-host.conf # Template nginx host para staging (:8072)
 ├── entrypoint.sh           # Entrypoint prod: prisma migrate deploy + next start
 └── entrypoint.dev.sh       # Entrypoint dev: prisma generate + migrate + next dev
 scripts/
 └── deploy.sh               # Script de deploy unificado (staging|production)
-docker-compose.prod.yml     # Producción: puerto 3000, volumen db_data_prod
-docker-compose.staging.yml  # Staging: puerto 3001, volumen db_data_staging
+docker-compose.prod.yml     # Producción: APP_PORT=8082, volumen db_data_prod
+docker-compose.staging.yml  # Staging: APP_PORT=8072, volumen db_data_staging
 docker-compose.dev.yml      # Desarrollo local con hot-reload
 .env.prod.example           # Variables requeridas en el servidor para producción
 .env.staging.example        # Variables requeridas en el servidor para staging
@@ -123,8 +123,8 @@ export const config = { matcher: [...] };
 | Entorno | URL | Rama | Deploy |
 |---|---|---|---|
 | Local | `http://localhost:3000` | cualquiera | `npm run dev` |
-| Staging | `https://staging.DOMINIO` | `develop` | Automático al hacer push a `develop` |
-| Producción | `https://DOMINIO` | `main` | Manual vía GitHub Actions (ver abajo) |
+| Staging | `https://staging.trips.ciencre.xyz` | `develop` | Automático al hacer push a `develop` |
+| Producción | `https://trips.ciencre.xyz` | `main` | Manual vía GitHub Actions (ver abajo) |
 
 Cada entorno tiene su propia base de datos PostgreSQL y su propio fichero `.env` en el servidor (nunca en git):
 - `.env` → local (sí va en git para dev)
@@ -145,7 +145,9 @@ Staging:     automático — cualquier push a develop lo dispara
 Producción:  Actions → "Deploy to Production" → Run workflow → escribir "yes"
 ```
 
-El script `scripts/deploy.sh` es el mismo en ambos casos: hace `git reset --hard origin/main`, reconstruye la imagen Docker y espera a que la app responda antes de declarar éxito.
+El script `scripts/deploy.sh` es el mismo en ambos casos: hace `git checkout -B <rama> origin/<rama>` (develop para staging, main para prod), reconstruye la imagen Docker y espera a que la app responda (acepta HTTP 200/302/307) antes de declarar éxito.
+
+El entorno `production` en GitHub tiene **required reviewers** activado: aunque alguien dispare el workflow, el deploy queda pausado hasta que el propietario lo apruebe desde la UI de Actions.
 
 ## Workflow de desarrollo
 
@@ -173,8 +175,8 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
 8. PR hacia `develop` con `Closes #N` en el body
 9. El merge a `develop` dispara el deploy automático a staging
-10. Revisar en staging (`https://staging.DOMINIO`). Si está bien, PR de `develop → main`
-11. Merge a `main` → ir a GitHub Actions → "Deploy to Production" → Run workflow → escribir `"yes"`
+10. Revisar en staging (`https://staging.trips.ciencre.xyz`). Si está bien, PR de `develop → main`
+11. Merge a `main` → ir a GitHub Actions → "Deploy to Production" → Run workflow → escribir `"yes"` → aprobar cuando llegue la notificación
 
 **Project board:** https://github.com/users/aacienfuegos/projects/1
 
