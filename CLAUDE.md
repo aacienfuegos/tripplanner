@@ -123,8 +123,8 @@ export const config = { matcher: [...] };
 | Entorno | URL | Rama | Deploy |
 |---|---|---|---|
 | Local | `http://localhost:3000` | cualquiera | `npm run dev` |
-| Staging | `https://staging.trips.ciencre.xyz` | `develop` | Automático al hacer push a `develop` |
-| Producción | `https://trips.ciencre.xyz` | `main` | Manual vía GitHub Actions (ver abajo) |
+| Staging | `https://staging.TU_DOMINIO` | `develop` | Automático al hacer push a `develop` |
+| Producción | `https://TU_DOMINIO` | `main` | Manual vía GitHub Actions (ver abajo) |
 
 Cada entorno tiene su propia base de datos PostgreSQL y su propio fichero `.env` en el servidor (nunca en git):
 - `.env` → local (sí va en git para dev)
@@ -175,7 +175,7 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
 8. PR hacia `develop` con `Closes #N` en el body
 9. El merge a `develop` dispara el deploy automático a staging
-10. Revisar en staging (`https://staging.trips.ciencre.xyz`). Si está bien, PR de `develop → main`
+10. Revisar en staging (`https://staging.TU_DOMINIO`). Si está bien, PR de `develop → main`
 11. Merge a `main` → ir a GitHub Actions → "Deploy to Production" → Run workflow → escribir `"yes"` → aprobar cuando llegue la notificación
 
 **Project board:** https://github.com/users/aacienfuegos/projects/1
