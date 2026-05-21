@@ -27,13 +27,6 @@ services:
       db:
         condition: service_healthy
 
-  watchtower:
-    image: containrrr/watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --label-enable --interval 30
-
 volumes:
   db_data_staging:
 
