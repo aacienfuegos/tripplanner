@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    env_file: .env.prod        # postgres lee POSTGRES_USER/PASSWORD/DB directamente
+    env_file: .env        # postgres lee POSTGRES_USER/PASSWORD/DB directamente
     volumes:
       - db_data_prod:/var/lib/postgresql/data
     networks:
@@ -16,7 +16,9 @@ services:
   app:
     image: ghcr.io/aacienfuegos/tripplanner:latest
     restart: unless-stopped
-    env_file: .env.prod
+    env_file: .env
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"
     networks:
@@ -24,6 +26,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --label-enable --interval 30
 
 volumes:
   db_data_prod:

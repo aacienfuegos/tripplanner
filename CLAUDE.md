@@ -80,11 +80,11 @@ docker/
 └── entrypoint.dev.sh       # Entrypoint dev: prisma generate + migrate + next dev
 scripts/
 └── deploy.sh               # Script de deploy unificado (staging|production)
-docker-compose.prod.yml     # Producción: APP_PORT=8082, volumen db_data_prod
-docker-compose.staging.yml  # Staging: APP_PORT=8072, volumen db_data_staging
+docker-compose.prod.yml     # Producción: imagen :latest + Watchtower, puerto 3000
+docker-compose.staging.yml  # Staging: imagen :staging + Watchtower, puerto 3001
 docker-compose.dev.yml      # Desarrollo local con hot-reload
-.env.prod.example           # Variables requeridas en el servidor para producción
-.env.staging.example        # Variables requeridas en el servidor para staging
+.env.prod.example           # Referencia de variables para el .env de producción
+.env.staging.example        # Referencia de variables para el .env de staging
 ```
 
 ## Patrones importantes
@@ -126,10 +126,10 @@ export const config = { matcher: [...] };
 | Staging | `https://staging.TU_DOMINIO` | `develop` | Automático al hacer push a `develop` |
 | Producción | `https://TU_DOMINIO` | `main` | Automático al hacer push a `main` |
 
-Cada entorno tiene su propia base de datos PostgreSQL y su propio fichero `.env` en el servidor (nunca en git):
-- `.env` → local (sí va en git para dev)
-- `.env.staging` → staging (en el servidor)
-- `.env.prod` → producción (en el servidor)
+Cada entorno vive en un directorio propio del servidor con su `.env` (nunca en git):
+- `/srv/tripplanner/prod/` → `docker-compose.prod.yml` + `.env` (copia de `.env.prod.example`)
+- `/srv/tripplanner/staging/` → `docker-compose.staging.yml` + `.env` (copia de `.env.staging.example`)
+- Local → `.env` en la raíz del repo (sí va en git, credenciales de dev)
 
 ### Cómo funciona el deploy
 
