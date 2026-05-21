@@ -20,7 +20,7 @@ services:
     labels:
       - com.centurylinklabs.watchtower.enable=true
     ports:
-      - "127.0.0.1:${APP_PORT:-3001}:3000"
+      - "${APP_PORT:-3001}:3000"
     networks:
       - internal
     depends_on:
