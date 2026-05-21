@@ -71,8 +71,8 @@ src/
 
 # Infraestructura de despliegue
 .github/workflows/
-├── deploy-staging.yml      # Auto-deploy a staging en cada push a develop
-└── deploy-production.yml   # Deploy manual a producción (workflow_dispatch + confirm)
+├── deploy-staging.yml      # Push a develop → build + push ghcr.io/aacienfuegos/tripplanner:staging
+└── deploy-production.yml   # Push a main → build + push ghcr.io/aacienfuegos/tripplanner:latest
 docker/
 ├── nginx-host.conf         # Template nginx host para producción (:3000)
 ├── nginx-staging-host.conf # Template nginx host para staging (:8072)
@@ -124,30 +124,20 @@ export const config = { matcher: [...] };
 |---|---|---|---|
 | Local | `http://localhost:3000` | cualquiera | `npm run dev` |
 | Staging | `https://staging.TU_DOMINIO` | `develop` | Automático al hacer push a `develop` |
-| Producción | `https://TU_DOMINIO` | `main` | Manual vía GitHub Actions (ver abajo) |
+| Producción | `https://TU_DOMINIO` | `main` | Automático al hacer push a `main` |
 
 Cada entorno tiene su propia base de datos PostgreSQL y su propio fichero `.env` en el servidor (nunca en git):
 - `.env` → local (sí va en git para dev)
 - `.env.staging` → staging (en el servidor)
 - `.env.prod` → producción (en el servidor)
 
-### Deploy manual desde el servidor
+### Cómo funciona el deploy
 
-```bash
-bash scripts/deploy.sh staging     # rebuild staging y arranca
-bash scripts/deploy.sh production  # rebuild prod y arranca
-```
+GitHub Actions **solo publica la imagen Docker** en ghcr.io:
+- Push a `develop` → `ghcr.io/aacienfuegos/tripplanner:staging`
+- Push a `main` → `ghcr.io/aacienfuegos/tripplanner:latest`
 
-### Deploy desde GitHub Actions
-
-```
-Staging:     automático — cualquier push a develop lo dispara
-Producción:  Actions → "Deploy to Production" → Run workflow → escribir "yes"
-```
-
-El script `scripts/deploy.sh` es el mismo en ambos casos: hace `git checkout -B <rama> origin/<rama>` (develop para staging, main para prod), reconstruye la imagen Docker y espera a que la app responda (acepta HTTP 200/302/307) antes de declarar éxito.
-
-El entorno `production` en GitHub tiene **required reviewers** activado: aunque alguien dispare el workflow, el deploy queda pausado hasta que el propietario lo apruebe desde la UI de Actions.
+**Watchtower** en el servidor detecta el nuevo tag y reinicia el contenedor automáticamente. No hay SSH ni secrets de servidor en las Actions.
 
 ## Workflow de desarrollo
 
@@ -155,13 +145,14 @@ El entorno `production` en GitHub tiene **required reviewers** activado: aunque 
 
 ```
 feat/nombre-N  ──PR──►  develop  ──PR──►  main
-                            │                │
-                         staging          producción
-                       (auto-deploy)       (manual)
+                              │                  │
+                           staging            producción
+                     (imagen :staging)    (imagen :latest)
+                      Watchtower pull      Watchtower pull
 ```
 
-- `develop` es la rama de integración: recibe features, auto-despliega a staging.
-- `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado.
+- `develop` es la rama de integración: recibe features, publica imagen `:staging` → Watchtower despliega.
+- `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado. Publica imagen `:latest` → Watchtower despliega.
 - Nunca trabajar directo en `develop` ni en `main`.
 
 ### Pasos para cada feature
@@ -174,9 +165,9 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 6. Probar visualmente en `http://localhost:3000`
 7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
 8. PR hacia `develop` con `Closes #N` en el body
-9. El merge a `develop` dispara el deploy automático a staging
+9. El merge a `develop` publica `:staging` en ghcr.io → Watchtower despliega automáticamente
 10. Revisar en staging (`https://staging.TU_DOMINIO`). Si está bien, PR de `develop → main`
-11. Merge a `main` → ir a GitHub Actions → "Deploy to Production" → Run workflow → escribir `"yes"` → aprobar cuando llegue la notificación
+11. Merge a `main` publica `:latest` en ghcr.io → Watchtower despliega automáticamente en producción
 
 **Project board:** https://github.com/users/aacienfuegos/projects/1
 
