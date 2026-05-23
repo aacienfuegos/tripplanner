@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import Resend from "next-auth/providers/resend";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
+import { seedTripsForUser } from "@/lib/seed-trips";
 
 export const DEV_USER_ID = "dev-local-user-001";
 
@@ -109,16 +110,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Auto-aprobar y marcar como admin al primer usuario con ese email
       if (user.email && user.email === process.env.ADMIN_EMAIL) {
         await prisma.user.update({ where: { id: user.id! }, data: { status: "APPROVED", isAdmin: true } });
-        return;
+      } else {
+        // Auto-aprobar si el registro está abierto
+        const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+        if (settings?.registrationOpen) {
+          await prisma.user.update({ where: { id: user.id! }, data: { status: "APPROVED" } });
+        } else {
+          // Notificar al admin de la nueva solicitud
+          await notifyAdmin({ email: user.email, name: user.name });
+        }
       }
-      // Auto-aprobar si el registro está abierto
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
-      if (settings?.registrationOpen) {
-        await prisma.user.update({ where: { id: user.id! }, data: { status: "APPROVED" } });
-        return;
+
+      if (process.env.SEED_USERS === "true" && user.id) {
+        await seedTripsForUser(prisma, user.id).catch((e) =>
+          console.error("[seed-users] Error al crear datos de prueba:", e)
+        );
       }
-      // Notificar al admin de la nueva solicitud
-      await notifyAdmin({ email: user.email, name: user.name });
     },
     async signIn({ user }) {
       if (user.id === DEV_USER_ID) {
