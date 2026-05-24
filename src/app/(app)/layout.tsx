@@ -14,6 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user || user.status === "DENIED") redirect("/auth/error?error=AccessDenied");
   if (user.status === "PENDING") redirect("/auth/pending");
+  if (!user.name) redirect("/onboarding");
 
   return (
     <div className="min-h-screen flex flex-col">
