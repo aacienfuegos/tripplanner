@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Plane, Map, LogOut, User, ShieldCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { ThemeToggle } from "./theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -56,6 +57,8 @@ export function Navbar({ user }: NavbarProps) {
           </nav>
         </div>
 
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger className="relative h-9 w-9 rounded-full cursor-pointer outline-none">
             <Avatar className="h-9 w-9">
@@ -92,6 +95,7 @@ export function Navbar({ user }: NavbarProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   );
