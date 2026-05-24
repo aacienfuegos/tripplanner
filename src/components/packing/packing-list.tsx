@@ -99,7 +99,7 @@ export function PackingList({ tripId, items }: Props) {
               </div>
               <div className="flex gap-3 flex-wrap items-start">
                 <div className="flex-1 min-w-36">
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <Select value={selectedCategory} onValueChange={(v) => v !== null && setSelectedCategory(v)}>
                     <SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger>
                     <SelectContent>
                       {PRESET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
