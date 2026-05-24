@@ -151,7 +151,7 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 
 - `develop` es la rama de integración: recibe features, publica imagen `:staging` → se despliega automáticamente en staging.
 - `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado. Publica imagen `:latest` → deploy manual en el servidor.
-- Nunca trabajar directo en `develop` ni en `main`.
+- Nunca trabajar directo en `develop` ni en `main`, aunque el cambio sea de docs, config o una línea. Siempre rama → PR a `develop` → PR a `main`.
 
 ### Pasos para cada feature
 
