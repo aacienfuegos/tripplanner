@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Plane, Hotel, Star, FileText, DollarSign, ShoppingBag, MapPin,
+  Plane, Hotel, Star, FileText, DollarSign, ShoppingBag, MapPin, ClipboardList,
   Calendar, Pencil, Clock, CheckCircle2, Circle, AlertCircle,
   Utensils, Landmark, Navigation, Ticket, Package,
 } from "lucide-react";
@@ -62,7 +62,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
       activities:     { orderBy: { scheduledAt: "asc" } },
       expenses:       { select: { amount: true } },
       packingItems:   { select: { packed: true } },
-      _count:         { select: { documents: true } },
+      _count:         { select: { documents: true, tasks: true } },
     },
   });
 
@@ -118,12 +118,13 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
   const totalPackItems   = trip.packingItems.length;
 
   const sections = [
-    { href: "flights",        label: "Vuelos",      icon: Plane,       count: trip.flights.length },
-    { href: "accommodations", label: "Alojamiento", icon: Hotel,       count: trip.accommodations.length },
-    { href: "activities",     label: "Actividades", icon: Star,        count: trip.activities.length },
-    { href: "documents",      label: "Documentos",  icon: FileText,    count: trip._count.documents },
-    { href: "expenses",       label: "Gastos",      icon: DollarSign,  count: trip.expenses.length },
-    { href: "packing",        label: "Equipaje",    icon: ShoppingBag, count: totalPackItems },
+    { href: "flights",        label: "Vuelos",      icon: Plane,          count: trip.flights.length },
+    { href: "accommodations", label: "Alojamiento", icon: Hotel,          count: trip.accommodations.length },
+    { href: "activities",     label: "Actividades", icon: Star,           count: trip.activities.length },
+    { href: "tasks",          label: "Tareas",      icon: ClipboardList,  count: trip._count.tasks },
+    { href: "documents",      label: "Documentos",  icon: FileText,       count: trip._count.documents },
+    { href: "expenses",       label: "Gastos",      icon: DollarSign,     count: trip.expenses.length },
+    { href: "packing",        label: "Equipaje",    icon: ShoppingBag,    count: totalPackItems },
   ];
 
   const hasQuickStatus =

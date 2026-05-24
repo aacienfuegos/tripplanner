@@ -7,14 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createPackingItem, togglePackingItem, deletePackingItem, addDefaultPackingItems } from "@/actions/packing";
 import type { PackingItem } from "@/types";
+
+const PRESET_CATEGORIES = [
+  "Documentos", "Ropa", "Calzado", "Higiene", "Medicamentos",
+  "Electrónica", "Accesorios", "Entretenimiento", "Comida y bebida", "Otro",
+];
 
 interface Props { tripId: string; items: PackingItem[]; }
 
 export function PackingList({ tripId, items }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(PRESET_CATEGORIES[0]);
+  const [customCategory, setCustomCategory] = useState("");
 
   const grouped = items.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
@@ -43,7 +51,10 @@ export function PackingList({ tripId, items }: Props) {
   }
 
   async function handleCreate(formData: FormData) {
-    try { await createPackingItem(tripId, formData); setShowForm(false); }
+    const category = selectedCategory === "Otro" ? customCategory.trim() : selectedCategory;
+    if (!category) { toast.error("Indica una categoría"); return; }
+    formData.set("category", category);
+    try { await createPackingItem(tripId, formData); setShowForm(false); setCustomCategory(""); }
     catch { toast.error("Error al añadir"); }
   }
 
@@ -78,18 +89,35 @@ export function PackingList({ tripId, items }: Props) {
       {showForm && (
         <Card>
           <CardContent className="pt-4">
-            <form action={handleCreate} className="flex gap-3 flex-wrap">
-              <div className="flex-1 min-w-32">
-                <Label htmlFor="name" className="sr-only">Item</Label>
-                <Input id="name" name="name" placeholder="Nombre del item" required />
+            <form action={handleCreate} className="space-y-3">
+              <div className="flex gap-3 flex-wrap">
+                <div className="flex-1 min-w-32">
+                  <Label htmlFor="name" className="sr-only">Item</Label>
+                  <Input id="name" name="name" placeholder="Nombre del item" required />
+                </div>
+                <Input name="quantity" type="number" defaultValue="1" className="w-20" min="1" />
               </div>
-              <div className="flex-1 min-w-28">
-                <Label htmlFor="category" className="sr-only">Categoría</Label>
-                <Input id="category" name="category" placeholder="Categoría" required />
+              <div className="flex gap-3 flex-wrap items-start">
+                <div className="flex-1 min-w-36">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger>
+                    <SelectContent>
+                      {PRESET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedCategory === "Otro" && (
+                  <Input
+                    className="flex-1 min-w-28"
+                    placeholder="Nombre de categoría"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    required
+                  />
+                )}
+                <Button type="submit">Añadir</Button>
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancelar</Button>
               </div>
-              <Input name="quantity" type="number" defaultValue="1" className="w-20" min="1" />
-              <Button type="submit">Añadir</Button>
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancelar</Button>
             </form>
           </CardContent>
         </Card>

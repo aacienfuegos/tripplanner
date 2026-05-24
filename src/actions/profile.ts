@@ -27,3 +27,19 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/profile");
 }
+
+export async function completeOnboarding(formData: FormData) {
+  const userId = await requireUser();
+  const raw = Object.fromEntries(formData);
+  const data = profileSchema.parse(raw);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name,
+      image: data.image || null,
+    },
+  });
+
+  redirect("/dashboard");
+}

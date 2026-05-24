@@ -80,6 +80,13 @@ export const packingItemSchema = z.object({
   quantity: z.string().default("1"),
 });
 
+export const taskSchema = z.object({
+  title: z.string().min(1, "El título es obligatorio"),
+  notes: z.string().optional(),
+  dueDate: z.string().optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
+});
+
 export const profileSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio"),
   image: z.string().url("La URL de la imagen no es válida").optional().or(z.literal("")),

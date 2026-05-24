@@ -94,6 +94,7 @@ model Trip {
   documents   Document[]
   expenses    Expense[]
   packingItems PackingItem[]
+  tasks       Task[]
 }
 
 enum TripStatus {
@@ -260,6 +261,27 @@ enum ExpenseCategory {
   ACTIVITY
   SHOPPING
   OTHER
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+
+model Task {
+  id        String       @id @default(cuid())
+  tripId    String
+  title     String
+  notes     String?
+  dueDate   DateTime?
+  priority  TaskPriority @default(MEDIUM)
+  done      Boolean      @default(false)
+  createdAt DateTime     @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 // ─── Packing List ────────────────────────────────────────────────────────────

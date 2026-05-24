@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Plane, Map, LogOut, User } from "lucide-react";
+import { Plane, Map, LogOut, User, ShieldCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { ThemeToggle } from "./theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -16,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {
-  user: { name?: string | null; email?: string | null; image?: string | null };
+  user: { name?: string | null; email?: string | null; image?: string | null; isAdmin?: boolean };
 }
 
 const navLinks = [
@@ -56,6 +57,8 @@ export function Navbar({ user }: NavbarProps) {
           </nav>
         </div>
 
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger className="relative h-9 w-9 rounded-full cursor-pointer outline-none">
             <Avatar className="h-9 w-9">
@@ -73,6 +76,15 @@ export function Navbar({ user }: NavbarProps) {
               <User className="h-4 w-4" />
               <Link href="/profile" className="flex-1">Perfil</Link>
             </DropdownMenuItem>
+            {user.isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <Link href="/admin" className="flex-1">Panel de administración</Link>
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive gap-2 cursor-pointer"
@@ -83,6 +95,7 @@ export function Navbar({ user }: NavbarProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   );

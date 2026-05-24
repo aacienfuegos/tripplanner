@@ -7,6 +7,7 @@ import {
   activitySchema,
   documentSchema,
   packingItemSchema,
+  taskSchema,
   profileSchema,
 } from "@/lib/schemas";
 
@@ -186,6 +187,42 @@ describe("packingItemSchema", () => {
   it("rejects missing category", () => {
     const result = packingItemSchema.safeParse({ ...valid, category: "" });
     expect(result.success).toBe(false);
+  });
+});
+
+// ─── Task schema ──────────────────────────────────────────────────────────────
+
+describe("taskSchema", () => {
+  it("accepts a minimal valid task", () => {
+    const result = taskSchema.safeParse({ title: "Reservar hotel" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.priority).toBe("MEDIUM");
+  });
+
+  it("rejects empty title", () => {
+    const result = taskSchema.safeParse({ title: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts all valid priorities", () => {
+    for (const priority of ["LOW", "MEDIUM", "HIGH"] as const) {
+      const result = taskSchema.safeParse({ title: "Tarea", priority });
+      expect(result.success, `priority ${priority} should be valid`).toBe(true);
+    }
+  });
+
+  it("rejects invalid priority", () => {
+    const result = taskSchema.safeParse({ title: "Tarea", priority: "URGENT" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional dueDate and notes", () => {
+    const result = taskSchema.safeParse({ title: "Tarea", dueDate: "2026-06-10", notes: "Llamar antes" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dueDate).toBe("2026-06-10");
+      expect(result.data.notes).toBe("Llamar antes");
+    }
   });
 });
 
