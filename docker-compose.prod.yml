@@ -17,8 +17,6 @@ services:
     image: ghcr.io/aacienfuegos/tripplanner:latest
     restart: unless-stopped
     env_file: .env
-    labels:
-      - com.centurylinklabs.watchtower.enable=true
     ports:
       - "${APP_PORT:-3000}:3000"
     networks:

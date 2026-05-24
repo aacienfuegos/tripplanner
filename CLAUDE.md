@@ -80,8 +80,8 @@ docker/
 └── entrypoint.dev.sh       # Entrypoint dev: prisma generate + migrate + next dev
 scripts/
 └── deploy.sh               # Script de deploy unificado (staging|production)
-docker-compose.prod.yml     # Producción: imagen :latest + Watchtower, puerto 3000
-docker-compose.staging.yml  # Staging: imagen :staging + Watchtower, puerto 3001
+docker-compose.prod.yml     # Producción: imagen :latest, puerto 3000
+docker-compose.staging.yml  # Staging: imagen :staging, puerto 3001
 docker-compose.dev.yml      # Desarrollo local con hot-reload
 .env.prod.example           # Referencia de variables para el .env de producción
 .env.staging.example        # Referencia de variables para el .env de staging
@@ -134,10 +134,8 @@ Cada entorno vive en un directorio propio del servidor con su `.env` (nunca en g
 ### Cómo funciona el deploy
 
 GitHub Actions **solo publica la imagen Docker** en ghcr.io:
-- Push a `develop` → `ghcr.io/aacienfuegos/tripplanner:staging`
-- Push a `main` → `ghcr.io/aacienfuegos/tripplanner:latest`
-
-**Watchtower** en el servidor detecta el nuevo tag y reinicia el contenedor automáticamente. No hay SSH ni secrets de servidor en las Actions.
+- Push a `develop` → `ghcr.io/aacienfuegos/tripplanner:staging` → se despliega automáticamente en staging
+- Push a `main` → `ghcr.io/aacienfuegos/tripplanner:latest` → **deploy manual en el servidor**
 
 ## Workflow de desarrollo
 
@@ -148,11 +146,11 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
                               │                  │
                            staging            producción
                      (imagen :staging)    (imagen :latest)
-                      Watchtower pull      Watchtower pull
+                       auto-deploy        deploy manual
 ```
 
-- `develop` es la rama de integración: recibe features, publica imagen `:staging` → Watchtower despliega.
-- `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado. Publica imagen `:latest` → Watchtower despliega.
+- `develop` es la rama de integración: recibe features, publica imagen `:staging` → se despliega automáticamente en staging.
+- `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado. Publica imagen `:latest` → deploy manual en el servidor.
 - Nunca trabajar directo en `develop` ni en `main`.
 
 ### Pasos para cada feature
@@ -165,9 +163,9 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 6. Probar visualmente en `http://localhost:3000`
 7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
 8. PR hacia `develop` con `Closes #N` en el body
-9. El merge a `develop` publica `:staging` en ghcr.io → Watchtower despliega automáticamente
+9. El merge a `develop` publica `:staging` en ghcr.io → se despliega automáticamente en staging
 10. Revisar en staging (`https://staging.DOMINIO`). Si está bien, PR de `develop → main`
-11. Merge a `main` publica `:latest` en ghcr.io → Watchtower despliega automáticamente en producción
+11. Merge a `main` publica `:latest` en ghcr.io → deploy manual en el servidor de producción
 
 **Project board:** https://github.com/users/aacienfuegos/projects/1
 
