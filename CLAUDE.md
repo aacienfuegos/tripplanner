@@ -33,6 +33,7 @@ npx prisma studio         # explorar la DB en el navegador
 # Tests (siempre antes de commitear)
 npm test              # vitest run (modo CI)
 npm run test:watch    # modo watch
+# El pre-commit hook (husky) ejecuta tsc --noEmit + npm test automáticamente
 
 # TypeScript
 npx tsc --noEmit      # check de tipos sin compilar
@@ -98,6 +99,15 @@ import Link from "next/link";
 
 // INCORRECTO — no funciona en esta versión
 <Button asChild><Link>...</Link></Button>
+```
+
+### Select — onValueChange (shadcn 4.7 / @base-ui/react)
+```tsx
+// CORRECTO — @base-ui pasa string | null, hay que filtrar el null
+<Select value={value} onValueChange={(v) => v !== null && setValue(v)}>
+
+// INCORRECTO — falla en build: Dispatch<SetStateAction<string>> no acepta null
+<Select value={value} onValueChange={setValue}>
 ```
 
 ### Server Actions
