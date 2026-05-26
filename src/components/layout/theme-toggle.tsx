@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Moon, Sun, Monitor } from "lucide-react";
+import { Moon, Sun, SunMoon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,19 +13,17 @@ import {
 import { cn } from "@/lib/utils";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) return <div className="h-9 w-9" />;
 
-  const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-9 w-9 cursor-pointer")}>
-        <Icon className="h-4 w-4" />
+        <SunMoon className="h-4 w-4" />
         <span className="sr-only">Cambiar tema</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -36,7 +34,7 @@ export function ThemeToggle() {
           <Moon className="h-4 w-4" /> Oscuro
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")} className="gap-2 cursor-pointer">
-          <Monitor className="h-4 w-4" /> Sistema
+          <SunMoon className="h-4 w-4" /> Sistema
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
