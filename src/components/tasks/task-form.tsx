@@ -13,13 +13,13 @@ import { format } from "date-fns";
 
 interface Props { tripId: string; task?: Task; onSuccess: () => void; }
 
-export function TaskForm({ tripId, task: t, onSuccess }: Props) {
+export function TaskForm({ tripId, task: initialTask, onSuccess }: Props) {
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
       try {
-        if (t) { await updateTask(tripId, t.id, formData); toast.success("Tarea actualizada"); }
+        if (initialTask) { await updateTask(tripId, initialTask.id, formData); toast.success("Tarea actualizada"); }
         else { await createTask(tripId, formData); toast.success("Tarea añadida"); }
         onSuccess();
       } catch { toast.error("Error al guardar"); }
@@ -30,12 +30,12 @@ export function TaskForm({ tripId, task: t, onSuccess }: Props) {
     <form action={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="title">Título *</Label>
-        <Input id="title" name="title" required defaultValue={t?.title} />
+        <Input id="title" name="title" required defaultValue={initialTask?.title} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="priority">Prioridad</Label>
-          <Select name="priority" defaultValue={t?.priority ?? "MEDIUM"}>
+          <Select name="priority" defaultValue={initialTask?.priority ?? "MEDIUM"}>
             <SelectTrigger id="priority"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="HIGH">Alta</SelectItem>
@@ -50,16 +50,16 @@ export function TaskForm({ tripId, task: t, onSuccess }: Props) {
             id="dueDate"
             name="dueDate"
             type="date"
-            defaultValue={t?.dueDate ? format(t.dueDate, "yyyy-MM-dd") : ""}
+            defaultValue={initialTask?.dueDate ? format(initialTask.dueDate, "yyyy-MM-dd") : ""}
           />
         </div>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="notes">Notas</Label>
-        <Textarea id="notes" name="notes" rows={3} defaultValue={t?.notes ?? ""} />
+        <Textarea id="notes" name="notes" rows={3} defaultValue={initialTask?.notes ?? ""} />
       </div>
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Guardando..." : t ? "Guardar cambios" : "Añadir tarea"}
+        {isPending ? "Guardando..." : initialTask ? "Guardar cambios" : "Añadir tarea"}
       </Button>
     </form>
   );

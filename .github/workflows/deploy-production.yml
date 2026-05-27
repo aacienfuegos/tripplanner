@@ -9,6 +9,9 @@ concurrency:
   group: build-production
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '24'
+
 jobs:
   checks:
     name: Type check y tests
@@ -20,11 +23,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Instalar dependencias
-        run: npm install
+        run: npm ci
 
       - name: Generar cliente Prisma
         run: npx prisma generate
