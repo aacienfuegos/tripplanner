@@ -28,13 +28,13 @@ function createPrismaClient() {
     query: {
       account: {
         async $allOperations({ operation, args, query }: { operation: string; args: unknown; query: (args: unknown) => Promise<unknown> }) {
-          const a = args as Record<string, unknown>;
-          let patchedArgs = a;
+          const typedArgs = args as Record<string, unknown>;
+          let patchedArgs = typedArgs;
 
           if (operation === "create" || operation === "update") {
-            patchedArgs = { ...a, data: encryptDataFields(a.data) };
+            patchedArgs = { ...typedArgs, data: encryptDataFields(typedArgs.data) };
           } else if (operation === "upsert") {
-            patchedArgs = { ...a, create: encryptDataFields(a.create), update: encryptDataFields(a.update) };
+            patchedArgs = { ...typedArgs, create: encryptDataFields(typedArgs.create), update: encryptDataFields(typedArgs.update) };
           }
 
           const result = await query(patchedArgs);

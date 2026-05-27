@@ -4,23 +4,23 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Plus, ClipboardList, Trash2, Calendar } from "lucide-react";
+import { Plus, ClipboardList, Pencil, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TaskForm } from "./task-form";
 import { deleteTask, toggleTaskDone } from "@/actions/tasks";
-import type { Task } from "@/types";
+import type { Task, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 
-const priorityConfig: Record<string, { label: string; cls: string }> = {
+const priorityConfig: Record<TaskPriority, { label: string; cls: string }> = {
   HIGH:   { label: "Alta",  cls: "border-red-300 text-red-600" },
   MEDIUM: { label: "Media", cls: "border-yellow-300 text-yellow-600" },
   LOW:    { label: "Baja",  cls: "border-blue-300 text-blue-500" },
 };
 
-const priorityOrder: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+const priorityOrder: Record<TaskPriority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
 function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
@@ -165,7 +165,9 @@ function TaskRow({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7">✏️</Button>
+            <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={onDelete} className="h-7 w-7">
               <Trash2 className="h-3.5 w-3.5 text-destructive" />
             </Button>
