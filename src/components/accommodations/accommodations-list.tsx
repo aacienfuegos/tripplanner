@@ -71,7 +71,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate }: { 
                     <div className="flex items-center gap-1 shrink-0">
                       {(a.address || a.city) && (
                         <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([a.name, a.address, a.city].filter(Boolean).join(", "))}`}
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((a.address ? [a.address, a.city] : [a.name, a.city]).filter(Boolean).join(", "))}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}

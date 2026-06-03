@@ -13,7 +13,7 @@ import type { PackingItem } from "@/types";
 
 const PRESET_CATEGORIES = [
   "Documentos", "Ropa", "Calzado", "Higiene", "Medicamentos",
-  "Electrónica", "Accesorios", "Entretenimiento", "Comida y bebida", "Otro",
+  "Electrónica", "Accesorios", "Entretenimiento", "Comida y bebida",
 ];
 
 interface Props { tripId: string; items: PackingItem[]; }
@@ -23,6 +23,11 @@ export function PackingList({ tripId, items }: Props) {
   const [isPending, setIsPending] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(PRESET_CATEGORIES[0]);
   const [customCategory, setCustomCategory] = useState("");
+
+  const categories = [
+    ...new Set([...PRESET_CATEGORIES, ...items.map((i) => i.category)]),
+    "Otro",
+  ];
 
   const grouped = items.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
@@ -102,7 +107,7 @@ export function PackingList({ tripId, items }: Props) {
                   <Select value={selectedCategory} onValueChange={(v) => v !== null && setSelectedCategory(v)}>
                     <SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger>
                     <SelectContent>
-                      {PRESET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
