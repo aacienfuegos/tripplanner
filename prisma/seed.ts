@@ -101,7 +101,7 @@ async function main() {
             name: "Kyoto Machiya Guesthouse",
             type: "AIRBNB",
             city: "Kioto",
-            address: "Nakagyo-ku, Kyoto",
+            address: "46-16 Anenishicho, Nakagyo-ku, Kyoto",
             checkIn: new Date("2026-06-12"),
             checkOut: new Date("2026-06-17"),
             bookingRef: "AIR-KYO884",
