@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { ImportTrigger } from "@/components/import/ImportTrigger";
 
 interface SectionHeaderProps {
   tripId: string;
@@ -18,10 +19,13 @@ export function SectionHeader({ tripId, tripName, title, icon }: SectionHeaderPr
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-foreground">{title}</span>
       </nav>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        {icon}
-        {title}
-      </h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          {icon}
+          {title}
+        </h1>
+        <ImportTrigger tripId={tripId} />
+      </div>
     </div>
   );
 }
