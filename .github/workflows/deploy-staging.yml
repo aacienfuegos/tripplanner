@@ -38,8 +38,11 @@ jobs:
       - name: Tests
         run: npm test
 
+      - name: Auditoría de seguridad npm
+        run: npm audit --audit-level=moderate
+
   build:
-    name: Build y push imagen staging
+    name: Build, scan y push imagen staging
     needs: checks
     runs-on: ubuntu-latest
     permissions:
@@ -60,11 +63,30 @@ jobs:
       - name: Configurar Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build y push
+      - name: Build imagen (local, para scan)
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: true
+          load: true
+          push: false
           tags: ghcr.io/aacienfuegos/tripplanner:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Instalar Trivy v0.71.0
+        run: |
+          wget -q "https://github.com/aquasecurity/trivy/releases/download/v0.71.0/trivy_0.71.0_Linux-64bit.tar.gz" \
+            -O /tmp/trivy.tar.gz
+          tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy
+
+      - name: Scan de seguridad con Trivy
+        run: |
+          trivy image \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --severity HIGH,CRITICAL \
+            --vuln-type os,library \
+            ghcr.io/aacienfuegos/tripplanner:staging
+
+      - name: Push imagen
+        run: docker push ghcr.io/aacienfuegos/tripplanner:staging
