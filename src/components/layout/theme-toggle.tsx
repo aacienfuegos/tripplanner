@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function ThemeToggle() {
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -23,7 +23,13 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-9 w-9 cursor-pointer")}>
-        <SunMoon className="h-4 w-4" />
+        {theme === "light" ? (
+          <Sun className="h-4 w-4" />
+        ) : theme === "dark" ? (
+          <Moon className="h-4 w-4" />
+        ) : (
+          <SunMoon className="h-4 w-4" />
+        )}
         <span className="sr-only">Cambiar tema</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
