@@ -7,6 +7,7 @@ import type {
   Document,
   Expense,
   PackingItem,
+  Task,
   TripStatus,
   FlightClass,
   AccommodationType,
@@ -14,6 +15,7 @@ import type {
   BookingStatus,
   DocumentType,
   ExpenseCategory,
+  TaskPriority,
 } from "@prisma/client";
 
 export type {
@@ -25,6 +27,7 @@ export type {
   Document,
   Expense,
   PackingItem,
+  Task,
   TripStatus,
   FlightClass,
   AccommodationType,
@@ -32,6 +35,7 @@ export type {
   BookingStatus,
   DocumentType,
   ExpenseCategory,
+  TaskPriority,
 };
 
 export type TripWithDetails = Trip & {

@@ -33,6 +33,7 @@ npx prisma studio         # explorar la DB en el navegador
 # Tests (siempre antes de commitear)
 npm test              # vitest run (modo CI)
 npm run test:watch    # modo watch
+# El pre-commit hook (husky) ejecuta tsc --noEmit + npm test automáticamente
 
 # TypeScript
 npx tsc --noEmit      # check de tipos sin compilar
@@ -75,7 +76,7 @@ src/
 └── deploy-production.yml   # Push a main → build + push ghcr.io/aacienfuegos/tripplanner:latest
 docker/
 ├── nginx-host.conf         # Template nginx host para producción (:3000)
-├── nginx-staging-host.conf # Template nginx host para staging (:3001, con SSL)
+├── nginx-staging-host.conf # Template nginx host para staging (:8072)
 ├── entrypoint.sh           # Entrypoint prod: prisma migrate deploy + next start
 └── entrypoint.dev.sh       # Entrypoint dev: prisma generate + migrate + next dev
 scripts/
@@ -98,6 +99,15 @@ import Link from "next/link";
 
 // INCORRECTO — no funciona en esta versión
 <Button asChild><Link>...</Link></Button>
+```
+
+### Select — onValueChange (shadcn 4.7 / @base-ui/react)
+```tsx
+// CORRECTO — @base-ui pasa string | null, hay que filtrar el null
+<Select value={value} onValueChange={(v) => v !== null && setValue(v)}>
+
+// INCORRECTO — falla en build: Dispatch<SetStateAction<string>> no acepta null
+<Select value={value} onValueChange={setValue}>
 ```
 
 ### Server Actions
@@ -123,8 +133,8 @@ export const config = { matcher: [...] };
 | Entorno | URL | Rama | Deploy |
 |---|---|---|---|
 | Local | `http://localhost:3000` | cualquiera | `npm run dev` |
-| Staging | `https://staging.DOMINIO` | `develop` | Automático al hacer push a `develop` |
-| Producción | `https://DOMINIO` | `main` | Automático al hacer push a `main` |
+| Staging | `https://staging.TU_DOMINIO` | `develop` | Automático al hacer push a `develop` |
+| Producción | `https://TU_DOMINIO` | `main` | Automático al hacer push a `main` |
 
 Cada entorno vive en un directorio propio del servidor con su `.env` (nunca en git):
 - `/srv/tripplanner/prod/` → `docker-compose.prod.yml` + `.env` (copia de `.env.prod.example`)
@@ -151,7 +161,7 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 
 - `develop` es la rama de integración: recibe features, publica imagen `:staging` → se despliega automáticamente en staging.
 - `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado. Publica imagen `:latest` → deploy manual en el servidor.
-- Nunca trabajar directo en `develop` ni en `main`.
+- Nunca trabajar directo en `develop` ni en `main`, aunque el cambio sea de docs, config o una línea. Siempre rama → PR a `develop` → PR a `main`.
 
 ### Pasos para cada feature
 

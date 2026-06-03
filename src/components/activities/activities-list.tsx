@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Plus, Star, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Star, Trash2, ExternalLink, MapPin } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +81,17 @@ export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: 
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {(act.location || act.city) && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([act.location, act.city].filter(Boolean).join(", "))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+                        title="Ver en Google Maps"
+                      >
+                        <MapPin className="h-4 w-4 text-blue-500" />
+                      </a>
+                    )}
                     {act.confirmationUrl && (
                       <a
                         href={act.confirmationUrl}
