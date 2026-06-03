@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, ShoppingBag, Trash2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import type { PackingItem } from "@/types";
 
 const PRESET_CATEGORIES = [
   "Documentos", "Ropa", "Calzado", "Higiene", "Medicamentos",
-  "Electrónica", "Accesorios", "Entretenimiento", "Comida y bebida", "Otro",
+  "Electrónica", "Accesorios", "Entretenimiento", "Comida y bebida",
 ];
 
 interface Props { tripId: string; items: PackingItem[]; }
@@ -23,6 +23,12 @@ export function PackingList({ tripId, items }: Props) {
   const [isPending, setIsPending] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(PRESET_CATEGORIES[0]);
   const [customCategory, setCustomCategory] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const categories = [
+    ...new Set([...PRESET_CATEGORIES, ...items.map((i) => i.category)]),
+    "Otro",
+  ];
 
   const grouped = items.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
@@ -54,7 +60,7 @@ export function PackingList({ tripId, items }: Props) {
     const category = selectedCategory === "Otro" ? customCategory.trim() : selectedCategory;
     if (!category) { toast.error("Indica una categoría"); return; }
     formData.set("category", category);
-    try { await createPackingItem(tripId, formData); setShowForm(false); setCustomCategory(""); }
+    try { await createPackingItem(tripId, formData); formRef.current?.reset(); setCustomCategory(""); }
     catch { toast.error("Error al añadir"); }
   }
 
@@ -89,7 +95,7 @@ export function PackingList({ tripId, items }: Props) {
       {showForm && (
         <Card>
           <CardContent className="pt-4">
-            <form action={handleCreate} className="space-y-3">
+            <form ref={formRef} action={handleCreate} className="space-y-3">
               <div className="flex gap-3 flex-wrap">
                 <div className="flex-1 min-w-32">
                   <Label htmlFor="name" className="sr-only">Item</Label>
@@ -102,7 +108,7 @@ export function PackingList({ tripId, items }: Props) {
                   <Select value={selectedCategory} onValueChange={(v) => v !== null && setSelectedCategory(v)}>
                     <SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger>
                     <SelectContent>
-                      {PRESET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
