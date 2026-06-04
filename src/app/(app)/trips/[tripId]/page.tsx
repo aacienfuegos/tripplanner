@@ -166,7 +166,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <ImportTrigger tripId={trip.id} />
+            <ImportTrigger
+              tripId={trip.id}
+              tripStartDate={trip.startDate.toISOString()}
+              tripEndDate={trip.endDate.toISOString()}
+            />
             <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
               Editar

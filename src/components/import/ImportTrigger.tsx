@@ -5,7 +5,15 @@ import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImportWizard } from "./ImportWizard";
 
-export function ImportTrigger({ tripId }: { tripId: string }) {
+export function ImportTrigger({
+  tripId,
+  tripStartDate,
+  tripEndDate,
+}: {
+  tripId: string;
+  tripStartDate?: string;
+  tripEndDate?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -14,7 +22,13 @@ export function ImportTrigger({ tripId }: { tripId: string }) {
         <Upload className="h-3.5 w-3.5 mr-1.5" />
         Importar vía IA
       </Button>
-      <ImportWizard tripId={tripId} open={open} onOpenChange={setOpen} />
+      <ImportWizard
+        tripId={tripId}
+        tripStartDate={tripStartDate}
+        tripEndDate={tripEndDate}
+        open={open}
+        onOpenChange={setOpen}
+      />
     </>
   );
 }

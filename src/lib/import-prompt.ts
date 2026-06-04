@@ -1,5 +1,15 @@
-export function generateImportPrompt(): string {
-  return `You are a structured data extractor for a travel planning app. I will provide travel-related content (PDF text, booking confirmations, itineraries, emails, etc.). Extract all relevant information and return it as a single JSON object following the exact schema below.
+interface PromptOptions {
+  tripStartDate?: string;
+  tripEndDate?: string;
+}
+
+export function generateImportPrompt(options?: PromptOptions): string {
+  const tripContext =
+    options?.tripStartDate && options?.tripEndDate
+      ? `\nTRIP CONTEXT: This trip runs from ${options.tripStartDate.slice(0, 10)} to ${options.tripEndDate.slice(0, 10)}. Use this to resolve ambiguous dates — e.g. if the content says "June 15" without a year, infer the year from these dates.\n`
+      : "";
+
+  return `You are a structured data extractor for a travel planning app. I will provide travel-related content (PDF text, booking confirmations, itineraries, emails, etc.). Extract all relevant information and return it as a single JSON object following the exact schema below.${tripContext}
 
 RULES:
 1. Return ONLY the raw JSON object. No explanation, no markdown, no code fences (no \`\`\`json).

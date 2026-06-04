@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { Plane, Hotel, Star, DollarSign, ShoppingBag, FileText } from "lucide-react";
+import { Plane, Hotel, Star, DollarSign, ShoppingBag, FileText, AlertTriangle, Loader2 } from "lucide-react";
 import { ImportPayload } from "@/lib/import-schemas";
-import { bulkImport } from "@/actions/import";
+import { bulkImport, checkDuplicates, DuplicateFlags } from "@/actions/import";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -35,6 +35,17 @@ function initSelection(payload: ImportPayload): SelectionState {
   };
 }
 
+function applyDuplicateFlags(prev: SelectionState, flags: DuplicateFlags): SelectionState {
+  return {
+    flights:        prev.flights.map((v, i) => flags.flights[i] ? false : v),
+    accommodations: prev.accommodations.map((v, i) => flags.accommodations[i] ? false : v),
+    activities:     prev.activities.map((v, i) => flags.activities[i] ? false : v),
+    expenses:       prev.expenses.map((v, i) => flags.expenses[i] ? false : v),
+    packing:        prev.packing.map((v, i) => flags.packing[i] ? false : v),
+    documents:      prev.documents.map((v, i) => flags.documents[i] ? false : v),
+  };
+}
+
 export function ReviewStep({
   tripId,
   payload,
@@ -47,12 +58,31 @@ export function ReviewStep({
   onDone: () => void;
 }) {
   const [selection, setSelection] = useState<SelectionState>(() => initSelection(payload));
+  const [dupFlags, setDupFlags] = useState<DuplicateFlags | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    checkDuplicates(tripId, payload).then((flags) => {
+      setDupFlags(flags);
+      setSelection((prev) => applyDuplicateFlags(prev, flags));
+      setIsChecking(false);
+    });
+    // tripId and payload don't change during the lifecycle of this step
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeSections = (Object.keys(SECTION_CONFIG) as SectionKey[]).filter(
     (k) => payload[k].length > 0,
   );
   const [activeTab, setActiveTab] = useState<string>(activeSections[0] ?? "flights");
+
+  const totalDuplicates = dupFlags
+    ? (Object.keys(dupFlags) as SectionKey[]).reduce(
+        (sum, k) => sum + dupFlags[k].filter(Boolean).length,
+        0,
+      )
+    : 0;
 
   const toggleItem = (section: SectionKey, idx: number) => {
     setSelection((prev) => ({
@@ -104,9 +134,23 @@ export function ReviewStep({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Revisa los ítems detectados. Desmarca los que no quieras importar.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          Revisa los ítems detectados. Desmarca los que no quieras importar.
+        </p>
+        {isChecking && (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Verificando duplicados…
+          </span>
+        )}
+        {!isChecking && totalDuplicates > 0 && (
+          <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-600 shrink-0">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            {totalDuplicates} posible{totalDuplicates > 1 ? "s duplicados" : " duplicado"}
+          </Badge>
+        )}
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="h-auto flex flex-wrap gap-1 bg-transparent p-0 justify-start">
@@ -129,6 +173,7 @@ export function ReviewStep({
         {activeSections.map((key) => {
           const allSelected = selection[key].every(Boolean);
           const items = payload[key] as any[];
+          const sectionDups = dupFlags?.[key] ?? items.map(() => false);
 
           return (
             <TabsContent key={key} value={key} className="mt-3 space-y-1">
@@ -156,7 +201,18 @@ export function ReviewStep({
                     onChange={() => toggleItem(key, idx)}
                     className="mt-0.5 accent-primary"
                   />
-                  <ItemSummary section={key} item={item} />
+                  <div className="flex-1 min-w-0">
+                    <ItemSummary section={key} item={item} />
+                  </div>
+                  {sectionDups[idx] && (
+                    <Badge
+                      variant="outline"
+                      className="text-xs border-yellow-400 text-yellow-600 px-1 h-4 shrink-0 self-start mt-0.5"
+                    >
+                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                      Duplicado
+                    </Badge>
+                  )}
                 </label>
               ))}
             </TabsContent>
@@ -171,7 +227,7 @@ export function ReviewStep({
         <Button
           size="sm"
           onClick={handleImport}
-          disabled={totalSelected === 0 || isPending}
+          disabled={totalSelected === 0 || isPending || isChecking}
         >
           {isPending
             ? "Importando..."

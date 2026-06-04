@@ -5,9 +5,17 @@ import { generateImportPrompt } from "@/lib/import-prompt";
 import { Button } from "@/components/ui/button";
 import { Copy, Download, Check } from "lucide-react";
 
-export function PromptStep({ onNext }: { onNext: () => void }) {
+export function PromptStep({
+  tripStartDate,
+  tripEndDate,
+  onNext,
+}: {
+  tripStartDate?: string;
+  tripEndDate?: string;
+  onNext: () => void;
+}) {
   const [copied, setCopied] = useState(false);
-  const prompt = generateImportPrompt();
+  const prompt = generateImportPrompt({ tripStartDate, tripEndDate });
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(prompt);

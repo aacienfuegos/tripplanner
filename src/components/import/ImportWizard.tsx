@@ -23,10 +23,14 @@ const STEP_LABELS: Record<Step, string> = {
 
 export function ImportWizard({
   tripId,
+  tripStartDate,
+  tripEndDate,
   open,
   onOpenChange,
 }: {
   tripId: string;
+  tripStartDate?: string;
+  tripEndDate?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -64,7 +68,13 @@ export function ImportWizard({
         </div>
 
         <div className="flex-1 overflow-y-auto pr-1">
-          {step === 1 && <PromptStep onNext={() => setStep(2)} />}
+          {step === 1 && (
+            <PromptStep
+              tripStartDate={tripStartDate}
+              tripEndDate={tripEndDate}
+              onNext={() => setStep(2)}
+            />
+          )}
           {step === 2 && (
             <UploadStep
               onBack={() => setStep(1)}

@@ -148,3 +148,93 @@ export async function bulkImport(tripId: string, payload: ImportPayload): Promis
 
   return counts;
 }
+
+// ─── Duplicate detection ──────────────────────────────────────────────────────
+
+export type DuplicateFlags = {
+  flights:        boolean[];
+  accommodations: boolean[];
+  activities:     boolean[];
+  expenses:       boolean[];
+  packing:        boolean[];
+  documents:      boolean[];
+};
+
+export async function checkDuplicates(
+  tripId: string,
+  payload: ImportPayload,
+): Promise<DuplicateFlags> {
+  await requireTripOwner(tripId);
+  const data = importPayloadSchema.parse(payload);
+
+  const dateStr = (d: Date) => d.toISOString().slice(0, 10);
+  const isoDay  = (s: string) => s.slice(0, 10);
+
+  const [existingFlights, existingAccoms, existingActs, existingExp, existingPacking, existingDocs] =
+    await Promise.all([
+      data.flights.length > 0
+        ? prisma.flight.findMany({ where: { tripId }, select: { flightNumber: true, departureAt: true } })
+        : [],
+      data.accommodations.length > 0
+        ? prisma.accommodation.findMany({ where: { tripId }, select: { name: true, checkIn: true } })
+        : [],
+      data.activities.length > 0
+        ? prisma.activity.findMany({ where: { tripId }, select: { name: true, scheduledAt: true } })
+        : [],
+      data.expenses.length > 0
+        ? prisma.expense.findMany({ where: { tripId }, select: { description: true, amount: true, date: true } })
+        : [],
+      data.packing.length > 0
+        ? prisma.packingItem.findMany({ where: { tripId }, select: { name: true, category: true } })
+        : [],
+      data.documents.length > 0
+        ? prisma.document.findMany({ where: { tripId }, select: { name: true, type: true } })
+        : [],
+    ]);
+
+  return {
+    flights: data.flights.map((f) =>
+      existingFlights.some(
+        (e) =>
+          e.flightNumber.toLowerCase() === f.flightNumber.toLowerCase() &&
+          dateStr(e.departureAt) === isoDay(f.departureAt),
+      ),
+    ),
+    accommodations: data.accommodations.map((a) =>
+      existingAccoms.some(
+        (e) =>
+          e.name.toLowerCase() === a.name.toLowerCase() &&
+          dateStr(e.checkIn) === isoDay(a.checkIn),
+      ),
+    ),
+    activities: data.activities.map((act) =>
+      existingActs.some(
+        (e) =>
+          e.name.toLowerCase() === act.name.toLowerCase() &&
+          (!act.scheduledAt || !e.scheduledAt ||
+            dateStr(e.scheduledAt) === isoDay(act.scheduledAt)),
+      ),
+    ),
+    expenses: data.expenses.map((exp) =>
+      existingExp.some(
+        (e) =>
+          e.description.toLowerCase() === exp.description.toLowerCase() &&
+          e.amount === exp.amount &&
+          dateStr(e.date) === isoDay(exp.date),
+      ),
+    ),
+    packing: data.packing.map((p) =>
+      existingPacking.some(
+        (e) =>
+          e.name.toLowerCase() === p.name.toLowerCase() &&
+          e.category.toLowerCase() === p.category.toLowerCase(),
+      ),
+    ),
+    documents: data.documents.map((d) =>
+      existingDocs.some(
+        (e) =>
+          e.name.toLowerCase() === d.name.toLowerCase() && e.type === d.type,
+      ),
+    ),
+  };
+}
