@@ -63,11 +63,17 @@ export function ReviewStep({
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    checkDuplicates(tripId, payload).then((flags) => {
-      setDupFlags(flags);
-      setSelection((prev) => applyDuplicateFlags(prev, flags));
-      setIsChecking(false);
-    });
+    checkDuplicates(tripId, payload)
+      .then((flags) => {
+        setDupFlags(flags);
+        setSelection((prev) => applyDuplicateFlags(prev, flags));
+      })
+      .catch(() => {
+        // Non-fatal: if the check fails, we just skip duplicate marking
+      })
+      .finally(() => {
+        setIsChecking(false);
+      });
     // tripId and payload don't change during the lifecycle of this step
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

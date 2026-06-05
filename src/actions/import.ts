@@ -167,8 +167,12 @@ export async function checkDuplicates(
   await requireTripOwner(tripId);
   const data = importPayloadSchema.parse(payload);
 
-  const dateStr = (d: Date) => d.toISOString().slice(0, 10);
-  const isoDay  = (s: string) => s.slice(0, 10);
+  // Use local-time components so the comparison is consistent with how
+  // new Date("2024-06-15T07:30:00") was parsed (local time) when storing.
+  // toISOString() returns UTC and would give the wrong day in non-UTC timezones.
+  const localDay = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const isoDay = (s: string) => s.slice(0, 10);
 
   const [existingFlights, existingAccoms, existingActs, existingExp, existingPacking, existingDocs] =
     await Promise.all([
@@ -197,14 +201,14 @@ export async function checkDuplicates(
       existingFlights.some(
         (e) =>
           e.flightNumber.toLowerCase() === f.flightNumber.toLowerCase() &&
-          dateStr(e.departureAt) === isoDay(f.departureAt),
+          localDay(e.departureAt) === isoDay(f.departureAt),
       ),
     ),
     accommodations: data.accommodations.map((a) =>
       existingAccoms.some(
         (e) =>
           e.name.toLowerCase() === a.name.toLowerCase() &&
-          dateStr(e.checkIn) === isoDay(a.checkIn),
+          localDay(e.checkIn) === isoDay(a.checkIn),
       ),
     ),
     activities: data.activities.map((act) =>
@@ -212,7 +216,7 @@ export async function checkDuplicates(
         (e) =>
           e.name.toLowerCase() === act.name.toLowerCase() &&
           (!act.scheduledAt || !e.scheduledAt ||
-            dateStr(e.scheduledAt) === isoDay(act.scheduledAt)),
+            localDay(e.scheduledAt) === isoDay(act.scheduledAt)),
       ),
     ),
     expenses: data.expenses.map((exp) =>
@@ -220,7 +224,7 @@ export async function checkDuplicates(
         (e) =>
           e.description.toLowerCase() === exp.description.toLowerCase() &&
           e.amount === exp.amount &&
-          dateStr(e.date) === isoDay(exp.date),
+          localDay(e.date) === isoDay(exp.date),
       ),
     ),
     packing: data.packing.map((p) =>
