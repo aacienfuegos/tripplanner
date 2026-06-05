@@ -60,12 +60,20 @@ src/
 │   └── auth/           # signin, error (rutas públicas)
 ├── actions/            # Server Actions para CRUD. Todos hacen requireTripOwner()
 ├── components/
+│   ├── import/         # Wizard de importación vía IA (ver sección más abajo)
+│   │   ├── ImportTrigger.tsx
+│   │   ├── ImportWizard.tsx
+│   │   ├── PromptStep.tsx
+│   │   ├── UploadStep.tsx
+│   │   └── ReviewStep.tsx
 │   ├── layout/         # Navbar
 │   ├── trips/          # Formularios de viaje
 │   └── ui/             # shadcn/ui components
 ├── lib/
 │   ├── auth.config.ts  # Configuración NextAuth edge-safe (sin Prisma)
 │   ├── auth.ts         # NextAuth completo con PrismaAdapter + dev credentials
+│   ├── import-prompt.ts  # Genera el prompt para la IA (ver sección más abajo)
+│   ├── import-schemas.ts # Schemas Zod para las 6 secciones importables
 │   ├── prisma.ts       # Singleton PrismaClient con PrismaPg adapter
 │   └── schemas.ts      # Schemas Zod compartidos entre actions y tests
 └── proxy.ts            # Next.js 16: reemplaza middleware.ts
@@ -195,3 +203,50 @@ try {
 
 ### Después de cualquier `prisma migrate dev`
 Siempre ejecutar también `npx prisma generate` — la migración actualiza la DB pero no el cliente TypeScript.
+
+## Importación vía IA
+
+Wizard de 3 pasos para importar datos de cualquier sección del viaje usando un modelo de IA externo (Claude, ChatGPT, Gemini) como intermediario. No requiere acceso a APIs de IA.
+
+### Flujo
+
+```
+trips/[tripId]/page.tsx  →  "Importar vía IA"
+  Paso 1 — PromptStep:   copia o descarga el prompt generado por la app
+  Paso 2 — UploadStep:   pega ese prompt + el PDF/email en la IA → copia el JSON que devuelve
+  Paso 3 — ReviewStep:   preview de todos los ítems con checkbox individual + detección de duplicados
+```
+
+### Archivos clave
+
+| Archivo | Propósito |
+|---|---|
+| `src/lib/import-schemas.ts` | Zod schemas para las 6 secciones. Punto de verdad del formato esperado. |
+| `src/lib/import-prompt.ts` | Genera el prompt del sistema que se pasa a la IA. Acepta fechas del viaje para resolver fechas ambiguas. |
+| `src/actions/import.ts` | `bulkImport` (createMany en transacción) + `checkDuplicates` (fuzzy matching). |
+| `src/components/import/ImportTrigger.tsx` | Botón + estado open/close del dialog. Montado en `trips/[tripId]/page.tsx`. |
+| `src/components/import/ImportWizard.tsx` | Dialog contenedor. Gestiona el step actual y el payload parseado entre pasos. |
+| `src/components/import/PromptStep.tsx` | Paso 1: renderiza el prompt, botones copiar/descargar. |
+| `src/components/import/UploadStep.tsx` | Paso 2: textarea + file input. Valida con `importPayloadSchema.safeParse`. |
+| `src/components/import/ReviewStep.tsx` | Paso 3: tabs por sección, checkboxes, badge "Duplicado", llama `checkDuplicates` en mount. |
+
+### Decisiones de diseño
+
+**JSON en vez de CSV**: un único fichero cubre las 6 secciones heterogéneas. CSV requeriría 6 ficheros distintos o un formato ad-hoc que los LLMs generan de forma más inconsistente.
+
+**Prompt en inglés**: los LLMs actuales siguen esquemas JSON con más precisión cuando las instrucciones están en inglés. Las fechas del viaje se incluyen en el prompt para que la IA resuelva años ambiguos ("15 de junio" → año correcto).
+
+**Future-proofing con tipos Prisma**: en `import.ts`, los arrays de `createMany` están tipados como `Prisma.XCreateManyInput[]`. Si se añade un campo no-nullable al schema de Prisma sin actualizar el wizard, `tsc --noEmit` falla en el pre-commit hook antes de que el código llegue a producción.
+
+**Fuzzy matching para duplicados**: `checkDuplicates` normaliza los strings (quita diacríticos, puntuación, espacios extra) y aplica Levenshtein con umbral 85% sobre palabras ordenadas alfabéticamente. Esto cubre variaciones comunes de la IA: "Hotel Marriott" ↔ "Marriott Hotel", "Cena romántica" ↔ "Cena romantica". Los números de vuelo usan exact match tras normalización (`IB1234 ≠ IB1235`).
+
+**Timezone en fechas almacenadas**: `new Date("2024-06-15T14:00:00")` se parsea en hora local. `checkDuplicates` usa `getFullYear/getMonth/getDate` (hora local) en vez de `toISOString()` (UTC) para evitar desfases de día en zonas UTC+N.
+
+### Cómo añadir una nueva sección
+
+1. `import-schemas.ts` — añadir `importXSchema` y exportar el tipo `ImportX`
+2. `importPayloadSchema` — añadir `x: z.array(importXSchema).optional().default([])`
+3. `import-prompt.ts` — añadir el bloque de la sección al `SCHEMA:` del prompt
+4. `import.ts` — añadir en `bulkImport` (array tipado `Prisma.XCreateManyInput[]`) y en `checkDuplicates` (query + criterios de comparación)
+5. `ReviewStep.tsx` — añadir entrada en `SECTION_CONFIG` y case en `ItemSummary`
+6. `src/__tests__/import-schemas.test.ts` — añadir tests del nuevo schema

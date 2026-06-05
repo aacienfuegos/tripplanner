@@ -13,6 +13,7 @@ import {
 import { format, differenceInDays, startOfDay, addDays, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
+import { ImportTrigger } from "@/components/import/ImportTrigger";
 import type { Flight, Accommodation, Activity } from "@prisma/client";
 
 // ─── Timeline types ──────────────────────────────────────────────────────────
@@ -164,10 +165,17 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               <p className="text-sm text-muted-foreground">{trip.description}</p>
             )}
           </div>
-          <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            <Pencil className="h-3.5 w-3.5 mr-1.5" />
-            Editar
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <ImportTrigger
+              tripId={trip.id}
+              tripStartDate={trip.startDate.toISOString()}
+              tripEndDate={trip.endDate.toISOString()}
+            />
+            <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+              Editar
+            </Link>
+          </div>
         </div>
 
         {/* Countdown progress bar — solo visible si el viaje ha empezado */}
