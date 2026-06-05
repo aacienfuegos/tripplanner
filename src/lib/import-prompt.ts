@@ -1,3 +1,6 @@
+// Prompt is intentionally in English — LLMs follow JSON schemas more accurately
+// with English instructions. Trip dates are injected to resolve ambiguous years.
+
 interface PromptOptions {
   tripStartDate?: string;
   tripEndDate?: string;

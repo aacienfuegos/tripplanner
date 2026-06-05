@@ -1,9 +1,13 @@
 import { z } from "zod";
 
 // ─── Per-section import schemas ───────────────────────────────────────────────
-// Prices are numbers (not strings), dates are ISO 8601 strings,
-// and all fields except the minimum required ones are optional so lenient AI
-// output can still pass validation.
+// Intentionally lenient: prices are numbers, dates are ISO 8601 strings,
+// and only the minimum required fields are mandatory so that partial or
+// slightly incorrect AI responses still pass validation.
+//
+// When adding a new section, also update:
+//   import-prompt.ts (SCHEMA block), import.ts (bulkImport + checkDuplicates),
+//   ReviewStep.tsx (SECTION_CONFIG + ItemSummary), and the test file.
 
 const optionalUrl = z.string().nullable().optional();
 
