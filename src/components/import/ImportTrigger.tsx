@@ -9,10 +9,12 @@ export function ImportTrigger({
   tripId,
   tripStartDate,
   tripEndDate,
+  agentosEnabled = false,
 }: {
   tripId: string;
   tripStartDate?: string;
   tripEndDate?: string;
+  agentosEnabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -28,6 +30,7 @@ export function ImportTrigger({
         tripEndDate={tripEndDate}
         open={open}
         onOpenChange={setOpen}
+        agentosEnabled={agentosEnabled}
       />
     </>
   );

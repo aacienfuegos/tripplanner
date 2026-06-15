@@ -69,6 +69,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
+  const agentosEnabled = !!(process.env.AGENTOS_URL && process.env.AGENTOS_API_KEY);
+
   // ── Build timeline ──────────────────────────────────────────────────────
 
   const tripStart = startOfDay(trip.startDate);
@@ -170,6 +172,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               tripId={trip.id}
               tripStartDate={trip.startDate.toISOString()}
               tripEndDate={trip.endDate.toISOString()}
+              agentosEnabled={agentosEnabled}
             />
             <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
