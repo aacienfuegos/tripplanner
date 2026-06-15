@@ -1,5 +1,5 @@
 FROM node:26-alpine AS base
-RUN apk add --no-cache libc6-compat
+RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
 RUN npm install -g npm@latest
 
 # ── Dependencias (todas, incluyendo dev para el build) ──────────────────────
