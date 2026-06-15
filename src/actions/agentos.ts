@@ -21,11 +21,19 @@ You have access to web search (WebSearch) and page fetch (WebFetch) tools. Use t
 - Do NOT search for price information unless it is completely absent from the provided content.
 Always prioritize the information explicitly stated in the provided content over web results.`;
 
-function stripCodeFences(raw: string): string {
-  return raw
-    .replace(/^```(?:json)?\s*/im, "")
-    .replace(/\s*```\s*$/m, "")
-    .trim();
+// Extracts a JSON object from Claude's output, which may contain explanatory text,
+// markdown code fences, and/or sources before or after the actual JSON.
+function extractJson(raw: string): string {
+  // 1. Prefer an explicit ```json ... ``` or ``` ... ``` block anywhere in the text
+  const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch?.[1]?.trim().startsWith("{")) return fenceMatch[1].trim();
+
+  // 2. Fall back to the first { ... last } span (handles bare JSON embedded in text)
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start !== -1 && end > start) return raw.slice(start, end + 1);
+
+  return raw.trim();
 }
 
 function agentosErrorMessage(status: number): string {
@@ -90,7 +98,7 @@ export async function runAgentOSImport(
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(stripCodeFences(raw));
+    parsed = JSON.parse(extractJson(raw));
   } catch {
     throw new Error(
       "La IA no devolvió un JSON válido. Prueba el modo manual y revisa que el contenido sea legible.",

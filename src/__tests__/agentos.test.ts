@@ -74,6 +74,19 @@ describe("runAgentOSImport", () => {
     expect(result.flights).toHaveLength(1);
   });
 
+  it("extracts JSON when Claude adds explanatory text and sources around it", async () => {
+    const withTextAndSources =
+      "Perfect! I found the hotel details. Now let me create the JSON.\n\n" +
+      "```json\n" +
+      JSON.stringify(VALID_PAYLOAD) +
+      "\n```\n\n" +
+      "---\nSources:\n- [Some hotel](https://example.com)";
+    global.fetch = mockFetch(200, { output: withTextAndSources });
+    const { runAgentOSImport } = await import("@/actions/agentos");
+    const result = await runAgentOSImport("some content");
+    expect(result.flights).toHaveLength(1);
+  });
+
   it("returns empty sections when output contains only some sections", async () => {
     global.fetch = mockFetch(200, { output: JSON.stringify({ accommodations: [] }) });
     const { runAgentOSImport } = await import("@/actions/agentos");
