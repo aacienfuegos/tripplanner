@@ -6,20 +6,13 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { generateImportPrompt } from "@/lib/import-prompt";
 import { importPayloadSchema, ImportPayload } from "@/lib/import-schemas";
 
-// The prompt ends with this separator before the content placeholder.
-// We split here to isolate the system instructions from the user's content.
-const PROMPT_SEPARATOR = "\n---\nNow extract the data from the following content:\n\n";
+// Placeholder text at the end of the import prompt that gets replaced with user content.
+const CONTENT_PLACEHOLDER =
+  "[PASTE YOUR TRAVEL CONTENT HERE — PDF text, booking confirmation email, itinerary, etc.]";
 
-// Extra instructions appended to the system prompt when running through AgentOS,
-// where Claude has WebSearch and WebFetch available to fill in missing details.
-const WEB_TOOLS_INSTRUCTIONS = `
-ADDITIONAL CAPABILITIES:
-You have access to web search (WebSearch) and page fetch (WebFetch) tools. Use them proactively to enrich the extracted data when details are missing or ambiguous:
-- If a hotel or accommodation is mentioned without a city or address, search for it.
-- If an activity or restaurant lacks a location, search to confirm the city or venue.
-- If a flight origin/destination is a city name instead of IATA code, verify the correct IATA code.
-- Do NOT search for price information unless it is completely absent from the provided content.
-Always prioritize the information explicitly stated in the provided content over web results.`;
+// Extra instructions injected before the content section so Claude knows it can search the web.
+const WEB_TOOLS_INSTRUCTIONS =
+  "\nADDITIONAL CAPABILITIES: You have WebSearch and WebFetch tools available. Use them proactively to fill in missing details — e.g. if a hotel lacks an address or city, search for it; if a flight uses a city name instead of an IATA code, verify it. Prioritize the provided content over web results.\n";
 
 // Extracts a JSON object from Claude's output, which may contain explanatory text,
 // markdown code fences, and/or sources before or after the actual JSON.
@@ -64,8 +57,14 @@ export async function runAgentOSImport(
     throw new Error("AgentOS no está configurado en este entorno.");
   }
 
-  const fullPrompt = generateImportPrompt(options);
-  const systemPrompt = fullPrompt.split(PROMPT_SEPARATOR)[0] + WEB_TOOLS_INSTRUCTIONS;
+  // Build the full prompt: instructions + web tools note + user content embedded in place
+  // of the placeholder. Sent as a single `prompt` field — system_prompt is left empty
+  // to avoid AgentOS's internal size limits on that field.
+  const basePrompt = generateImportPrompt(options);
+  const fullPrompt = basePrompt.replace(
+    CONTENT_PLACEHOLDER,
+    WEB_TOOLS_INSTRUCTIONS + "\n" + content,
+  );
 
   let res: Response;
   try {
@@ -76,8 +75,7 @@ export async function runAgentOSImport(
         Authorization: `Bearer ${agentosKey}`,
       },
       body: JSON.stringify({
-        prompt: content,
-        system_prompt: systemPrompt,
+        prompt: fullPrompt,
         model: "claude-haiku-4-5-20251001",
         timeout_seconds: 180,
         tools: ["WebFetch", "WebSearch"],
