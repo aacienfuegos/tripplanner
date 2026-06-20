@@ -3,16 +3,8 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { generateImportPrompt } from "@/lib/import-prompt";
+import { generateImportSystemPrompt, generateImportUserMessage } from "@/lib/import-prompt";
 import { importPayloadSchema, ImportPayload } from "@/lib/import-schemas";
-
-// Placeholder text at the end of the import prompt that gets replaced with user content.
-const CONTENT_PLACEHOLDER =
-  "[PASTE YOUR TRAVEL CONTENT HERE — PDF text, booking confirmation email, itinerary, etc.]";
-
-// Extra instructions injected before the content section so Claude knows it can search the web.
-const WEB_TOOLS_INSTRUCTIONS =
-  "\nADDITIONAL CAPABILITIES: You have WebSearch and WebFetch tools available. Use them proactively to fill in missing details — e.g. if a hotel lacks an address or city, search for it; if a flight uses a city name instead of an IATA code, verify it. Prioritize the provided content over web results.\n";
 
 // Extracts a JSON object from Claude's output, which may contain explanatory text,
 // markdown code fences, and/or sources before or after the actual JSON.
@@ -57,14 +49,8 @@ export async function runAgentOSImport(
     throw new Error("AgentOS no está configurado en este entorno.");
   }
 
-  // Build the full prompt: instructions + web tools note + user content embedded in place
-  // of the placeholder. Sent as a single `prompt` field — system_prompt is left empty
-  // to avoid AgentOS's internal size limits on that field.
-  const basePrompt = generateImportPrompt(options);
-  const fullPrompt = basePrompt.replace(
-    CONTENT_PLACEHOLDER,
-    WEB_TOOLS_INSTRUCTIONS + "\n" + content,
-  );
+  const systemPrompt = generateImportSystemPrompt();
+  const userMessage = generateImportUserMessage(content, options);
 
   let res: Response;
   try {
@@ -75,9 +61,10 @@ export async function runAgentOSImport(
         Authorization: `Bearer ${agentosKey}`,
       },
       body: JSON.stringify({
-        prompt: fullPrompt,
+        system_prompt: systemPrompt,
+        prompt: userMessage,
         model: "claude-haiku-4-5-20251001",
-        timeout_seconds: 180,
+        timeout_seconds: 300,
         tools: ["WebFetch", "WebSearch"],
       }),
     });

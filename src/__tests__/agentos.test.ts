@@ -136,7 +136,7 @@ describe("runAgentOSImport", () => {
     );
   });
 
-  it("calls AgentOS with haiku model, web tools, full prompt, and correct auth header", async () => {
+  it("calls AgentOS with haiku model, split system_prompt/prompt, web tools, and correct auth header", async () => {
     const fetchMock = mockFetch(200, { output: JSON.stringify(VALID_PAYLOAD) });
     global.fetch = fetchMock;
     const { runAgentOSImport } = await import("@/actions/agentos");
@@ -149,12 +149,13 @@ describe("runAgentOSImport", () => {
     );
     const body = JSON.parse(options.body as string);
     expect(body.model).toBe("claude-haiku-4-5-20251001");
-    // prompt must include the user content embedded in the import instructions
+    // system_prompt has role + schema (static instructions)
+    expect(body.system_prompt).toContain("You are a structured data extractor");
+    expect(body.system_prompt).toContain("CRITICAL OUTPUT RULE");
+    // prompt has only the user content
     expect(body.prompt).toContain("some content");
-    expect(body.prompt).toContain("You are a structured data extractor");
-    // no system_prompt — avoids AgentOS internal size limits
-    expect(body.system_prompt).toBeUndefined();
+    expect(body.prompt).not.toContain("You are a structured data extractor");
     expect(body.tools).toEqual(["WebFetch", "WebSearch"]);
-    expect(body.timeout_seconds).toBe(180);
+    expect(body.timeout_seconds).toBe(300);
   });
 });
