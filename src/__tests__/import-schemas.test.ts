@@ -37,9 +37,16 @@ describe("importFlightSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects missing required fields", () => {
-    const { airline: _a, ...without } = valid;
-    expect(importFlightSchema.safeParse(without).success).toBe(false);
+  it("rejects missing origin/destination (truly required fields)", () => {
+    const { origin: _o, ...withoutOrigin } = valid;
+    expect(importFlightSchema.safeParse(withoutOrigin).success).toBe(false);
+    const { destination: _d, ...withoutDest } = valid;
+    expect(importFlightSchema.safeParse(withoutDest).success).toBe(false);
+  });
+
+  it("accepts missing airline, flightNumber, departureAt, arrivalAt (planning fields)", () => {
+    const { airline: _a, flightNumber: _f, departureAt: _dep, arrivalAt: _arr, ...minimal } = valid;
+    expect(importFlightSchema.safeParse(minimal).success).toBe(true);
   });
 
   it("rejects invalid class enum", () => {

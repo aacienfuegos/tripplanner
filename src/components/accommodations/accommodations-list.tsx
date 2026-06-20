@@ -45,7 +45,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate }: { 
       ) : (
         <div className="space-y-3">
           {accommodations.map((a) => {
-            const nights = differenceInDays(a.checkOut, a.checkIn);
+            const nights = a.checkIn && a.checkOut ? differenceInDays(a.checkOut, a.checkIn) : null;
             return (
               <Card key={a.id} id={a.id} className="scroll-mt-16 target:ring-2 target:ring-primary/40">
                 <CardContent className="pt-4">
@@ -57,10 +57,10 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate }: { 
                         <span className="text-muted-foreground text-sm">{a.city}</span>
                       </div>
                       <div className="text-sm text-muted-foreground space-y-0.5">
-                        <p>Check-in: {format(a.checkIn, "d MMM yyyy", { locale: es })}</p>
-                        <p>Check-out: {format(a.checkOut, "d MMM yyyy", { locale: es })}</p>
+                        {a.checkIn && <p>Check-in: {format(a.checkIn, "d MMM yyyy", { locale: es })}</p>}
+                        {a.checkOut && <p>Check-out: {format(a.checkOut, "d MMM yyyy", { locale: es })}</p>}
                         <p className="flex items-center gap-1">
-                          <Moon className="h-3 w-3" /> {nights} noche{nights !== 1 ? "s" : ""}
+                          {nights !== null && <><Moon className="h-3 w-3" /> {nights} noche{nights !== 1 ? "s" : ""}</>}
                           {a.pricePerNight && ` · ${a.pricePerNight}€/noche`}
                           {a.price && ` · Total: ${a.price}€`}
                         </p>

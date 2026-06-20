@@ -12,12 +12,12 @@ import { z } from "zod";
 const optionalUrl = z.string().nullable().optional();
 
 export const importFlightSchema = z.object({
-  airline: z.string().min(1),
-  flightNumber: z.string().min(1),
+  airline: z.string().nullable().optional(),
+  flightNumber: z.string().nullable().optional(),
   origin: z.string().min(1),
   destination: z.string().min(1),
-  departureAt: z.string().min(1),
-  arrivalAt: z.string().min(1),
+  departureAt: z.string().nullable().optional(),
+  arrivalAt: z.string().nullable().optional(),
   bookingRef: z.string().nullable().optional(),
   confirmationUrl: optionalUrl,
   seatNumber: z.string().nullable().optional(),
@@ -31,8 +31,8 @@ export const importAccommodationSchema = z.object({
   type: z.enum(["HOTEL", "HOSTEL", "AIRBNB", "APARTMENT", "RESORT", "OTHER"]).default("HOTEL"),
   address: z.string().nullable().optional(),
   city: z.string().min(1),
-  checkIn: z.string().min(1),
-  checkOut: z.string().min(1),
+  checkIn: z.string().nullable().optional(),
+  checkOut: z.string().nullable().optional(),
   bookingRef: z.string().nullable().optional(),
   confirmationUrl: optionalUrl,
   price: z.number().nullable().optional(),
