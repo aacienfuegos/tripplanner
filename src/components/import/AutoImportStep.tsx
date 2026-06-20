@@ -5,6 +5,7 @@ import { useImportJob } from "@/lib/import-job-context";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Upload, FileText } from "lucide-react";
+import { AgentOSLoader } from "./AgentOSLoader";
 
 async function loadPdfJs() {
   const pdfjs = await import("pdfjs-dist");
@@ -39,13 +40,11 @@ export function AutoImportStep({
   tripId,
   tripStartDate,
   tripEndDate,
-  onStarted,
   onSwitchToManual,
 }: {
   tripId: string;
   tripStartDate?: string;
   tripEndDate?: string;
-  onStarted: () => void;
   onSwitchToManual: () => void;
 }) {
   const { startImport, status: jobStatus } = useImportJob();
@@ -92,10 +91,11 @@ export function AutoImportStep({
   const handleSubmit = () => {
     if (!content.trim() || jobStatus === "running") return;
     startImport(tripId, content.trim(), { tripStartDate, tripEndDate });
-    onStarted();
   };
 
-  const alreadyRunning = jobStatus === "running";
+  if (jobStatus === "running") {
+    return <AgentOSLoader />;
+  }
 
   return (
     <div className="space-y-4">
@@ -168,12 +168,6 @@ export function AutoImportStep({
         </div>
       )}
 
-      {alreadyRunning && (
-        <p className="text-xs text-muted-foreground text-center">
-          Ya hay una importación en curso — espera a que termine antes de iniciar otra.
-        </p>
-      )}
-
       <div className="flex justify-between items-center pt-2 border-t">
         <button
           type="button"
@@ -185,7 +179,7 @@ export function AutoImportStep({
         <Button
           size="sm"
           onClick={handleSubmit}
-          disabled={!content.trim() || status === "extracting" || alreadyRunning}
+          disabled={!content.trim() || status === "extracting"}
         >
           Analizar con IA →
         </Button>

@@ -9,6 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ImportPayload } from "@/lib/import-schemas";
+import { useImportJob } from "@/lib/import-job-context";
 import { PromptStep } from "./PromptStep";
 import { UploadStep } from "./UploadStep";
 import { ReviewStep } from "./ReviewStep";
@@ -51,6 +52,15 @@ export function ImportWizard({
   const [step, setStep] = useState<Step>(1);
   const [mode, setMode] = useState<Mode>(agentosEnabled ? "auto" : "manual");
   const [payload, setPayload] = useState<ImportPayload | null>(null);
+  const { status: jobStatus, tripId: jobTripId, consumePayload } = useImportJob();
+
+  // When the background import finishes while the dialog is open, advance to ReviewStep.
+  useEffect(() => {
+    if (open && jobStatus === "done" && jobTripId === tripId) {
+      const p = consumePayload();
+      if (p) { setPayload(p); setStep(3); }
+    }
+  }, [open, jobStatus, jobTripId, tripId, consumePayload]);
 
   // When opening with a pre-loaded payload (from background import via float), jump to review.
   useEffect(() => {
@@ -102,7 +112,6 @@ export function ImportWizard({
               tripId={tripId}
               tripStartDate={tripStartDate}
               tripEndDate={tripEndDate}
-              onStarted={() => handleOpenChange(false)}
               onSwitchToManual={switchToManual}
             />
           )}
