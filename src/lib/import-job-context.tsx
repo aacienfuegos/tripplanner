@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { runAgentOSImport } from "@/actions/agentos";
 import { ImportPayload } from "@/lib/import-schemas";
@@ -33,6 +33,9 @@ export function ImportJobProvider({ children }: { children: ReactNode }) {
     payload: null,
     error: null,
   });
+  // Ref allows synchronous read/clear inside useEffect (functional setState updater
+  // runs asynchronously, so it can't be used to return a value reliably).
+  const payloadRef = useRef<ImportPayload | null>(null);
 
   const startImport = useCallback(
     (
@@ -40,11 +43,13 @@ export function ImportJobProvider({ children }: { children: ReactNode }) {
       content: string,
       options?: { tripStartDate?: string; tripEndDate?: string },
     ) => {
+      payloadRef.current = null;
       setState({ status: "running", tripId, payload: null, error: null });
       runAgentOSImport(content, options)
-        .then((payload) =>
-          setState((prev) => ({ ...prev, status: "done", payload })),
-        )
+        .then((payload) => {
+          payloadRef.current = payload;
+          setState((prev) => ({ ...prev, status: "done", payload }));
+        })
         .catch((e) => {
           if (isRedirectError(e)) {
             setState({ status: "idle", tripId: null, payload: null, error: null });
@@ -60,13 +65,12 @@ export function ImportJobProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  // Returns the payload and resets context to idle atomically.
+  // Reads payload synchronously from ref (reliable inside useEffect), then resets to idle.
+  // The first caller wins; subsequent callers get null.
   const consumePayload = useCallback((): ImportPayload | null => {
-    let result: ImportPayload | null = null;
-    setState((prev) => {
-      result = prev.payload;
-      return { status: "idle", tripId: null, payload: null, error: null };
-    });
+    const result = payloadRef.current;
+    payloadRef.current = null;
+    setState({ status: "idle", tripId: null, payload: null, error: null });
     return result;
   }, []);
 
