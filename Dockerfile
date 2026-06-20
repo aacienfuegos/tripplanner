@@ -1,9 +1,9 @@
 FROM node:26-alpine AS base
 RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
-RUN npm install -g npm@latest
 
 # ── Dependencias (todas, incluyendo dev para el build) ──────────────────────
 FROM base AS builder
+RUN npm install -g npm@latest
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -22,6 +22,10 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+
+# npm bundlea undici internamente; el runner nunca ejecuta npm (usa binarios de
+# node_modules/.bin/ directamente), así que la eliminamos para reducir superficie.
+RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/undici
 
 # node_modules completos del builder: necesarios porque prisma migrate deploy
 # ejecuta prisma.config.ts, que Prisma 7 puede necesitar tsx (devDep)
