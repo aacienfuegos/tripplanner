@@ -136,7 +136,7 @@ describe("runAgentOSImport", () => {
     );
   });
 
-  it("calls AgentOS with haiku model, split system_prompt/prompt, web tools, and correct auth header", async () => {
+  it("calls AgentOS with sonnet model, split system_prompt/prompt, web tools, and correct auth header", async () => {
     const fetchMock = mockFetch(200, { output: JSON.stringify(VALID_PAYLOAD) });
     global.fetch = fetchMock;
     const { runAgentOSImport } = await import("@/actions/agentos");
@@ -148,7 +148,7 @@ describe("runAgentOSImport", () => {
       `Bearer ${AGENTOS_KEY}`,
     );
     const body = JSON.parse(options.body as string);
-    expect(body.model).toBe("claude-haiku-4-5-20251001");
+    expect(body.model).toBe("claude-sonnet-4-6");
     // system_prompt has role + schema (static instructions)
     expect(body.system_prompt).toContain("You are a structured data extractor");
     expect(body.system_prompt).toContain("CRITICAL OUTPUT RULE");

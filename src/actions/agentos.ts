@@ -63,7 +63,7 @@ export async function runAgentOSImport(
       body: JSON.stringify({
         system_prompt: systemPrompt,
         prompt: userMessage,
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-4-6",
         timeout_seconds: 300,
         tools: ["WebFetch", "WebSearch"],
       }),
