@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,7 @@ export function ImportWizard({
   open,
   onOpenChange,
   agentosEnabled = false,
+  initialPayload,
 }: {
   tripId: string;
   tripStartDate?: string;
@@ -45,10 +46,19 @@ export function ImportWizard({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   agentosEnabled?: boolean;
+  initialPayload?: ImportPayload | null;
 }) {
   const [step, setStep] = useState<Step>(1);
   const [mode, setMode] = useState<Mode>(agentosEnabled ? "auto" : "manual");
   const [payload, setPayload] = useState<ImportPayload | null>(null);
+
+  // When opening with a pre-loaded payload (from background import via float), jump to review.
+  useEffect(() => {
+    if (open && initialPayload) {
+      setStep(3);
+      setPayload(initialPayload);
+    }
+  }, [open, initialPayload]);
 
   const reset = () => {
     setStep(1);
@@ -65,7 +75,6 @@ export function ImportWizard({
   const switchToAuto   = () => { setMode("auto");   setStep(1); };
 
   const totalSteps = mode === "auto" ? 2 : 3;
-  // In auto mode step 3 (ReviewStep) maps to visual position 2
   const visualStep = mode === "auto" && step === 3 ? 2 : step;
 
   return (
@@ -90,9 +99,10 @@ export function ImportWizard({
         <div className="flex-1 overflow-y-auto pr-1">
           {step === 1 && mode === "auto" && (
             <AutoImportStep
+              tripId={tripId}
               tripStartDate={tripStartDate}
               tripEndDate={tripEndDate}
-              onNext={(p) => { setPayload(p); setStep(3); }}
+              onStarted={() => handleOpenChange(false)}
               onSwitchToManual={switchToManual}
             />
           )}

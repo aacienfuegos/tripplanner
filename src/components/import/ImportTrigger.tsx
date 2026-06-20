@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ImportPayload } from "@/lib/import-schemas";
+import { useImportJob } from "@/lib/import-job-context";
 import { ImportWizard } from "./ImportWizard";
 
 export function ImportTrigger({
@@ -17,6 +19,24 @@ export function ImportTrigger({
   agentosEnabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<ImportPayload | null>(null);
+  const { status, tripId: jobTripId, consumePayload } = useImportJob();
+
+  // Auto-open the wizard at ReviewStep when a background import finishes for this trip.
+  useEffect(() => {
+    if (status === "done" && jobTripId === tripId) {
+      const p = consumePayload();
+      if (p) {
+        setPendingPayload(p);
+        setOpen(true);
+      }
+    }
+  }, [status, jobTripId, tripId, consumePayload]);
+
+  const handleOpenChange = (o: boolean) => {
+    if (!o) setPendingPayload(null);
+    setOpen(o);
+  };
 
   return (
     <>
@@ -29,8 +49,9 @@ export function ImportTrigger({
         tripStartDate={tripStartDate}
         tripEndDate={tripEndDate}
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={handleOpenChange}
         agentosEnabled={agentosEnabled}
+        initialPayload={pendingPayload}
       />
     </>
   );

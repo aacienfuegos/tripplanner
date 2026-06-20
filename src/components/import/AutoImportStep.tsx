@@ -1,15 +1,11 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { runAgentOSImport } from "@/actions/agentos";
-import { ImportPayload } from "@/lib/import-schemas";
+import { useImportJob } from "@/lib/import-job-context";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Upload, FileText } from "lucide-react";
-import { AgentOSLoader } from "./AgentOSLoader";
 
-// Worker setup for pdfjs-dist — webpack 5 resolves import.meta.url at build time
 async function loadPdfJs() {
   const pdfjs = await import("pdfjs-dist");
   if (!pdfjs.GlobalWorkerOptions.workerSrc) {
@@ -37,79 +33,76 @@ async function extractPdfText(file: File): Promise<string> {
   return pages.join("\n\n");
 }
 
-type Status = "idle" | "extracting" | "loading" | "error";
+type LocalStatus = "idle" | "extracting" | "error";
 
 export function AutoImportStep({
+  tripId,
   tripStartDate,
   tripEndDate,
-  onNext,
+  onStarted,
   onSwitchToManual,
 }: {
+  tripId: string;
   tripStartDate?: string;
   tripEndDate?: string;
-  onNext: (payload: ImportPayload) => void;
+  onStarted: () => void;
   onSwitchToManual: () => void;
 }) {
+  const { startImport, status: jobStatus } = useImportJob();
   const [content, setContent] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
+  const [status, setStatus] = useState<LocalStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [pdfName, setPdfName] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = "";
 
-    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      setStatus("extracting");
-      setError(null);
-      try {
-        const text = await extractPdfText(file);
-        if (!text.trim() || text.trim().length < 50) {
-          setError(
-            "El PDF puede no contener texto seleccionable (podría ser una imagen escaneada). Prueba a copiar el texto manualmente.",
-          );
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        setStatus("extracting");
+        setError(null);
+        try {
+          const text = await extractPdfText(file);
+          if (!text.trim() || text.trim().length < 50) {
+            setError(
+              "El PDF puede no contener texto seleccionable (podría ser una imagen escaneada). Prueba a copiar el texto manualmente.",
+            );
+            setStatus("idle");
+            return;
+          }
+          setContent(text.trim());
+          setPdfName(file.name);
           setStatus("idle");
-          return;
+        } catch {
+          setError("No se pudo leer el PDF. Copia el texto manualmente en el área de abajo.");
+          setStatus("idle");
         }
+      } else {
+        const text = await file.text();
         setContent(text.trim());
         setPdfName(file.name);
-        setStatus("idle");
-      } catch {
-        setError("No se pudo leer el PDF. Copia el texto manualmente en el área de abajo.");
-        setStatus("idle");
       }
-    } else {
-      const text = await file.text();
-      setContent(text.trim());
-      setPdfName(file.name);
-    }
-  }, []);
+    },
+    [],
+  );
 
-  const handleSubmit = async () => {
-    if (!content.trim()) return;
-    setStatus("loading");
-    setError(null);
-    try {
-      const payload = await runAgentOSImport(content, { tripStartDate, tripEndDate });
-      onNext(payload);
-    } catch (e) {
-      if (isRedirectError(e)) throw e;
-      setError(e instanceof Error ? e.message : "Error desconocido.");
-      setStatus("error");
-    }
+  const handleSubmit = () => {
+    if (!content.trim() || jobStatus === "running") return;
+    startImport(tripId, content.trim(), { tripStartDate, tripEndDate });
+    onStarted();
   };
 
-  if (status === "loading") {
-    return <AgentOSLoader />;
-  }
+  const alreadyRunning = jobStatus === "running";
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Pega aquí el contenido de tu reserva (email, itinerario, confirmación…) o sube el PDF.
-        La IA extraerá la información automáticamente.
+        La IA extraerá la información automáticamente en segundo plano — puedes cerrar esta ventana
+        mientras esperas.
       </p>
 
       {pdfName && (
@@ -175,6 +168,12 @@ export function AutoImportStep({
         </div>
       )}
 
+      {alreadyRunning && (
+        <p className="text-xs text-muted-foreground text-center">
+          Ya hay una importación en curso — espera a que termine antes de iniciar otra.
+        </p>
+      )}
+
       <div className="flex justify-between items-center pt-2 border-t">
         <button
           type="button"
@@ -186,7 +185,7 @@ export function AutoImportStep({
         <Button
           size="sm"
           onClick={handleSubmit}
-          disabled={!content.trim() || status === "extracting"}
+          disabled={!content.trim() || status === "extracting" || alreadyRunning}
         >
           Analizar con IA →
         </Button>
