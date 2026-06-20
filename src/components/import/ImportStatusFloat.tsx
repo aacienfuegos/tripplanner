@@ -57,12 +57,12 @@ export function ImportStatusFloat() {
           </span>
         </button>
       ) : isError ? (
-        <div className={`${chipCls} max-w-xs`}>
+        <div className={`${chipCls} max-w-sm`}>
           <AlertCircle className="h-4 w-4 text-destructive shrink-0 self-start mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-foreground font-medium leading-tight">Error en la importación</p>
             {error && (
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{error}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
             )}
           </div>
           <button
