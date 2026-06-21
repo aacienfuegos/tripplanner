@@ -153,7 +153,7 @@ Cada entorno vive en un directorio propio del servidor con su `.env` (nunca en g
 
 GitHub Actions **solo publica la imagen Docker** en ghcr.io:
 - Push a `develop` → `ghcr.io/aacienfuegos/tripplanner:staging` → se despliega automáticamente en staging
-- Push a `main` → `ghcr.io/aacienfuegos/tripplanner:latest` → **deploy manual en el servidor**
+- Push a `main` → `ghcr.io/aacienfuegos/tripplanner:latest` → deploy automático vía Dockhand
 
 ## Workflow de desarrollo
 
@@ -169,7 +169,8 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 
 - `develop` es la rama de integración: recibe features, publica imagen `:staging` → se despliega automáticamente en staging.
 - `main` es la rama de producción: solo recibe merges desde `develop` cuando staging está validado. Publica imagen `:latest` → deploy manual en el servidor.
-- Nunca trabajar directo en `develop` ni en `main`, aunque el cambio sea de docs, config o una línea. Siempre rama → PR a `develop` → PR a `main`.
+- Nunca trabajar directo en `develop` ni en `main` — ambas ramas tienen branch protection: PR obligatorio, sin push directo, sin force push.
+- **Merge strategy: squash obligatorio.** El título del PR se convierte en el commit en `develop`/`main`. Usar siempre prefijo convencional en el título del PR (`feat:`, `fix:`, `refactor:`). Las ramas se borran automáticamente tras el merge.
 
 ### Pasos para cada feature
 
@@ -180,7 +181,7 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 5. `npm test` — pasar todos los tests sin excepción
 6. Probar visualmente en `http://localhost:3000`
 7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
-8. PR hacia `develop` con `Closes #N` en el body
+8. PR hacia `develop` con `Closes #N` en el body — el **título del PR** debe llevar prefijo convencional (`feat:`, `fix:`), ya que se convierte en el commit de squash
 9. El merge a `develop` publica `:staging` en ghcr.io → se despliega automáticamente en staging
 10. Revisar en staging (`https://staging.DOMINIO`). Si está bien, PR de `develop → main`
 11. Merge a `main` publica `:latest` en ghcr.io → deploy manual en el servidor de producción
