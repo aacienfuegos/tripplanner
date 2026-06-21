@@ -182,9 +182,10 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 6. Probar visualmente en `http://localhost:3000`
 7. Commit con prefijo convencional (feat/fix/refactor) y cuerpo explicativo
 8. PR hacia `develop` con `Closes #N` en el body — el **título del PR** debe llevar prefijo convencional (`feat:`, `fix:`), ya que se convierte en el commit de squash
-9. El merge a `develop` publica `:staging` en ghcr.io → se despliega automáticamente en staging
-10. Revisar en staging (`https://staging.DOMINIO`). Si está bien, PR de `develop → main`
-11. Merge a `main` publica `:latest` en ghcr.io → deploy manual en el servidor de producción
+9. Esperar a que el CI pase (`Type check, tests y build`) — es gate obligatorio, no se puede mergear sin él
+10. El merge a `develop` publica `:staging` en ghcr.io → se despliega automáticamente en staging
+11. Revisar en staging (`https://staging.DOMINIO`). Si está bien, PR de `develop → main`
+12. Merge a `main` publica `:latest` en ghcr.io → deploy vía Dockhand
 
 **Project board:** https://github.com/users/aacienfuegos/projects/1
 
