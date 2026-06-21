@@ -23,7 +23,7 @@ export function FlightForm({ tripId, flight, tripStartDate, onSuccess }: FlightF
 
   const fmtDatetime = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
 
-  const defaultDeparture = flight ? fmtDatetime(flight.departureAt) : fmtDatetime(tripStartDate);
+  const defaultDeparture = flight?.departureAt ? fmtDatetime(flight.departureAt) : fmtDatetime(tripStartDate);
   const [departure, setDeparture] = useState(defaultDeparture);
 
   function handleSubmit(formData: FormData) {
@@ -48,11 +48,11 @@ export function FlightForm({ tripId, flight, tripStartDate, onSuccess }: FlightF
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="airline">Aerolínea *</Label>
-          <Input id="airline" name="airline" placeholder="Iberia" defaultValue={flight?.airline} required />
+          <Input id="airline" name="airline" placeholder="Iberia" defaultValue={flight?.airline ?? ""} required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="flightNumber">Nº vuelo *</Label>
-          <Input id="flightNumber" name="flightNumber" placeholder="IB3170" defaultValue={flight?.flightNumber} required />
+          <Input id="flightNumber" name="flightNumber" placeholder="IB3170" defaultValue={flight?.flightNumber ?? ""} required />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -84,7 +84,7 @@ export function FlightForm({ tripId, flight, tripStartDate, onSuccess }: FlightF
             id="arrivalAt"
             name="arrivalAt"
             type="datetime-local"
-            defaultValue={flight ? fmtDatetime(flight.arrivalAt) : departure}
+            defaultValue={flight?.arrivalAt ? fmtDatetime(flight.arrivalAt) : departure}
             required
           />
         </div>

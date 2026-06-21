@@ -33,8 +33,8 @@ type TimelineDay = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function eventTime(e: DayEvent): Date {
-  if (e.type === "flight")        return e.role === "departure" ? e.data.departureAt : e.data.arrivalAt;
-  if (e.type === "accommodation") return e.data.checkIn;
+  if (e.type === "flight")        return (e.role === "departure" ? e.data.departureAt : e.data.arrivalAt) ?? new Date(0);
+  if (e.type === "accommodation") return e.data.checkIn ?? new Date(0);
   return e.data.scheduledAt ?? new Date(0);
 }
 
@@ -69,6 +69,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
+  const agentosEnabled = !!(process.env.AGENTOS_URL && process.env.AGENTOS_API_KEY);
+
   // ── Build timeline ──────────────────────────────────────────────────────
 
   const tripStart = startOfDay(trip.startDate);
@@ -80,15 +82,15 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
     const events: DayEvent[] = [];
 
     for (const f of trip.flights) {
-      if (isSameDay(f.departureAt, date))
+      if (f.departureAt && isSameDay(f.departureAt, date))
         events.push({ type: "flight", role: "departure", data: f });
-      else if (isSameDay(f.arrivalAt, date))
+      else if (f.arrivalAt && isSameDay(f.arrivalAt, date))
         events.push({ type: "flight", role: "arrival",   data: f });
     }
 
     for (const a of trip.accommodations) {
-      if (isSameDay(a.checkIn,  date)) events.push({ type: "accommodation", role: "checkin",  data: a });
-      if (isSameDay(a.checkOut, date)) events.push({ type: "accommodation", role: "checkout", data: a });
+      if (a.checkIn  && isSameDay(a.checkIn,  date)) events.push({ type: "accommodation", role: "checkin",  data: a });
+      if (a.checkOut && isSameDay(a.checkOut, date)) events.push({ type: "accommodation", role: "checkout", data: a });
     }
 
     for (const act of trip.activities) {
@@ -170,6 +172,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               tripId={trip.id}
               tripStartDate={trip.startDate.toISOString()}
               tripEndDate={trip.endDate.toISOString()}
+              agentosEnabled={agentosEnabled}
             />
             <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
@@ -489,7 +492,7 @@ function EventRow({ event, tripId }: { event: DayEvent; tripId: string }) {
           {f.airline} {f.flightNumber} · {f.origin} → {f.destination}
         </span>
         <span className="text-muted-foreground shrink-0 ml-auto font-mono">
-          {format(time, "HH:mm")}
+          {time ? format(time, "HH:mm") : "—"}
         </span>
         <ConfirmBadge confirmed={!!f.bookingRef} />
       </Link>

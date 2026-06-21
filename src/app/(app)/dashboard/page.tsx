@@ -167,7 +167,7 @@ export default async function DashboardPage() {
                   >
                     <p className="font-medium text-blue-700 dark:text-blue-400">{f.origin} → {f.destination}</p>
                     <p className="text-muted-foreground text-xs">
-                      {f.airline} {f.flightNumber} · {format(f.departureAt, "d MMM, HH:mm", { locale: es })}
+                      {f.airline} {f.flightNumber}{f.departureAt ? ` · ${format(f.departureAt, "d MMM, HH:mm", { locale: es })}` : ""}
                     </p>
                     <p className="text-muted-foreground text-xs">{f.trip.name}</p>
                   </Link>
@@ -195,7 +195,7 @@ export default async function DashboardPage() {
                   >
                     <p className="font-medium text-emerald-700 dark:text-emerald-400">{a.name}</p>
                     <p className="text-muted-foreground text-xs">
-                      {a.city} · Check-in {format(a.checkIn, "d MMM", { locale: es })}
+                      {a.city}{a.checkIn ? ` · Check-in ${format(a.checkIn, "d MMM", { locale: es })}` : ""}
                     </p>
                     <p className="text-muted-foreground text-xs">{a.trip.name}</p>
                   </Link>

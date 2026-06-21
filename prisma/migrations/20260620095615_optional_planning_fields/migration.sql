@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "Accommodation" ALTER COLUMN "checkIn" DROP NOT NULL,
+ALTER COLUMN "checkOut" DROP NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Flight" ALTER COLUMN "airline" DROP NOT NULL,
+ALTER COLUMN "flightNumber" DROP NOT NULL,
+ALTER COLUMN "departureAt" DROP NOT NULL,
+ALTER COLUMN "arrivalAt" DROP NOT NULL;
