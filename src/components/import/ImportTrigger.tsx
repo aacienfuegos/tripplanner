@@ -20,18 +20,18 @@ export function ImportTrigger({
 }) {
   const [open, setOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<ImportPayload | null>(null);
-  const { status, tripId: jobTripId, consumePayload } = useImportJob();
+  const { status, payload, tripId: jobTripId, registerOpenWizard } = useImportJob();
 
-  // Auto-open the wizard at ReviewStep when a background import finishes for this trip.
+  // Let the float open the wizard by calling openWizard() from the context.
+  useEffect(() => registerOpenWizard(() => setOpen(true)), [registerOpenWizard]);
+
+  // Mirror context payload into local state so the wizard can use it as initialPayload.
+  // Don't consume here — the float or the wizard's own effect handles consumption.
   useEffect(() => {
-    if (status === "done" && jobTripId === tripId) {
-      const p = consumePayload();
-      if (p) {
-        setPendingPayload(p);
-        setOpen(true);
-      }
+    if (status === "done" && jobTripId === tripId && payload) {
+      setPendingPayload(payload);
     }
-  }, [status, jobTripId, tripId, consumePayload]);
+  }, [status, jobTripId, tripId, payload]);
 
   const handleOpenChange = (o: boolean) => {
     if (!o) setPendingPayload(null);

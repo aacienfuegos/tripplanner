@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useImportJob } from "@/lib/import-job-context";
 
 export function ImportStatusFloat() {
-  const { status, tripId, error, dismissError } = useImportJob();
+  const { status, tripId, error, dismissError, consumePayload, openWizard } = useImportJob();
   const router = useRouter();
+  const pathname = usePathname();
   const [show, setShow] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -48,7 +49,16 @@ export function ImportStatusFloat() {
       {isDone ? (
         <button
           type="button"
-          onClick={() => router.push(`/trips/${tripId}`)}
+          onClick={() => {
+            if (pathname === `/trips/${tripId}`) {
+              // Already on the trip page — open the wizard directly.
+              consumePayload();
+              openWizard();
+            } else {
+              // Navigate to the trip; the float stays green until the user clicks there.
+              router.push(`/trips/${tripId}`);
+            }
+          }}
           className={`${chipCls} hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer`}
         >
           <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />

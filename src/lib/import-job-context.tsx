@@ -22,6 +22,10 @@ interface ImportJobContextValue extends ImportJobState {
   ) => void;
   consumePayload: () => ImportPayload | null;
   dismissError: () => void;
+  /** Registers a callback that the float calls to open the wizard on the trip page. Returns cleanup. */
+  registerOpenWizard: (fn: () => void) => () => void;
+  /** Called by the float to open the wizard without navigating. */
+  openWizard: () => void;
 }
 
 const ImportJobContext = createContext<ImportJobContextValue | null>(null);
@@ -36,6 +40,16 @@ export function ImportJobProvider({ children }: { children: ReactNode }) {
   // Ref allows synchronous read/clear inside useEffect (functional setState updater
   // runs asynchronously, so it can't be used to return a value reliably).
   const payloadRef = useRef<ImportPayload | null>(null);
+  const openWizardCallbackRef = useRef<(() => void) | null>(null);
+
+  const registerOpenWizard = useCallback((fn: () => void) => {
+    openWizardCallbackRef.current = fn;
+    return () => { openWizardCallbackRef.current = null; };
+  }, []);
+
+  const openWizard = useCallback(() => {
+    openWizardCallbackRef.current?.();
+  }, []);
 
   const startImport = useCallback(
     (
@@ -79,7 +93,7 @@ export function ImportJobProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ImportJobContext.Provider value={{ ...state, startImport, consumePayload, dismissError }}>
+    <ImportJobContext.Provider value={{ ...state, startImport, consumePayload, dismissError, registerOpenWizard, openWizard }}>
       {children}
     </ImportJobContext.Provider>
   );
