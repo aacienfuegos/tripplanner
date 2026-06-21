@@ -61,8 +61,8 @@ export function FlightsList({ tripId, flights, tripStartDate }: { tripId: string
                         {flight.flightNumber}
                         {flight.seatNumber && ` · Asiento ${flight.seatNumber}`}
                       </p>
-                      <p>Salida: {format(flight.departureAt, "d MMM yyyy, HH:mm", { locale: es })}</p>
-                      <p>Llegada: {format(flight.arrivalAt, "d MMM yyyy, HH:mm", { locale: es })}</p>
+                      {flight.departureAt && <p>Salida: {format(flight.departureAt, "d MMM yyyy, HH:mm", { locale: es })}</p>}
+                      {flight.arrivalAt && <p>Llegada: {format(flight.arrivalAt, "d MMM yyyy, HH:mm", { locale: es })}</p>}
                       {flight.bookingRef && <p>Localizador: <span className="font-mono font-medium text-foreground">{flight.bookingRef}</span></p>}
                       {flight.price && <p>Precio: {flight.price.toLocaleString()} €</p>}
                     </div>

@@ -44,12 +44,12 @@ export async function bulkImport(tripId: string, payload: ImportPayload): Promis
     if (data.flights.length > 0) {
       const rows: Prisma.FlightCreateManyInput[] = data.flights.map((f) => ({
         tripId,
-        airline:         f.airline,
-        flightNumber:    f.flightNumber,
+        airline:         f.airline ?? null,
+        flightNumber:    f.flightNumber ?? null,
         origin:          f.origin,
         destination:     f.destination,
-        departureAt:     new Date(f.departureAt),
-        arrivalAt:       new Date(f.arrivalAt),
+        departureAt:     f.departureAt ? new Date(f.departureAt) : null,
+        arrivalAt:       f.arrivalAt ? new Date(f.arrivalAt) : null,
         bookingRef:      f.bookingRef ?? null,
         confirmationUrl: f.confirmationUrl || null,
         seatNumber:      f.seatNumber ?? null,
@@ -68,8 +68,8 @@ export async function bulkImport(tripId: string, payload: ImportPayload): Promis
         type:            a.type,
         address:         a.address ?? null,
         city:            a.city,
-        checkIn:         new Date(a.checkIn),
-        checkOut:        new Date(a.checkOut),
+        checkIn:         a.checkIn ? new Date(a.checkIn) : null,
+        checkOut:        a.checkOut ? new Date(a.checkOut) : null,
         bookingRef:      a.bookingRef ?? null,
         confirmationUrl: a.confirmationUrl || null,
         price:           a.price ?? null,
@@ -235,17 +235,27 @@ export async function checkDuplicates(
   return {
     // Flight numbers must match exactly after normalization — "IB1234" ≠ "IB1235"
     flights: data.flights.map((f) =>
-      existingFlights.some(
-        (e) =>
-          normalize(e.flightNumber) === normalize(f.flightNumber) &&
-          localDay(e.departureAt) === isoDay(f.departureAt),
-      ),
+      existingFlights.some((e) => {
+        // If either side lacks a flight number, fall back to route+date match
+        if (e.flightNumber && f.flightNumber) {
+          return (
+            normalize(e.flightNumber) === normalize(f.flightNumber) &&
+            (!e.departureAt || !f.departureAt ||
+              localDay(e.departureAt) === isoDay(f.departureAt))
+          );
+        }
+        return (
+          (!e.departureAt || !f.departureAt ||
+            localDay(e.departureAt) === isoDay(f.departureAt))
+        );
+      }),
     ),
     accommodations: data.accommodations.map((a) =>
       existingAccoms.some(
         (e) =>
           isFuzzyMatch(e.name, a.name) &&
-          localDay(e.checkIn) === isoDay(a.checkIn),
+          (!e.checkIn || !a.checkIn ||
+            localDay(e.checkIn) === isoDay(a.checkIn)),
       ),
     ),
     activities: data.activities.map((act) =>

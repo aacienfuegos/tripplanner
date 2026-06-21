@@ -18,7 +18,7 @@ export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onS
 
   const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 
-  const defaultCheckIn = a ? fmt(a.checkIn) : fmt(tripStartDate);
+  const defaultCheckIn = a?.checkIn ? fmt(a.checkIn) : fmt(tripStartDate);
   const [checkIn, setCheckIn] = useState(defaultCheckIn);
 
   function handleSubmit(formData: FormData) {
@@ -71,7 +71,7 @@ export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onS
             id="checkOut"
             name="checkOut"
             type="date"
-            defaultValue={a ? fmt(a.checkOut) : checkIn}
+            defaultValue={a?.checkOut ? fmt(a.checkOut) : checkIn}
             required
           />
         </div>

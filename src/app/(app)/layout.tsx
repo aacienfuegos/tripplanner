@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/layout/navbar";
+import { ClientProviders } from "@/components/layout/ClientProviders";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -17,11 +18,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user.name) redirect("/onboarding");
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar user={{ name: user.name, email: session.user.email, image: user.image, isAdmin: user.isAdmin }} />
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
-        {children}
-      </main>
-    </div>
+    <ClientProviders>
+      <div className="min-h-screen flex flex-col">
+        <Navbar user={{ name: user.name, email: session.user.email, image: user.image, isAdmin: user.isAdmin }} />
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
+          {children}
+        </main>
+      </div>
+    </ClientProviders>
   );
 }

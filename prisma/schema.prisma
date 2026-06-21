@@ -123,12 +123,12 @@ model Destination {
 model Flight {
   id             String   @id @default(cuid())
   tripId         String
-  airline        String
-  flightNumber   String
+  airline        String?
+  flightNumber   String?
   origin         String
   destination    String
-  departureAt    DateTime
-  arrivalAt      DateTime
+  departureAt    DateTime?
+  arrivalAt      DateTime?
   bookingRef     String?
   confirmationUrl String?
   seatNumber     String?
@@ -155,8 +155,8 @@ model Accommodation {
   type            AccommodationType @default(HOTEL)
   address         String?
   city            String
-  checkIn         DateTime
-  checkOut        DateTime
+  checkIn         DateTime?
+  checkOut        DateTime?
   bookingRef      String?
   confirmationUrl String?
   price           Float?
