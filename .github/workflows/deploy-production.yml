@@ -45,7 +45,6 @@ jobs:
     name: Build, scan y push imagen producción
     needs: checks
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: read
       packages: write
