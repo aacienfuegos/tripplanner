@@ -4,8 +4,17 @@
   "private": true,
   "workspaces": [
     "apps/web",
+    "apps/android",
     "packages/*"
   ],
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
   "scripts": {
     "dev:web": "npm run dev --workspace=apps/web",
     "build:web": "npm run build --workspace=apps/web",

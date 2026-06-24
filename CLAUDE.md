@@ -22,10 +22,10 @@ tripplanner/
 ├── docker/              # Entrypoints Docker (web)
 ├── docker-compose.*.yml # Configs Docker (web)
 ├── .github/workflows/   # CI/CD (web)
-└── package.json         # Workspace root (workspaces: apps/web, packages/*)
+└── package.json         # Workspace root (workspaces: apps/web, apps/android, packages/*)
 ```
 
-**IMPORTANTE:** La app Android (`apps/android`) NO está en el workspace de npm porque usa React 18 (Expo SDK 53) mientras la web usa React 19. La app Android se gestiona con Expo CLI de forma independiente.
+**Ambas apps usan React 19** — no hay conflicto de versiones. `apps/android` está en el workspace npm junto con `apps/web`. Los comandos de la web se ejecutan desde la raíz con `--workspace=apps/web`; los de Android desde `apps/android/` directamente (Expo CLI).
 
 ## Paquete compartido (`packages/shared`)
 
@@ -200,25 +200,32 @@ Siempre ejecutar también `npx prisma generate` — la migración actualiza la D
 
 | Tecnología | Versión |
 |---|---|
-| Expo SDK | 53 |
-| expo-router | 4.x (file-based routing, como Next.js) |
-| expo-sqlite | 15.x (DB local en el dispositivo) |
+| Expo SDK | 54 |
+| expo-router | 6.x (file-based routing, como Next.js) |
+| expo-sqlite | 16.x (DB local; usa WebAssembly en web — solo Android) |
+| react-native-reanimated | 4.x (babel plugin: `react-native-worklets/plugin`) |
+| react-native-worklets | 0.5.x (nuevo en reanimated v4 — no el de reanimated v3) |
 | NativeWind | 4.x (Tailwind para React Native) |
-| React | 18.3.2 |
+| React | 19.1.0 exacto (pinned — debe coincidir con react-native-renderer interno) |
+| React Native | 0.81.5 |
 
-### Comandos (ejecutar desde `apps/android/`)
+**Nota crítica:** `react@19.1.0` está pinned exacto en el root `package.json` via `overrides` + dep directa. react-native@0.81.5 bundlea react-native-renderer@19.1.0 internamente — si la versión de React instalada difiere, la app arranca en negro sin error claro.
+
+**Web no soportada:** expo-sqlite v16 usa `Atomics.wait()` en el hilo principal, bloqueado por W3C en navegadores. `src/db/database.web.ts` es un stub que no-op; `app/_layout.tsx` muestra un mensaje informativo en web. La app está diseñada para Android únicamente.
+
+### Comandos
 
 ```bash
-cd apps/android
-
-# Primera vez: instalar dependencias (Expo gestiona su propio node_modules)
+# Instalar dependencias de todo el monorepo (desde raíz)
 npm install
 
-# Dev server (necesita Expo Go en el móvil o emulador)
-npx expo start
-npx expo start --android   # abre emulador Android directamente
+# Dev server Android — ejecutar desde apps/android/
+cd apps/android
+npx expo start          # QR para Expo Go en el móvil
+npx expo start --android  # abre emulador Android directamente
 
 # Build para distribución (necesita cuenta EAS)
+cd apps/android
 npx eas build --platform android --profile production
 npx eas build --platform android --profile preview   # APK para pruebas
 ```

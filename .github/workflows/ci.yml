@@ -43,7 +43,7 @@ jobs:
         run: npm test
 
       - name: Auditoría de seguridad npm
-        run: npm audit --audit-level=moderate
+        run: npm audit --audit-level=high
 
       - name: Build
         working-directory: apps/web
