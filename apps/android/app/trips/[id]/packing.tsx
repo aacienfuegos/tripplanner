@@ -1,10 +1,12 @@
 import { useState, useCallback } from "react";
 import { View, Text, SectionList, TouchableOpacity, Alert } from "react-native";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Tabs, useFocusEffect, useGlobalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listPackingItems, deletePackingItem, togglePacked, PackingItem } from "@/db/packing";
 import ImportWizard from "@/components/import/ImportWizard";
+import PackingFormModal from "@/components/forms/PackingFormModal";
+import SectionHeaderRight from "@/components/SectionHeaderRight";
 
 function groupByCategory(items: PackingItem[]) {
   const map = new Map<string, PackingItem[]>();
@@ -17,27 +19,39 @@ function groupByCategory(items: PackingItem[]) {
 }
 
 export default function PackingScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const [items, setItems] = useState<PackingItem[]>([]);
   const [importOpen, setImportOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<PackingItem | undefined>();
 
   useFocusEffect(useCallback(() => { setItems(listPackingItems(tripId)); }, [tripId]));
 
   const sections = groupByCategory(items);
   const packedCount = items.filter((i) => i.packed).length;
 
-  function handleDelete(itemId: number, name: string) {
-    Alert.alert("Eliminar ítem", `¿Eliminar "${name}"?`, [
-      { text: "Cancelar", style: "cancel" },
+  function handleLongPress(item: PackingItem) {
+    Alert.alert(item.name, undefined, [
+      { text: "Editar", onPress: () => { setEditingItem(item); setFormOpen(true); } },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deletePackingItem(itemId); setItems(listPackingItems(tripId));
+        deletePackingItem(item.id); setItems(listPackingItems(tripId));
       }},
+      { text: "Cancelar", style: "cancel" },
     ]);
   }
 
+  function openAdd() { setEditingItem(undefined); setFormOpen(true); }
+  function closeForm() { setFormOpen(false); setEditingItem(undefined); }
+  function refresh() { setItems(listPackingItems(tripId)); }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
+      <Tabs.Screen options={{
+        headerRight: () => (
+          <SectionHeaderRight tripId={id} onImportPress={() => setImportOpen(true)} />
+        ),
+      }} />
       {items.length > 0 && (
         <View className="mx-4 mt-4 p-3 bg-green-50 border border-green-100 rounded-xl">
           <Text className="text-center text-sm text-green-800">
@@ -62,30 +76,43 @@ export default function PackingScreen() {
         )}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => { togglePacked(item.id, !item.packed); setItems(listPackingItems(tripId)); }}
-            onLongPress={() => handleDelete(item.id, item.name)}
+            onPress={() => { setEditingItem(item); setFormOpen(true); }}
+            onLongPress={() => handleLongPress(item)}
             className="bg-white rounded-xl px-4 py-3 mb-2 border border-gray-100 shadow-sm flex-row items-center gap-3"
           >
-            <View className={`w-5 h-5 rounded border-2 items-center justify-center ${item.packed ? "bg-green-500 border-green-500" : "border-gray-300"}`}>
+            <TouchableOpacity
+              onPress={() => { togglePacked(item.id, !item.packed); refresh(); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className={`w-5 h-5 rounded border-2 items-center justify-center ${item.packed ? "bg-green-500 border-green-500" : "border-gray-300"}`}
+            >
               {item.packed ? <Ionicons name="checkmark" size={12} color="white" /> : null}
-            </View>
+            </TouchableOpacity>
             <Text className={`flex-1 text-base ${item.packed ? "line-through text-gray-400" : "text-gray-900"}`}>
-              {item.name}
-              {item.quantity > 1 ? ` ×${item.quantity}` : ""}
+              {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}
             </Text>
           </TouchableOpacity>
         )}
       />
-      <TouchableOpacity
-        onPress={() => setImportOpen(true)}
-        className="mx-4 mb-4 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
-      >
-        <Ionicons name="sparkles-outline" size={18} color="white" />
-        <Text className="text-white font-semibold">Importar vía IA</Text>
-      </TouchableOpacity>
+
+      <View className="mx-4 mb-4">
+        <TouchableOpacity
+          onPress={openAdd}
+          className="bg-indigo-600 rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+        >
+          <Ionicons name="add" size={20} color="white" />
+          <Text className="text-white font-semibold text-base">Añadir ítem</Text>
+        </TouchableOpacity>
+      </View>
+
       <ImportWizard
         tripId={tripId} visible={importOpen}
-        onClose={() => { setImportOpen(false); setItems(listPackingItems(tripId)); }}
+        onClose={() => { setImportOpen(false); refresh(); }}
+      />
+      <PackingFormModal
+        tripId={tripId} visible={formOpen} initialData={editingItem}
+        onClose={closeForm}
+        onSaved={() => { closeForm(); refresh(); }}
+        onDelete={editingItem ? () => { deletePackingItem(editingItem.id); closeForm(); refresh(); } : undefined}
       />
     </SafeAreaView>
   );

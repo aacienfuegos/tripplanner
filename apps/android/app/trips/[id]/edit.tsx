@@ -1,20 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, TextInput, TouchableOpacity,
+  ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { createTrip } from "@/db/trips";
+import { getTrip, updateTrip } from "@/db/trips";
 import DatePickerInput from "@/components/DatePickerInput";
 
-export default function NewTripScreen() {
+export default function EditTripScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const tripId = Number(id);
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -22,12 +20,23 @@ export default function NewTripScreen() {
   const [currency, setCurrency] = useState("EUR");
   const [error, setError] = useState("");
 
-  function handleCreate() {
+  useEffect(() => {
+    const trip = getTrip(tripId);
+    if (trip) {
+      setName(trip.name);
+      setDescription(trip.description ?? "");
+      setStartDate(trip.start_date ?? "");
+      setEndDate(trip.end_date ?? "");
+      setCurrency(trip.currency);
+    }
+  }, [tripId]);
+
+  function handleSave() {
     if (!name.trim()) {
       setError("El nombre del viaje es obligatorio");
       return;
     }
-    createTrip({
+    updateTrip(tripId, {
       name: name.trim(),
       description: description.trim() || undefined,
       start_date: startDate || undefined,
@@ -46,9 +55,7 @@ export default function NewTripScreen() {
         <ScrollView className="flex-1 px-5" keyboardShouldPersistTaps="handled">
           <View className="py-6 gap-5">
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1">
-                Nombre *
-              </Text>
+              <Text className="text-sm font-medium text-gray-700 mb-1">Nombre *</Text>
               <TextInput
                 className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900"
                 placeholder="p.ej. Vacaciones en Japón"
@@ -62,9 +69,7 @@ export default function NewTripScreen() {
             </View>
 
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1">
-                Descripción
-              </Text>
+              <Text className="text-sm font-medium text-gray-700 mb-1">Descripción</Text>
               <TextInput
                 className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900"
                 placeholder="Opcional"
@@ -77,23 +82,17 @@ export default function NewTripScreen() {
 
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <Text className="text-sm font-medium text-gray-700 mb-1">
-                  Inicio
-                </Text>
+                <Text className="text-sm font-medium text-gray-700 mb-1">Inicio</Text>
                 <DatePickerInput value={startDate} onChange={setStartDate} placeholder="Seleccionar" />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-gray-700 mb-1">
-                  Fin
-                </Text>
+                <Text className="text-sm font-medium text-gray-700 mb-1">Fin</Text>
                 <DatePickerInput value={endDate} onChange={setEndDate} placeholder="Seleccionar" />
               </View>
             </View>
 
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1">
-                Moneda principal
-              </Text>
+              <Text className="text-sm font-medium text-gray-700 mb-1">Moneda principal</Text>
               <TextInput
                 className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900 w-24"
                 placeholder="EUR"
@@ -108,12 +107,10 @@ export default function NewTripScreen() {
 
         <View className="px-5 pb-6 gap-3">
           <TouchableOpacity
-            onPress={handleCreate}
+            onPress={handleSave}
             className="bg-blue-600 rounded-xl py-3.5 items-center"
           >
-            <Text className="text-white font-semibold text-base">
-              Crear viaje
-            </Text>
+            <Text className="text-white font-semibold text-base">Guardar cambios</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.back()}

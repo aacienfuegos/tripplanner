@@ -43,6 +43,17 @@ export function createActivity(
   );
 }
 
+export function updateActivity(id: number, data: Omit<Activity, "id" | "trip_id" | "created_at">): void {
+  db.runSync(
+    `UPDATE activities SET name=?, type=?, description=?, location=?, city=?, scheduled_at=?,
+     duration=?, booking_ref=?, confirmation_url=?, price=?, status=?, notes=? WHERE id=?`,
+    [
+      data.name, data.type, data.description, data.location, data.city, data.scheduled_at,
+      data.duration, data.booking_ref, data.confirmation_url, data.price, data.status, data.notes, id,
+    ]
+  );
+}
+
 export function deleteActivity(id: number): void {
   db.runSync("DELETE FROM activities WHERE id = ?", [id]);
 }

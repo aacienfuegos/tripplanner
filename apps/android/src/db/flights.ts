@@ -53,6 +53,19 @@ export function createFlight(
   );
 }
 
+export function updateFlight(id: number, data: Omit<Flight, "id" | "trip_id" | "created_at">): void {
+  db.runSync(
+    `UPDATE flights SET airline=?, flight_number=?, origin=?, destination=?, departure_at=?,
+     arrival_at=?, booking_ref=?, confirmation_url=?, seat_number=?, class=?, price=?, notes=?
+     WHERE id=?`,
+    [
+      data.airline, data.flight_number, data.origin, data.destination, data.departure_at,
+      data.arrival_at, data.booking_ref, data.confirmation_url, data.seat_number,
+      data.class, data.price, data.notes, id,
+    ]
+  );
+}
+
 export function deleteFlight(id: number): void {
   db.runSync("DELETE FROM flights WHERE id = ?", [id]);
 }
