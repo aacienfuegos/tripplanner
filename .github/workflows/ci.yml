@@ -31,18 +31,22 @@ jobs:
         run: npm ci
 
       - name: Generar cliente Prisma
+        working-directory: apps/web
         run: npx prisma generate
 
       - name: Type check
+        working-directory: apps/web
         run: npx tsc --noEmit
 
       - name: Tests
+        working-directory: apps/web
         run: npm test
 
       - name: Auditoría de seguridad npm
         run: npm audit --audit-level=moderate
 
       - name: Build
+        working-directory: apps/web
         run: npm run build
         env:
           NEXTAUTH_SECRET: ci-placeholder

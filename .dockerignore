@@ -13,3 +13,5 @@ npm-debug.log*
 coverage
 tsconfig.tsbuildinfo
 .claude
+# Android app is not needed in the web Docker build
+apps/android
