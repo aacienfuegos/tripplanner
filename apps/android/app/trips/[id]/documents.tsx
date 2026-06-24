@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listDocuments, deleteDocument, Document } from "@/db/documents";
 import ImportWizard from "@/components/import/ImportWizard";
+import DocumentFormModal from "@/components/forms/DocumentFormModal";
 
 const TYPE_LABELS: Record<Document["type"], string> = {
   PASSPORT: "Pasaporte", VISA: "Visa", INSURANCE: "Seguro",
@@ -26,6 +27,7 @@ export default function DocumentsScreen() {
   const tripId = Number(id);
   const [items, setItems] = useState<Document[]>([]);
   const [importOpen, setImportOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   useFocusEffect(useCallback(() => { setItems(listDocuments(tripId)); }, [tripId]));
 
@@ -71,16 +73,29 @@ export default function DocumentsScreen() {
           </TouchableOpacity>
         )}
       />
-      <TouchableOpacity
-        onPress={() => setImportOpen(true)}
-        className="mx-4 mb-4 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
-      >
-        <Ionicons name="sparkles-outline" size={18} color="white" />
-        <Text className="text-white font-semibold">Importar vía IA</Text>
-      </TouchableOpacity>
+      <View className="flex-row mx-4 mb-4 gap-3">
+        <TouchableOpacity
+          onPress={() => setImportOpen(true)}
+          className="flex-1 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
+        >
+          <Ionicons name="sparkles-outline" size={18} color="white" />
+          <Text className="text-white font-semibold">Importar vía IA</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setFormOpen(true)}
+          className="w-12 bg-white border border-gray-300 rounded-xl items-center justify-center"
+        >
+          <Ionicons name="add" size={22} color="#374151" />
+        </TouchableOpacity>
+      </View>
       <ImportWizard
         tripId={tripId} visible={importOpen}
         onClose={() => { setImportOpen(false); setItems(listDocuments(tripId)); }}
+      />
+      <DocumentFormModal
+        tripId={tripId} visible={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSaved={() => { setFormOpen(false); setItems(listDocuments(tripId)); }}
       />
     </SafeAreaView>
   );

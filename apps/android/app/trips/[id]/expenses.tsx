@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { listExpenses, deleteExpense, toggleExpensePaid, sumExpenses, Expense } from "@/db/expenses";
 import { getTrip } from "@/db/trips";
 import ImportWizard from "@/components/import/ImportWizard";
+import ExpenseFormModal from "@/components/forms/ExpenseFormModal";
 
 const CAT_ICONS: Record<Expense["category"], string> = {
   FLIGHT: "airplane-outline", ACCOMMODATION: "bed-outline",
@@ -18,6 +19,7 @@ export default function ExpensesScreen() {
   const tripId = Number(id);
   const [items, setItems] = useState<Expense[]>([]);
   const [importOpen, setImportOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [currency, setCurrency] = useState("EUR");
 
   useFocusEffect(useCallback(() => {
@@ -80,16 +82,29 @@ export default function ExpensesScreen() {
           </TouchableOpacity>
         )}
       />
-      <TouchableOpacity
-        onPress={() => setImportOpen(true)}
-        className="mx-4 mb-4 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
-      >
-        <Ionicons name="sparkles-outline" size={18} color="white" />
-        <Text className="text-white font-semibold">Importar vía IA</Text>
-      </TouchableOpacity>
+      <View className="flex-row mx-4 mb-4 gap-3">
+        <TouchableOpacity
+          onPress={() => setImportOpen(true)}
+          className="flex-1 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
+        >
+          <Ionicons name="sparkles-outline" size={18} color="white" />
+          <Text className="text-white font-semibold">Importar vía IA</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setFormOpen(true)}
+          className="w-12 bg-white border border-gray-300 rounded-xl items-center justify-center"
+        >
+          <Ionicons name="add" size={22} color="#374151" />
+        </TouchableOpacity>
+      </View>
       <ImportWizard
         tripId={tripId} visible={importOpen}
         onClose={() => { setImportOpen(false); setItems(listExpenses(tripId)); }}
+      />
+      <ExpenseFormModal
+        tripId={tripId} tripCurrency={currency} visible={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSaved={() => { setFormOpen(false); setItems(listExpenses(tripId)); }}
       />
     </SafeAreaView>
   );
