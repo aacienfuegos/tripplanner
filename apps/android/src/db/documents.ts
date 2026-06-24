@@ -29,6 +29,13 @@ export function createDocument(
   );
 }
 
+export function updateDocument(id: number, data: Omit<Document, "id" | "trip_id" | "created_at">): void {
+  db.runSync(
+    "UPDATE documents SET name=?, type=?, expires_at=?, notes=? WHERE id=?",
+    [data.name, data.type, data.expires_at, data.notes, id]
+  );
+}
+
 export function deleteDocument(id: number): void {
   db.runSync("DELETE FROM documents WHERE id = ?", [id]);
 }

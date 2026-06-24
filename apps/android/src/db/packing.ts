@@ -33,6 +33,13 @@ export function togglePacked(id: number, packed: boolean): void {
   db.runSync("UPDATE packing_items SET packed = ? WHERE id = ?", [packed ? 1 : 0, id]);
 }
 
+export function updatePackingItem(id: number, data: Pick<PackingItem, "name" | "category" | "quantity">): void {
+  db.runSync(
+    "UPDATE packing_items SET name=?, category=?, quantity=? WHERE id=?",
+    [data.name, data.category, data.quantity, id]
+  );
+}
+
 export function deletePackingItem(id: number): void {
   db.runSync("DELETE FROM packing_items WHERE id = ?", [id]);
 }

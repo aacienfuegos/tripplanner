@@ -1,18 +1,20 @@
-import { Tabs, useLocalSearchParams, useRouter } from "expo-router";
-import { TouchableOpacity, Text, View } from "react-native";
+import { Tabs, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getTrip } from "@/db/trips";
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 
 export default function TripTabsLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [tripName, setTripName] = useState("Viaje");
 
-  useEffect(() => {
-    const trip = getTrip(Number(id));
-    if (trip) setTripName(trip.name);
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      const trip = getTrip(Number(id));
+      if (trip) setTripName(trip.name);
+    }, [id])
+  );
 
   return (
     <Tabs
@@ -82,6 +84,7 @@ export default function TripTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="edit" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -39,6 +39,14 @@ export function toggleExpensePaid(id: number, paid: boolean): void {
   db.runSync("UPDATE expenses SET paid = ? WHERE id = ?", [paid ? 1 : 0, id]);
 }
 
+export function updateExpense(id: number, data: Omit<Expense, "id" | "trip_id" | "created_at">): void {
+  db.runSync(
+    `UPDATE expenses SET description=?, category=?, amount=?, currency=?, date=?, paid=?, notes=?
+     WHERE id=?`,
+    [data.description, data.category, data.amount, data.currency, data.date, data.paid, data.notes, id]
+  );
+}
+
 export function deleteExpense(id: number): void {
   db.runSync("DELETE FROM expenses WHERE id = ?", [id]);
 }
