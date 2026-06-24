@@ -14,4 +14,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
+// expo-sqlite v16 uses WebAssembly for web support
+config.resolver.assetExts = [...(config.resolver.assetExts ?? []), "wasm"];
+
 module.exports = withNativeWind(config, { input: "./global.css" });
