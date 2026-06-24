@@ -22,10 +22,10 @@ tripplanner/
 ├── docker/              # Entrypoints Docker (web)
 ├── docker-compose.*.yml # Configs Docker (web)
 ├── .github/workflows/   # CI/CD (web)
-└── package.json         # Workspace root (workspaces: apps/web, packages/*)
+└── package.json         # Workspace root (workspaces: apps/web, apps/android, packages/*)
 ```
 
-**IMPORTANTE:** La app Android (`apps/android`) NO está en el workspace de npm porque usa React 18 (Expo SDK 53) mientras la web usa React 19. La app Android se gestiona con Expo CLI de forma independiente.
+**Ambas apps usan React 19** — no hay conflicto de versiones. `apps/android` está en el workspace npm junto con `apps/web`. Los comandos de la web se ejecutan desde la raíz con `--workspace=apps/web`; los de Android desde `apps/android/` directamente (Expo CLI).
 
 ## Paquete compartido (`packages/shared`)
 
@@ -201,24 +201,25 @@ Siempre ejecutar también `npx prisma generate` — la migración actualiza la D
 | Tecnología | Versión |
 |---|---|
 | Expo SDK | 53 |
-| expo-router | 4.x (file-based routing, como Next.js) |
-| expo-sqlite | 15.x (DB local en el dispositivo) |
+| expo-router | 5.x (file-based routing, como Next.js) |
+| expo-sqlite | 15.2.x (DB local en el dispositivo) |
 | NativeWind | 4.x (Tailwind para React Native) |
-| React | 18.3.2 |
+| React | 19.x (igual que la web — no hay conflicto) |
+| React Native | 0.79.x |
 
-### Comandos (ejecutar desde `apps/android/`)
+### Comandos
 
 ```bash
-cd apps/android
-
-# Primera vez: instalar dependencias (Expo gestiona su propio node_modules)
+# Instalar dependencias de todo el monorepo (desde raíz)
 npm install
 
-# Dev server (necesita Expo Go en el móvil o emulador)
-npx expo start
-npx expo start --android   # abre emulador Android directamente
+# Dev server Android — ejecutar desde apps/android/
+cd apps/android
+npx expo start          # QR para Expo Go en el móvil
+npx expo start --android  # abre emulador Android directamente
 
 # Build para distribución (necesita cuenta EAS)
+cd apps/android
 npx eas build --platform android --profile production
 npx eas build --platform android --profile preview   # APK para pruebas
 ```

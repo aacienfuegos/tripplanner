@@ -22,8 +22,9 @@ export interface ImportResult {
 
 export function bulkImport(tripId: number, payload: ImportPayload): ImportResult {
   const data = importPayloadSchema.parse(payload);
-  return db.withTransactionSync(() => {
-    return {
+  let result: ImportResult = { flights: 0, accommodations: 0, activities: 0, expenses: 0, packing: 0, documents: 0 };
+  db.withTransactionSync(() => {
+    result = {
       flights:        bulkCreateFlights(tripId, data.flights),
       accommodations: bulkCreateAccommodations(tripId, data.accommodations),
       activities:     bulkCreateActivities(tripId, data.activities),
@@ -32,6 +33,7 @@ export function bulkImport(tripId: number, payload: ImportPayload): ImportResult
       documents:      bulkCreateDocuments(tripId, data.documents),
     };
   });
+  return result;
 }
 
 // ─── Duplicate detection ──────────────────────────────────────────────────────
