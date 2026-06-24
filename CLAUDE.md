@@ -200,12 +200,18 @@ Siempre ejecutar también `npx prisma generate` — la migración actualiza la D
 
 | Tecnología | Versión |
 |---|---|
-| Expo SDK | 53 |
-| expo-router | 5.x (file-based routing, como Next.js) |
-| expo-sqlite | 15.2.x (DB local en el dispositivo) |
+| Expo SDK | 54 |
+| expo-router | 6.x (file-based routing, como Next.js) |
+| expo-sqlite | 16.x (DB local; usa WebAssembly en web — solo Android) |
+| react-native-reanimated | 4.x (babel plugin: `react-native-worklets/plugin`) |
+| react-native-worklets | 0.5.x (nuevo en reanimated v4 — no el de reanimated v3) |
 | NativeWind | 4.x (Tailwind para React Native) |
-| React | 19.x (igual que la web — no hay conflicto) |
-| React Native | 0.79.x |
+| React | 19.1.0 exacto (pinned — debe coincidir con react-native-renderer interno) |
+| React Native | 0.81.5 |
+
+**Nota crítica:** `react@19.1.0` está pinned exacto en el root `package.json` via `overrides` + dep directa. react-native@0.81.5 bundlea react-native-renderer@19.1.0 internamente — si la versión de React instalada difiere, la app arranca en negro sin error claro.
+
+**Web no soportada:** expo-sqlite v16 usa `Atomics.wait()` en el hilo principal, bloqueado por W3C en navegadores. `src/db/database.web.ts` es un stub que no-op; `app/_layout.tsx` muestra un mensaje informativo en web. La app está diseñada para Android únicamente.
 
 ### Comandos
 

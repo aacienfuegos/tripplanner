@@ -6,11 +6,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { listActivities, deleteActivity, Activity } from "@/db/activities";
 import ImportWizard from "@/components/import/ImportWizard";
 
-const STATUS_COLORS: Record<Activity["status"], string> = {
-  PENDING: "bg-gray-100 text-gray-600",
-  RESERVED: "bg-blue-100 text-blue-700",
-  CONFIRMED: "bg-green-100 text-green-700",
-  CANCELLED: "bg-red-100 text-red-700",
+const STATUS_BG: Record<Activity["status"], string> = {
+  PENDING: "bg-gray-100",
+  RESERVED: "bg-blue-100",
+  CONFIRMED: "bg-green-100",
+  CANCELLED: "bg-red-100",
+};
+const STATUS_TEXT: Record<Activity["status"], string> = {
+  PENDING: "text-gray-600",
+  RESERVED: "text-blue-700",
+  CONFIRMED: "text-green-700",
+  CANCELLED: "text-red-700",
 };
 const STATUS_LABELS: Record<Activity["status"], string> = {
   PENDING: "Pendiente", RESERVED: "Reservado",
@@ -53,8 +59,8 @@ export default function ActivitiesScreen() {
           >
             <View className="flex-row items-center justify-between">
               <Text className="font-semibold text-gray-900 flex-1 mr-2">{item.name}</Text>
-              <View className={`px-2 py-0.5 rounded ${STATUS_COLORS[item.status].split(" ")[0]}`}>
-                <Text className={`text-xs ${STATUS_COLORS[item.status].split(" ")[1]}`}>
+              <View className={`px-2 py-0.5 rounded ${STATUS_BG[item.status as Activity["status"]]}`}>
+                <Text className={`text-xs ${STATUS_TEXT[item.status as Activity["status"]]}`}>
                   {STATUS_LABELS[item.status]}
                 </Text>
               </View>
