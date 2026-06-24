@@ -63,7 +63,7 @@ export default function ExpensesScreen() {
             className="bg-white rounded-xl p-4 mb-3 border border-gray-100 shadow-sm flex-row items-center gap-3"
           >
             <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
-              <Ionicons name={CAT_ICONS[item.category] as any} size={20} color="#6b7280" />
+              <Ionicons name={CAT_ICONS[item.category as Expense["category"]] as any} size={20} color="#6b7280" />
             </View>
             <View className="flex-1">
               <Text className="font-medium text-gray-900">{item.description}</Text>

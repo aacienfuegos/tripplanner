@@ -48,7 +48,7 @@ export default function AccommodationsScreen() {
             <View className="flex-row items-center justify-between">
               <Text className="font-semibold text-gray-900 flex-1 mr-2">{item.name}</Text>
               <View className="bg-purple-100 px-2 py-0.5 rounded">
-                <Text className="text-xs text-purple-700">{TYPE_LABELS[item.type]}</Text>
+                <Text className="text-xs text-purple-700">{TYPE_LABELS[item.type as Accommodation["type"]]}</Text>
               </View>
             </View>
             <Text className="mt-1 text-sm text-gray-600">{item.city}</Text>

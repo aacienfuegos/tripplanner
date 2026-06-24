@@ -28,7 +28,8 @@
           "enableFTS": false,
           "useSQLCipher": false
         }
-      ]
+      ],
+      "react-native-reanimated"
     ],
     "experiments": {
       "typedRoutes": true
