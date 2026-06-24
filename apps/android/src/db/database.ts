@@ -113,4 +113,21 @@ export function initDatabase(): void {
       PRAGMA user_version = 1;
     `);
   }
+
+  if (user_version < 2) {
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        trip_id    INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        title      TEXT    NOT NULL,
+        notes      TEXT,
+        due_date   TEXT,
+        priority   TEXT    NOT NULL DEFAULT 'MEDIUM',
+        done       INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      PRAGMA user_version = 2;
+    `);
+  }
 }
