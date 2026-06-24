@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Tabs, useFocusEffect, useGlobalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listDocuments, deleteDocument, Document } from "@/db/documents";
 import ImportWizard from "@/components/import/ImportWizard";
 import DocumentFormModal from "@/components/forms/DocumentFormModal";
+import SectionHeaderRight from "@/components/SectionHeaderRight";
 
 const TYPE_LABELS: Record<Document["type"], string> = {
   PASSPORT: "Pasaporte", VISA: "Visa", INSURANCE: "Seguro",
@@ -19,29 +20,40 @@ const TYPE_ICONS: Record<Document["type"], string> = {
 function isExpiringSoon(expiresAt: string | null): boolean {
   if (!expiresAt) return false;
   const diff = new Date(expiresAt).getTime() - Date.now();
-  return diff > 0 && diff < 90 * 24 * 60 * 60 * 1000; // 90 days
+  return diff > 0 && diff < 90 * 24 * 60 * 60 * 1000;
 }
 
 export default function DocumentsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const [items, setItems] = useState<Document[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Document | undefined>();
 
   useFocusEffect(useCallback(() => { setItems(listDocuments(tripId)); }, [tripId]));
 
-  function handleDelete(itemId: number, name: string) {
-    Alert.alert("Eliminar documento", `¿Eliminar "${name}"?`, [
+  function handleDelete(item: Document) {
+    Alert.alert("Eliminar documento", `¿Eliminar "${item.name}"?`, [
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deleteDocument(itemId); setItems(listDocuments(tripId));
+        deleteDocument(item.id); setItems(listDocuments(tripId));
       }},
     ]);
   }
 
+  function openEdit(item: Document) { setEditingItem(item); setFormOpen(true); }
+  function openAdd() { setEditingItem(undefined); setFormOpen(true); }
+  function closeForm() { setFormOpen(false); setEditingItem(undefined); }
+  function refresh() { setItems(listDocuments(tripId)); }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
+      <Tabs.Screen options={{
+        headerRight: () => (
+          <SectionHeaderRight tripId={id} onImportPress={() => setImportOpen(true)} />
+        ),
+      }} />
       <FlatList
         data={items}
         keyExtractor={(d) => String(d.id)}
@@ -54,7 +66,8 @@ export default function DocumentsScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onLongPress={() => handleDelete(item.id, item.name)}
+            onPress={() => openEdit(item)}
+            onLongPress={() => handleDelete(item)}
             className="bg-white rounded-xl p-4 mb-3 border border-gray-100 shadow-sm flex-row items-center gap-3"
           >
             <View className="w-10 h-10 bg-blue-50 rounded-full items-center justify-center">
@@ -73,29 +86,26 @@ export default function DocumentsScreen() {
           </TouchableOpacity>
         )}
       />
-      <View className="flex-row mx-4 mb-4 gap-3">
+
+      <View className="mx-4 mb-4">
         <TouchableOpacity
-          onPress={() => setImportOpen(true)}
-          className="flex-1 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
+          onPress={openAdd}
+          className="bg-blue-600 rounded-xl py-3.5 flex-row items-center justify-center gap-2"
         >
-          <Ionicons name="sparkles-outline" size={18} color="white" />
-          <Text className="text-white font-semibold">Importar vía IA</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setFormOpen(true)}
-          className="w-12 bg-white border border-gray-300 rounded-xl items-center justify-center"
-        >
-          <Ionicons name="add" size={22} color="#374151" />
+          <Ionicons name="add" size={20} color="white" />
+          <Text className="text-white font-semibold text-base">Añadir documento</Text>
         </TouchableOpacity>
       </View>
+
       <ImportWizard
         tripId={tripId} visible={importOpen}
-        onClose={() => { setImportOpen(false); setItems(listDocuments(tripId)); }}
+        onClose={() => { setImportOpen(false); refresh(); }}
       />
       <DocumentFormModal
-        tripId={tripId} visible={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSaved={() => { setFormOpen(false); setItems(listDocuments(tripId)); }}
+        tripId={tripId} visible={formOpen} initialData={editingItem}
+        onClose={closeForm}
+        onSaved={() => { closeForm(); refresh(); }}
+        onDelete={editingItem ? () => { deleteDocument(editingItem.id); closeForm(); refresh(); } : undefined}
       />
     </SafeAreaView>
   );

@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Tabs, useFocusEffect, useGlobalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listAccommodations, deleteAccommodation, Accommodation } from "@/db/accommodations";
 import ImportWizard from "@/components/import/ImportWizard";
 import AccommodationFormModal from "@/components/forms/AccommodationFormModal";
+import SectionHeaderRight from "@/components/SectionHeaderRight";
 
 const TYPE_LABELS: Record<Accommodation["type"], string> = {
   HOTEL: "Hotel", HOSTEL: "Hostel", AIRBNB: "Airbnb",
@@ -13,25 +14,36 @@ const TYPE_LABELS: Record<Accommodation["type"], string> = {
 };
 
 export default function AccommodationsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const [items, setItems] = useState<Accommodation[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Accommodation | undefined>();
 
   useFocusEffect(useCallback(() => { setItems(listAccommodations(tripId)); }, [tripId]));
 
-  function handleDelete(itemId: number, name: string) {
-    Alert.alert("Eliminar alojamiento", `¿Eliminar "${name}"?`, [
+  function handleDelete(item: Accommodation) {
+    Alert.alert("Eliminar alojamiento", `¿Eliminar "${item.name}"?`, [
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deleteAccommodation(itemId); setItems(listAccommodations(tripId));
+        deleteAccommodation(item.id); setItems(listAccommodations(tripId));
       }},
     ]);
   }
 
+  function openEdit(item: Accommodation) { setEditingItem(item); setFormOpen(true); }
+  function openAdd() { setEditingItem(undefined); setFormOpen(true); }
+  function closeForm() { setFormOpen(false); setEditingItem(undefined); }
+  function refresh() { setItems(listAccommodations(tripId)); }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
+      <Tabs.Screen options={{
+        headerRight: () => (
+          <SectionHeaderRight tripId={id} onImportPress={() => setImportOpen(true)} />
+        ),
+      }} />
       <FlatList
         data={items}
         keyExtractor={(a) => String(a.id)}
@@ -44,7 +56,8 @@ export default function AccommodationsScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onLongPress={() => handleDelete(item.id, item.name)}
+            onPress={() => openEdit(item)}
+            onLongPress={() => handleDelete(item)}
             className="bg-white rounded-xl p-4 mb-3 border border-gray-100 shadow-sm"
           >
             <View className="flex-row items-center justify-between">
@@ -67,29 +80,26 @@ export default function AccommodationsScreen() {
           </TouchableOpacity>
         )}
       />
-      <View className="flex-row mx-4 mb-4 gap-3">
+
+      <View className="mx-4 mb-4">
         <TouchableOpacity
-          onPress={() => setImportOpen(true)}
-          className="flex-1 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
+          onPress={openAdd}
+          className="bg-purple-600 rounded-xl py-3.5 flex-row items-center justify-center gap-2"
         >
-          <Ionicons name="sparkles-outline" size={18} color="white" />
-          <Text className="text-white font-semibold">Importar vía IA</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setFormOpen(true)}
-          className="w-12 bg-white border border-gray-300 rounded-xl items-center justify-center"
-        >
-          <Ionicons name="add" size={22} color="#374151" />
+          <Ionicons name="add" size={20} color="white" />
+          <Text className="text-white font-semibold text-base">Añadir alojamiento</Text>
         </TouchableOpacity>
       </View>
+
       <ImportWizard
         tripId={tripId} visible={importOpen}
-        onClose={() => { setImportOpen(false); setItems(listAccommodations(tripId)); }}
+        onClose={() => { setImportOpen(false); refresh(); }}
       />
       <AccommodationFormModal
-        tripId={tripId} visible={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSaved={() => { setFormOpen(false); setItems(listAccommodations(tripId)); }}
+        tripId={tripId} visible={formOpen} initialData={editingItem}
+        onClose={closeForm}
+        onSaved={() => { closeForm(); refresh(); }}
+        onDelete={editingItem ? () => { deleteAccommodation(editingItem.id); closeForm(); refresh(); } : undefined}
       />
     </SafeAreaView>
   );

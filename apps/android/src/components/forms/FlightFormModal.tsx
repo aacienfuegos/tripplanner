@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
+  Modal, View, Text, TextInput, TouchableOpacity, Alert,
   ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createFlight, Flight } from "@/db/flights";
+import { createFlight, updateFlight, Flight } from "@/db/flights";
 import DatePickerInput from "@/components/DatePickerInput";
 
 type FlightClass = Flight["class"];
@@ -19,9 +19,11 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onDelete?: () => void;
+  initialData?: Flight;
 }
 
-export default function FlightFormModal({ tripId, visible, onClose, onSaved }: Props) {
+export default function FlightFormModal({ tripId, visible, onClose, onSaved, onDelete, initialData }: Props) {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [airline, setAirline] = useState("");
@@ -34,16 +36,32 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved }: P
   const [price, setPrice] = useState("");
   const [error, setError] = useState("");
 
-  function reset() {
-    setOrigin(""); setDestination(""); setAirline(""); setFlightNumber("");
-    setDepartureAt(""); setArrivalAt(""); setFlightClass("ECONOMY");
-    setBookingRef(""); setSeatNumber(""); setPrice(""); setError("");
-  }
+  useEffect(() => {
+    if (visible) {
+      if (initialData) {
+        setOrigin(initialData.origin);
+        setDestination(initialData.destination);
+        setAirline(initialData.airline ?? "");
+        setFlightNumber(initialData.flight_number ?? "");
+        setDepartureAt(initialData.departure_at ?? "");
+        setArrivalAt(initialData.arrival_at ?? "");
+        setFlightClass(initialData.class);
+        setBookingRef(initialData.booking_ref ?? "");
+        setSeatNumber(initialData.seat_number ?? "");
+        setPrice(initialData.price != null ? String(initialData.price) : "");
+      } else {
+        setOrigin(""); setDestination(""); setAirline(""); setFlightNumber("");
+        setDepartureAt(""); setArrivalAt(""); setFlightClass("ECONOMY");
+        setBookingRef(""); setSeatNumber(""); setPrice("");
+      }
+      setError("");
+    }
+  }, [visible, initialData]);
 
   function handleSave() {
     if (!origin.trim()) { setError("El origen es obligatorio"); return; }
     if (!destination.trim()) { setError("El destino es obligatorio"); return; }
-    createFlight(tripId, {
+    const data = {
       origin: origin.trim(),
       destination: destination.trim(),
       airline: airline.trim() || null,
@@ -56,19 +74,23 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved }: P
       seat_number: seatNumber.trim() || null,
       price: price ? parseFloat(price) : null,
       notes: null,
-    });
-    reset();
+    };
+    if (initialData) {
+      updateFlight(initialData.id, data);
+    } else {
+      createFlight(tripId, data);
+    }
     onSaved();
   }
 
-  function handleClose() { reset(); onClose(); }
-
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
-          <Text className="text-lg font-semibold text-gray-900">Añadir vuelo</Text>
-          <TouchableOpacity onPress={handleClose}>
+          <Text className="text-lg font-semibold text-gray-900">
+            {initialData ? "Editar vuelo" : "Añadir vuelo"}
+          </Text>
+          <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color="#6b7280" />
           </TouchableOpacity>
         </View>
@@ -81,7 +103,7 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved }: P
                   className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900"
                   placeholder="MAD" value={origin}
                   onChangeText={(v) => { setOrigin(v); setError(""); }}
-                  autoCapitalize="characters" autoFocus
+                  autoCapitalize="characters"
                 />
               </View>
               <View className="flex-1">
@@ -172,10 +194,23 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved }: P
             </View>
           </View>
         </ScrollView>
-        <View className="px-5 pb-8 pt-3 border-t border-gray-100">
+        <View className="px-5 pb-8 pt-3 border-t border-gray-100 gap-3">
           <TouchableOpacity onPress={handleSave} className="bg-blue-600 rounded-xl py-3.5 items-center">
-            <Text className="text-white font-semibold text-base">Guardar vuelo</Text>
+            <Text className="text-white font-semibold text-base">
+              {initialData ? "Guardar cambios" : "Guardar vuelo"}
+            </Text>
           </TouchableOpacity>
+          {initialData && onDelete && (
+            <TouchableOpacity
+              onPress={() => Alert.alert("Eliminar vuelo", "¿Eliminar este vuelo?", [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Eliminar", style: "destructive", onPress: onDelete },
+              ])}
+              className="py-2 items-center"
+            >
+              <Text className="text-red-500 font-medium">Eliminar vuelo</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

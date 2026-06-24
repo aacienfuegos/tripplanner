@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Tabs, useFocusEffect, useGlobalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listExpenses, deleteExpense, toggleExpensePaid, sumExpenses, Expense } from "@/db/expenses";
 import { getTrip } from "@/db/trips";
 import ImportWizard from "@/components/import/ImportWizard";
 import ExpenseFormModal from "@/components/forms/ExpenseFormModal";
+import SectionHeaderRight from "@/components/SectionHeaderRight";
 
 const CAT_ICONS: Record<Expense["category"], string> = {
   FLIGHT: "airplane-outline", ACCOMMODATION: "bed-outline",
@@ -15,11 +16,12 @@ const CAT_ICONS: Record<Expense["category"], string> = {
 };
 
 export default function ExpensesScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const [items, setItems] = useState<Expense[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Expense | undefined>();
   const [currency, setCurrency] = useState("EUR");
 
   useFocusEffect(useCallback(() => {
@@ -30,17 +32,27 @@ export default function ExpensesScreen() {
 
   const total = sumExpenses(tripId, currency);
 
-  function handleDelete(itemId: number, desc: string) {
-    Alert.alert("Eliminar gasto", `¿Eliminar "${desc}"?`, [
-      { text: "Cancelar", style: "cancel" },
+  function handleLongPress(item: Expense) {
+    Alert.alert(item.description, undefined, [
+      { text: "Editar", onPress: () => { setEditingItem(item); setFormOpen(true); } },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deleteExpense(itemId); setItems(listExpenses(tripId));
+        deleteExpense(item.id); setItems(listExpenses(tripId));
       }},
+      { text: "Cancelar", style: "cancel" },
     ]);
   }
 
+  function openAdd() { setEditingItem(undefined); setFormOpen(true); }
+  function closeForm() { setFormOpen(false); setEditingItem(undefined); }
+  function refresh() { setItems(listExpenses(tripId)); }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
+      <Tabs.Screen options={{
+        headerRight: () => (
+          <SectionHeaderRight tripId={id} onImportPress={() => setImportOpen(true)} />
+        ),
+      }} />
       {items.length > 0 && (
         <View className="mx-4 mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl">
           <Text className="text-center text-sm text-blue-800">
@@ -60,8 +72,8 @@ export default function ExpensesScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onLongPress={() => handleDelete(item.id, item.description)}
-            onPress={() => { toggleExpensePaid(item.id, !item.paid); setItems(listExpenses(tripId)); }}
+            onPress={() => { toggleExpensePaid(item.id, !item.paid); refresh(); }}
+            onLongPress={() => handleLongPress(item)}
             className="bg-white rounded-xl p-4 mb-3 border border-gray-100 shadow-sm flex-row items-center gap-3"
           >
             <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
@@ -82,29 +94,26 @@ export default function ExpensesScreen() {
           </TouchableOpacity>
         )}
       />
-      <View className="flex-row mx-4 mb-4 gap-3">
+
+      <View className="mx-4 mb-4">
         <TouchableOpacity
-          onPress={() => setImportOpen(true)}
-          className="flex-1 bg-blue-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
+          onPress={openAdd}
+          className="bg-green-600 rounded-xl py-3.5 flex-row items-center justify-center gap-2"
         >
-          <Ionicons name="sparkles-outline" size={18} color="white" />
-          <Text className="text-white font-semibold">Importar vía IA</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setFormOpen(true)}
-          className="w-12 bg-white border border-gray-300 rounded-xl items-center justify-center"
-        >
-          <Ionicons name="add" size={22} color="#374151" />
+          <Ionicons name="add" size={20} color="white" />
+          <Text className="text-white font-semibold text-base">Añadir gasto</Text>
         </TouchableOpacity>
       </View>
+
       <ImportWizard
         tripId={tripId} visible={importOpen}
-        onClose={() => { setImportOpen(false); setItems(listExpenses(tripId)); }}
+        onClose={() => { setImportOpen(false); refresh(); }}
       />
       <ExpenseFormModal
-        tripId={tripId} tripCurrency={currency} visible={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSaved={() => { setFormOpen(false); setItems(listExpenses(tripId)); }}
+        tripId={tripId} tripCurrency={currency} visible={formOpen} initialData={editingItem}
+        onClose={closeForm}
+        onSaved={() => { closeForm(); refresh(); }}
+        onDelete={editingItem ? () => { deleteExpense(editingItem.id); closeForm(); refresh(); } : undefined}
       />
     </SafeAreaView>
   );

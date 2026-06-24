@@ -1,5 +1,5 @@
 import { Tabs, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { TouchableOpacity, View } from "react-native";
+import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getTrip } from "@/db/trips";
 import { useState, useCallback } from "react";
@@ -26,14 +26,6 @@ export default function TripTabsLayout() {
         headerLeft: () => (
           <TouchableOpacity onPress={() => router.back()} className="ml-3">
             <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-        ),
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => router.push(`/trips/${id}/edit`)}
-            className="mr-3"
-          >
-            <Ionicons name="create-outline" size={22} color="#374151" />
           </TouchableOpacity>
         ),
       }}
@@ -92,6 +84,7 @@ export default function TripTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="edit" options={{ href: null }} />
     </Tabs>
   );
 }

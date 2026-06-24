@@ -42,6 +42,17 @@ export function createAccommodation(
   );
 }
 
+export function updateAccommodation(id: number, data: Omit<Accommodation, "id" | "trip_id" | "created_at">): void {
+  db.runSync(
+    `UPDATE accommodations SET name=?, type=?, address=?, city=?, check_in=?, check_out=?,
+     booking_ref=?, confirmation_url=?, price=?, price_per_night=?, notes=? WHERE id=?`,
+    [
+      data.name, data.type, data.address, data.city, data.check_in, data.check_out,
+      data.booking_ref, data.confirmation_url, data.price, data.price_per_night, data.notes, id,
+    ]
+  );
+}
+
 export function deleteAccommodation(id: number): void {
   db.runSync("DELETE FROM accommodations WHERE id = ?", [id]);
 }

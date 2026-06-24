@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
+  Modal, View, Text, TextInput, TouchableOpacity, Alert,
   ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createDocument, Document } from "@/db/documents";
+import { createDocument, updateDocument, Document } from "@/db/documents";
 import DatePickerInput from "@/components/DatePickerInput";
 
 type DocType = Document["type"];
@@ -19,39 +19,55 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onDelete?: () => void;
+  initialData?: Document;
 }
 
-export default function DocumentFormModal({ tripId, visible, onClose, onSaved }: Props) {
+export default function DocumentFormModal({ tripId, visible, onClose, onSaved, onDelete, initialData }: Props) {
   const [name, setName] = useState("");
   const [type, setType] = useState<DocType>("OTHER");
   const [expiresAt, setExpiresAt] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
-  function reset() {
-    setName(""); setType("OTHER"); setExpiresAt(""); setNotes(""); setError("");
-  }
+  useEffect(() => {
+    if (visible) {
+      if (initialData) {
+        setName(initialData.name);
+        setType(initialData.type);
+        setExpiresAt(initialData.expires_at ?? "");
+        setNotes(initialData.notes ?? "");
+      } else {
+        setName(""); setType("OTHER"); setExpiresAt(""); setNotes("");
+      }
+      setError("");
+    }
+  }, [visible, initialData]);
 
   function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
-    createDocument(tripId, {
+    const data = {
       name: name.trim(),
       type,
       expires_at: expiresAt || null,
       notes: notes.trim() || null,
-    });
-    reset();
+    };
+    if (initialData) {
+      updateDocument(initialData.id, data);
+    } else {
+      createDocument(tripId, data);
+    }
     onSaved();
   }
 
-  function handleClose() { reset(); onClose(); }
-
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
-          <Text className="text-lg font-semibold text-gray-900">Añadir documento</Text>
-          <TouchableOpacity onPress={handleClose}>
+          <Text className="text-lg font-semibold text-gray-900">
+            {initialData ? "Editar documento" : "Añadir documento"}
+          </Text>
+          <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color="#6b7280" />
           </TouchableOpacity>
         </View>
@@ -63,7 +79,7 @@ export default function DocumentFormModal({ tripId, visible, onClose, onSaved }:
                 className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900"
                 placeholder="Pasaporte español" value={name}
                 onChangeText={(v) => { setName(v); setError(""); }}
-                autoFocus
+                autoFocus={!initialData}
               />
               {error ? <Text className="mt-1 text-xs text-red-500">{error}</Text> : null}
             </View>
@@ -100,10 +116,23 @@ export default function DocumentFormModal({ tripId, visible, onClose, onSaved }:
             </View>
           </View>
         </ScrollView>
-        <View className="px-5 pb-8 pt-3 border-t border-gray-100">
+        <View className="px-5 pb-8 pt-3 border-t border-gray-100 gap-3">
           <TouchableOpacity onPress={handleSave} className="bg-blue-600 rounded-xl py-3.5 items-center">
-            <Text className="text-white font-semibold text-base">Guardar documento</Text>
+            <Text className="text-white font-semibold text-base">
+              {initialData ? "Guardar cambios" : "Guardar documento"}
+            </Text>
           </TouchableOpacity>
+          {initialData && onDelete && (
+            <TouchableOpacity
+              onPress={() => Alert.alert("Eliminar documento", `¿Eliminar "${initialData.name}"?`, [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Eliminar", style: "destructive", onPress: onDelete },
+              ])}
+              className="py-2 items-center"
+            >
+              <Text className="text-red-500 font-medium">Eliminar documento</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

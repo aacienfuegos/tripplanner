@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
+  Modal, View, Text, TextInput, TouchableOpacity, Alert,
   ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createAccommodation, Accommodation } from "@/db/accommodations";
+import { createAccommodation, updateAccommodation, Accommodation } from "@/db/accommodations";
 import DatePickerInput from "@/components/DatePickerInput";
 
 type AccomType = Accommodation["type"];
@@ -19,9 +19,11 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onDelete?: () => void;
+  initialData?: Accommodation;
 }
 
-export default function AccommodationFormModal({ tripId, visible, onClose, onSaved }: Props) {
+export default function AccommodationFormModal({ tripId, visible, onClose, onSaved, onDelete, initialData }: Props) {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [type, setType] = useState<AccomType>("HOTEL");
@@ -32,15 +34,29 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
   const [pricePerNight, setPricePerNight] = useState("");
   const [error, setError] = useState("");
 
-  function reset() {
-    setName(""); setCity(""); setType("HOTEL"); setAddress("");
-    setCheckIn(""); setCheckOut(""); setBookingRef(""); setPricePerNight(""); setError("");
-  }
+  useEffect(() => {
+    if (visible) {
+      if (initialData) {
+        setName(initialData.name);
+        setCity(initialData.city);
+        setType(initialData.type);
+        setAddress(initialData.address ?? "");
+        setCheckIn(initialData.check_in ?? "");
+        setCheckOut(initialData.check_out ?? "");
+        setBookingRef(initialData.booking_ref ?? "");
+        setPricePerNight(initialData.price_per_night != null ? String(initialData.price_per_night) : "");
+      } else {
+        setName(""); setCity(""); setType("HOTEL"); setAddress("");
+        setCheckIn(""); setCheckOut(""); setBookingRef(""); setPricePerNight("");
+      }
+      setError("");
+    }
+  }, [visible, initialData]);
 
   function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
     if (!city.trim()) { setError("La ciudad es obligatoria"); return; }
-    createAccommodation(tripId, {
+    const data = {
       name: name.trim(),
       city: city.trim(),
       type,
@@ -52,19 +68,23 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
       price: null,
       price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
       notes: null,
-    });
-    reset();
+    };
+    if (initialData) {
+      updateAccommodation(initialData.id, data);
+    } else {
+      createAccommodation(tripId, data);
+    }
     onSaved();
   }
 
-  function handleClose() { reset(); onClose(); }
-
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
-          <Text className="text-lg font-semibold text-gray-900">Añadir alojamiento</Text>
-          <TouchableOpacity onPress={handleClose}>
+          <Text className="text-lg font-semibold text-gray-900">
+            {initialData ? "Editar alojamiento" : "Añadir alojamiento"}
+          </Text>
+          <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color="#6b7280" />
           </TouchableOpacity>
         </View>
@@ -76,7 +96,7 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
                 className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900"
                 placeholder="Hotel Okura" value={name}
                 onChangeText={(v) => { setName(v); setError(""); }}
-                autoFocus
+                autoFocus={!initialData}
               />
               {error && name.trim() === "" ? <Text className="mt-1 text-xs text-red-500">{error}</Text> : null}
             </View>
@@ -147,10 +167,23 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
             </View>
           </View>
         </ScrollView>
-        <View className="px-5 pb-8 pt-3 border-t border-gray-100">
+        <View className="px-5 pb-8 pt-3 border-t border-gray-100 gap-3">
           <TouchableOpacity onPress={handleSave} className="bg-purple-600 rounded-xl py-3.5 items-center">
-            <Text className="text-white font-semibold text-base">Guardar alojamiento</Text>
+            <Text className="text-white font-semibold text-base">
+              {initialData ? "Guardar cambios" : "Guardar alojamiento"}
+            </Text>
           </TouchableOpacity>
+          {initialData && onDelete && (
+            <TouchableOpacity
+              onPress={() => Alert.alert("Eliminar alojamiento", `¿Eliminar "${initialData.name}"?`, [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Eliminar", style: "destructive", onPress: onDelete },
+              ])}
+              className="py-2 items-center"
+            >
+              <Text className="text-red-500 font-medium">Eliminar alojamiento</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
+  Modal, View, Text, TextInput, TouchableOpacity, Alert,
   ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createActivity, Activity } from "@/db/activities";
+import { createActivity, updateActivity, Activity } from "@/db/activities";
 import DatePickerInput from "@/components/DatePickerInput";
 
 type ActivityType = Activity["type"];
@@ -26,9 +26,11 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onDelete?: () => void;
+  initialData?: Activity;
 }
 
-export default function ActivityFormModal({ tripId, visible, onClose, onSaved }: Props) {
+export default function ActivityFormModal({ tripId, visible, onClose, onSaved, onDelete, initialData }: Props) {
   const [name, setName] = useState("");
   const [type, setType] = useState<ActivityType>("ACTIVITY");
   const [status, setStatus] = useState<ActivityStatus>("PENDING");
@@ -38,14 +40,27 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved }:
   const [price, setPrice] = useState("");
   const [error, setError] = useState("");
 
-  function reset() {
-    setName(""); setType("ACTIVITY"); setStatus("PENDING");
-    setLocation(""); setCity(""); setScheduledAt(""); setPrice(""); setError("");
-  }
+  useEffect(() => {
+    if (visible) {
+      if (initialData) {
+        setName(initialData.name);
+        setType(initialData.type);
+        setStatus(initialData.status);
+        setLocation(initialData.location ?? "");
+        setCity(initialData.city ?? "");
+        setScheduledAt(initialData.scheduled_at ?? "");
+        setPrice(initialData.price != null ? String(initialData.price) : "");
+      } else {
+        setName(""); setType("ACTIVITY"); setStatus("PENDING");
+        setLocation(""); setCity(""); setScheduledAt(""); setPrice("");
+      }
+      setError("");
+    }
+  }, [visible, initialData]);
 
   function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
-    createActivity(tripId, {
+    const data = {
       name: name.trim(),
       type,
       status,
@@ -58,19 +73,23 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved }:
       price: price ? parseFloat(price) : null,
       description: null,
       notes: null,
-    });
-    reset();
+    };
+    if (initialData) {
+      updateActivity(initialData.id, data);
+    } else {
+      createActivity(tripId, data);
+    }
     onSaved();
   }
 
-  function handleClose() { reset(); onClose(); }
-
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
-          <Text className="text-lg font-semibold text-gray-900">Añadir actividad</Text>
-          <TouchableOpacity onPress={handleClose}>
+          <Text className="text-lg font-semibold text-gray-900">
+            {initialData ? "Editar actividad" : "Añadir actividad"}
+          </Text>
+          <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color="#6b7280" />
           </TouchableOpacity>
         </View>
@@ -82,7 +101,7 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved }:
                 className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900"
                 placeholder="Visita al Templo Senso-ji" value={name}
                 onChangeText={(v) => { setName(v); setError(""); }}
-                autoFocus
+                autoFocus={!initialData}
               />
               {error ? <Text className="mt-1 text-xs text-red-500">{error}</Text> : null}
             </View>
@@ -153,10 +172,23 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved }:
             </View>
           </View>
         </ScrollView>
-        <View className="px-5 pb-8 pt-3 border-t border-gray-100">
+        <View className="px-5 pb-8 pt-3 border-t border-gray-100 gap-3">
           <TouchableOpacity onPress={handleSave} className="bg-orange-500 rounded-xl py-3.5 items-center">
-            <Text className="text-white font-semibold text-base">Guardar actividad</Text>
+            <Text className="text-white font-semibold text-base">
+              {initialData ? "Guardar cambios" : "Guardar actividad"}
+            </Text>
           </TouchableOpacity>
+          {initialData && onDelete && (
+            <TouchableOpacity
+              onPress={() => Alert.alert("Eliminar actividad", `¿Eliminar "${initialData.name}"?`, [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Eliminar", style: "destructive", onPress: onDelete },
+              ])}
+              className="py-2 items-center"
+            >
+              <Text className="text-red-500 font-medium">Eliminar actividad</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

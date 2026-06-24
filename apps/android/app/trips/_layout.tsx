@@ -24,10 +24,6 @@ export default function TripsLayout() {
         options={{ title: "Nuevo viaje", presentation: "modal" }}
       />
       <Stack.Screen name="[id]" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="[id]/edit"
-        options={{ title: "Editar viaje", presentation: "modal" }}
-      />
     </Stack>
   );
 }

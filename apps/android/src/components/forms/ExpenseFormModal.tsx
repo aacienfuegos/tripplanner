@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
+  Modal, View, Text, TextInput, TouchableOpacity, Alert,
   ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createExpense, Expense } from "@/db/expenses";
+import { createExpense, updateExpense, Expense } from "@/db/expenses";
 import DatePickerInput from "@/components/DatePickerInput";
 
 type ExpenseCategory = Expense["category"];
@@ -22,9 +22,11 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onDelete?: () => void;
+  initialData?: Expense;
 }
 
-export default function ExpenseFormModal({ tripId, tripCurrency, visible, onClose, onSaved }: Props) {
+export default function ExpenseFormModal({ tripId, tripCurrency, visible, onClose, onSaved, onDelete, initialData }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -34,10 +36,22 @@ export default function ExpenseFormModal({ tripId, tripCurrency, visible, onClos
   const [paid, setPaid] = useState(false);
   const [error, setError] = useState("");
 
-  function reset() {
-    setDescription(""); setAmount(""); setCategory("OTHER");
-    setCurrency(tripCurrency); setDate(today); setPaid(false); setError("");
-  }
+  useEffect(() => {
+    if (visible) {
+      if (initialData) {
+        setDescription(initialData.description);
+        setAmount(String(initialData.amount));
+        setCategory(initialData.category);
+        setCurrency(initialData.currency);
+        setDate(initialData.date);
+        setPaid(initialData.paid === 1);
+      } else {
+        setDescription(""); setAmount(""); setCategory("OTHER");
+        setCurrency(tripCurrency); setDate(today); setPaid(false);
+      }
+      setError("");
+    }
+  }, [visible, initialData]);
 
   function handleSave() {
     if (!description.trim()) { setError("La descripción es obligatoria"); return; }
@@ -46,27 +60,31 @@ export default function ExpenseFormModal({ tripId, tripCurrency, visible, onClos
       setError("El importe debe ser un número positivo");
       return;
     }
-    createExpense(tripId, {
+    const data = {
       description: description.trim(),
       amount: parsedAmount,
       category,
       currency: currency.trim().toUpperCase() || tripCurrency,
       date,
       paid: paid ? 1 : 0,
-      notes: null,
-    });
-    reset();
+      notes: initialData?.notes ?? null,
+    };
+    if (initialData) {
+      updateExpense(initialData.id, data);
+    } else {
+      createExpense(tripId, data);
+    }
     onSaved();
   }
 
-  function handleClose() { reset(); onClose(); }
-
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
-          <Text className="text-lg font-semibold text-gray-900">Añadir gasto</Text>
-          <TouchableOpacity onPress={handleClose}>
+          <Text className="text-lg font-semibold text-gray-900">
+            {initialData ? "Editar gasto" : "Añadir gasto"}
+          </Text>
+          <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color="#6b7280" />
           </TouchableOpacity>
         </View>
@@ -78,7 +96,7 @@ export default function ExpenseFormModal({ tripId, tripCurrency, visible, onClos
                 className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900"
                 placeholder="Cena en restaurante" value={description}
                 onChangeText={(v) => { setDescription(v); setError(""); }}
-                autoFocus
+                autoFocus={!initialData}
               />
               {error ? <Text className="mt-1 text-xs text-red-500">{error}</Text> : null}
             </View>
@@ -137,10 +155,23 @@ export default function ExpenseFormModal({ tripId, tripCurrency, visible, onClos
             </TouchableOpacity>
           </View>
         </ScrollView>
-        <View className="px-5 pb-8 pt-3 border-t border-gray-100">
+        <View className="px-5 pb-8 pt-3 border-t border-gray-100 gap-3">
           <TouchableOpacity onPress={handleSave} className="bg-green-600 rounded-xl py-3.5 items-center">
-            <Text className="text-white font-semibold text-base">Guardar gasto</Text>
+            <Text className="text-white font-semibold text-base">
+              {initialData ? "Guardar cambios" : "Guardar gasto"}
+            </Text>
           </TouchableOpacity>
+          {initialData && onDelete && (
+            <TouchableOpacity
+              onPress={() => Alert.alert("Eliminar gasto", `¿Eliminar "${initialData.description}"?`, [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Eliminar", style: "destructive", onPress: onDelete },
+              ])}
+              className="py-2 items-center"
+            >
+              <Text className="text-red-500 font-medium">Eliminar gasto</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
