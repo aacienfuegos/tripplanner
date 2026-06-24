@@ -33,6 +33,13 @@ export function toggleTaskDone(id: number, done: boolean): void {
   db.runSync("UPDATE tasks SET done = ? WHERE id = ?", [done ? 1 : 0, id]);
 }
 
+export function updateTask(id: number, data: Omit<Task, "id" | "trip_id" | "created_at">): void {
+  db.runSync(
+    `UPDATE tasks SET title = ?, notes = ?, due_date = ?, priority = ?, done = ? WHERE id = ?`,
+    [data.title, data.notes, data.due_date, data.priority, data.done, id]
+  );
+}
+
 export function deleteTask(id: number): void {
   db.runSync("DELETE FROM tasks WHERE id = ?", [id]);
 }

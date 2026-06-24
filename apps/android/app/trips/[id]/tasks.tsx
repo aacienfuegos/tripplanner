@@ -1,10 +1,12 @@
 import { useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Tabs, useFocusEffect, useGlobalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listTasks, deleteTask, toggleTaskDone, Task } from "@/db/tasks";
 import TaskFormModal from "@/components/forms/TaskFormModal";
+import SectionHeaderRight from "@/components/SectionHeaderRight";
+import ImportWizard from "@/components/import/ImportWizard";
 
 const PRIORITY_BG: Record<Task["priority"], string> = {
   LOW: "bg-gray-100", MEDIUM: "bg-yellow-100", HIGH: "bg-red-100",
@@ -22,38 +24,45 @@ function isOverdue(dueDate: string | null): boolean {
 }
 
 export default function TasksScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  const [importOpen, setImportOpen] = useState(false);
 
   useFocusEffect(useCallback(() => { setTasks(listTasks(tripId)); }, [tripId]));
 
-  const pending = tasks.filter((t) => !t.done);
-  const done = tasks.filter((t) => t.done);
-  const doneCount = done.length;
+  function refresh() { setTasks(listTasks(tripId)); }
 
-  function handleDelete(taskId: number, title: string) {
-    Alert.alert("Eliminar tarea", `¿Eliminar "${title}"?`, [
+  function openAdd() { setEditingTask(undefined); setFormOpen(true); }
+
+  function handleLongPress(task: Task) {
+    Alert.alert(task.title, undefined, [
+      { text: "Editar", onPress: () => { setEditingTask(task); setFormOpen(true); } },
+      { text: "Eliminar", style: "destructive", onPress: () => { deleteTask(task.id); refresh(); } },
       { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar", style: "destructive",
-        onPress: () => { deleteTask(taskId); setTasks(listTasks(tripId)); },
-      },
     ]);
   }
+
+  const pending = tasks.filter((t) => !t.done);
+  const done = tasks.filter((t) => t.done);
 
   function renderTask({ item }: { item: Task }) {
     const overdue = !item.done && isOverdue(item.due_date);
     return (
       <TouchableOpacity
-        onPress={() => { toggleTaskDone(item.id, !item.done); setTasks(listTasks(tripId)); }}
-        onLongPress={() => handleDelete(item.id, item.title)}
+        onPress={() => { setEditingTask(item); setFormOpen(true); }}
+        onLongPress={() => handleLongPress(item)}
         className="bg-white rounded-xl px-4 py-3 mb-2 border border-gray-100 shadow-sm flex-row items-start gap-3"
       >
-        <View className={`mt-0.5 w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.done ? "bg-green-500 border-green-500" : "border-gray-300"}`}>
+        <TouchableOpacity
+          onPress={() => { toggleTaskDone(item.id, !item.done); refresh(); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className={`mt-0.5 w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.done ? "bg-green-500 border-green-500" : "border-gray-300"}`}
+        >
           {item.done ? <Ionicons name="checkmark" size={12} color="white" /> : null}
-        </View>
+        </TouchableOpacity>
         <View className="flex-1">
           <Text className={`text-base font-medium ${item.done ? "line-through text-gray-400" : "text-gray-900"}`}>
             {item.title}
@@ -80,10 +89,17 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
-      {tasks.length > 0 && doneCount > 0 && (
+      <Tabs.Screen
+        options={{
+          headerRight: () => (
+            <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />
+          ),
+        }}
+      />
+      {tasks.length > 0 && done.length > 0 && (
         <View className="mx-4 mt-4 p-3 bg-violet-50 border border-violet-100 rounded-xl">
           <Text className="text-center text-sm text-violet-800">
-            {doneCount} / {tasks.length} tareas completadas
+            {done.length} / {tasks.length} tareas completadas
           </Text>
         </View>
       )}
@@ -102,17 +118,24 @@ export default function TasksScreen() {
         }
         renderItem={renderTask}
       />
-      <TouchableOpacity
-        onPress={() => setFormOpen(true)}
-        className="mx-4 mb-4 bg-violet-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
-      >
-        <Ionicons name="add-circle-outline" size={18} color="white" />
-        <Text className="text-white font-semibold">Nueva tarea</Text>
-      </TouchableOpacity>
+      <View className="mx-4 mb-4">
+        <TouchableOpacity
+          onPress={openAdd}
+          className="bg-violet-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
+        >
+          <Ionicons name="add-circle-outline" size={18} color="white" />
+          <Text className="text-white font-semibold">Nueva tarea</Text>
+        </TouchableOpacity>
+      </View>
       <TaskFormModal
-        tripId={tripId} visible={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSaved={() => { setFormOpen(false); setTasks(listTasks(tripId)); }}
+        tripId={tripId} visible={formOpen} initialData={editingTask}
+        onClose={() => { setFormOpen(false); setEditingTask(undefined); }}
+        onSaved={() => { setFormOpen(false); setEditingTask(undefined); refresh(); }}
+        onDelete={editingTask ? () => { deleteTask(editingTask.id); setFormOpen(false); setEditingTask(undefined); refresh(); } : undefined}
+      />
+      <ImportWizard
+        tripId={tripId} visible={importOpen}
+        onClose={() => { setImportOpen(false); refresh(); }}
       />
     </SafeAreaView>
   );
