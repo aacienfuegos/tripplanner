@@ -6,13 +6,14 @@ interface SectionHeaderProps {
   tripName: string;
   title: string;
   icon: React.ReactNode;
+  tripsLabel?: string;
 }
 
-export function SectionHeader({ tripId, tripName, title, icon }: SectionHeaderProps) {
+export function SectionHeader({ tripId, tripName, title, icon, tripsLabel = "Viajes" }: SectionHeaderProps) {
   return (
     <div>
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-3">
-        <Link href="/trips" className="hover:text-foreground">Viajes</Link>
+        <Link href="/trips" className="hover:text-foreground">{tripsLabel}</Link>
         <ChevronRight className="h-3.5 w-3.5" />
         <Link href={`/trips/${tripId}`} className="hover:text-foreground">{tripName}</Link>
         <ChevronRight className="h-3.5 w-3.5" />
