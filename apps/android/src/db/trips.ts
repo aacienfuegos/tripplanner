@@ -78,3 +78,66 @@ export function countTrips(): number {
   );
   return row?.count ?? 0;
 }
+
+export interface TripSummary {
+  flights: number;
+  accommodations: number;
+  activities: number;
+  expenses: number;
+  expensesTotal: number;
+  packingPacked: number;
+  packingTotal: number;
+  tripStatus: "upcoming" | "ongoing" | "past";
+  daysUntil: number | null; // positive = upcoming, negative = days ago ended
+}
+
+export function getTripSummary(tripId: number, currency: string): TripSummary {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const trip = db.getFirstSync<{ start_date: string | null; end_date: string | null }>(
+    "SELECT start_date, end_date FROM trips WHERE id = ?", [tripId]
+  );
+
+  let tripStatus: TripSummary["tripStatus"] = "upcoming";
+  let daysUntil: number | null = null;
+
+  if (trip?.start_date) {
+    const start = trip.start_date.slice(0, 10);
+    const end = trip.end_date?.slice(0, 10) ?? start;
+    const msPerDay = 86400000;
+    if (today >= start && today <= end) {
+      tripStatus = "ongoing";
+    } else if (today > end) {
+      tripStatus = "past";
+      daysUntil = -Math.round((new Date(today).getTime() - new Date(end).getTime()) / msPerDay);
+    } else {
+      tripStatus = "upcoming";
+      daysUntil = Math.round((new Date(start).getTime() - new Date(today).getTime()) / msPerDay);
+    }
+  }
+
+  const flights = (db.getFirstSync<{ n: number }>("SELECT COUNT(*) as n FROM flights WHERE trip_id = ?", [tripId])?.n ?? 0);
+  const accommodations = (db.getFirstSync<{ n: number }>("SELECT COUNT(*) as n FROM accommodations WHERE trip_id = ?", [tripId])?.n ?? 0);
+  const activities = (db.getFirstSync<{ n: number }>("SELECT COUNT(*) as n FROM activities WHERE trip_id = ?", [tripId])?.n ?? 0);
+  const expenses = (db.getFirstSync<{ n: number }>("SELECT COUNT(*) as n FROM expenses WHERE trip_id = ?", [tripId])?.n ?? 0);
+  const expensesTotal = (db.getFirstSync<{ total: number }>(
+    "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE trip_id = ? AND currency = ?",
+    [tripId, currency]
+  )?.total ?? 0);
+  const packingRow = db.getFirstSync<{ packed: number; total: number }>(
+    "SELECT SUM(CASE WHEN packed = 1 THEN 1 ELSE 0 END) as packed, COUNT(*) as total FROM packing_items WHERE trip_id = ?",
+    [tripId]
+  );
+
+  return {
+    flights,
+    accommodations,
+    activities,
+    expenses,
+    expensesTotal,
+    packingPacked: packingRow?.packed ?? 0,
+    packingTotal: packingRow?.total ?? 0,
+    tripStatus,
+    daysUntil,
+  };
+}

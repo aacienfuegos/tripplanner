@@ -7,12 +7,15 @@ import { listTasks, deleteTask, toggleTaskDone, Task } from "@/db/tasks";
 import TaskFormModal from "@/components/forms/TaskFormModal";
 import SectionHeaderRight from "@/components/SectionHeaderRight";
 import ImportWizard from "@/components/import/ImportWizard";
+import SectionFAB from "@/components/SectionFAB";
 
-const PRIORITY_BG: Record<Task["priority"], string> = {
-  LOW: "bg-gray-100", MEDIUM: "bg-yellow-100", HIGH: "bg-red-100",
-};
-const PRIORITY_TEXT: Record<Task["priority"], string> = {
-  LOW: "text-gray-600", MEDIUM: "text-yellow-700", HIGH: "text-red-700",
+const COLOR = "#7c3aed";
+const COLOR_BG = "#7c3aed18";
+
+const PRIORITY_STYLES: Record<Task["priority"], { bg: string; text: string }> = {
+  LOW:    { bg: "#f1f5f9", text: "#64748b" },
+  MEDIUM: { bg: "#fef9c3", text: "#854d0e" },
+  HIGH:   { bg: "#fee2e2", text: "#991b1b" },
 };
 const PRIORITY_LABELS: Record<Task["priority"], string> = {
   LOW: "Baja", MEDIUM: "Media", HIGH: "Alta",
@@ -34,7 +37,6 @@ export default function TasksScreen() {
   useFocusEffect(useCallback(() => { setTasks(listTasks(tripId)); }, [tripId]));
 
   function refresh() { setTasks(listTasks(tripId)); }
-
   function openAdd() { setEditingTask(undefined); setFormOpen(true); }
 
   function handleLongPress(task: Task) {
@@ -50,37 +52,42 @@ export default function TasksScreen() {
 
   function renderTask({ item }: { item: Task }) {
     const overdue = !item.done && isOverdue(item.due_date);
+    const pStyle = PRIORITY_STYLES[item.priority as Task["priority"]];
     return (
       <TouchableOpacity
         onPress={() => { setEditingTask(item); setFormOpen(true); }}
         onLongPress={() => handleLongPress(item)}
-        className="bg-white rounded-xl px-4 py-3 mb-2 border border-gray-100 shadow-sm flex-row items-start gap-3"
+        className="bg-white rounded-2xl mb-2 overflow-hidden shadow-sm"
+        style={{ borderLeftWidth: 3, borderLeftColor: item.done ? "#d1fae5" : COLOR }}
+        activeOpacity={0.75}
       >
-        <TouchableOpacity
-          onPress={() => { toggleTaskDone(item.id, !item.done); refresh(); }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className={`mt-0.5 w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.done ? "bg-green-500 border-green-500" : "border-gray-300"}`}
-        >
-          {item.done ? <Ionicons name="checkmark" size={12} color="white" /> : null}
-        </TouchableOpacity>
-        <View className="flex-1">
-          <Text className={`text-base font-medium ${item.done ? "line-through text-gray-400" : "text-gray-900"}`}>
-            {item.title}
-          </Text>
-          {item.notes ? (
-            <Text className="text-xs text-gray-400 mt-0.5">{item.notes}</Text>
-          ) : null}
-          <View className="flex-row items-center gap-2 mt-1.5">
-            <View className={`px-2 py-0.5 rounded ${PRIORITY_BG[item.priority as Task["priority"]]}`}>
-              <Text className={`text-xs font-medium ${PRIORITY_TEXT[item.priority as Task["priority"]]}`}>
-                {PRIORITY_LABELS[item.priority as Task["priority"]]}
-              </Text>
+        <View className="px-4 py-3.5 flex-row items-start gap-3">
+          <TouchableOpacity
+            onPress={() => { toggleTaskDone(item.id, !item.done); refresh(); }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className={`mt-0.5 w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.done ? "bg-emerald-500 border-emerald-500" : "border-slate-300"}`}
+          >
+            {item.done ? <Ionicons name="checkmark" size={11} color="white" /> : null}
+          </TouchableOpacity>
+          <View className="flex-1">
+            <Text className={`text-base font-semibold ${item.done ? "line-through text-slate-400" : "text-slate-900"}`}>
+              {item.title}
+            </Text>
+            {item.notes ? (
+              <Text className="text-xs text-slate-400 mt-0.5" numberOfLines={1}>{item.notes}</Text>
+            ) : null}
+            <View className="flex-row items-center gap-2 mt-1.5">
+              <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: pStyle.bg }}>
+                <Text className="text-xs font-medium" style={{ color: pStyle.text }}>
+                  {PRIORITY_LABELS[item.priority as Task["priority"]]}
+                </Text>
+              </View>
+              {item.due_date && (
+                <Text className={`text-xs font-medium ${overdue ? "text-red-500" : "text-slate-400"}`}>
+                  {overdue ? "Vencida · " : ""}{item.due_date.slice(0, 10)}
+                </Text>
+              )}
             </View>
-            {item.due_date && (
-              <Text className={`text-xs ${overdue ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                {overdue ? "Vencida · " : ""}{item.due_date.slice(0, 10)}
-              </Text>
-            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -88,45 +95,51 @@ export default function TasksScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
-      <Tabs.Screen
-        options={{
-          headerRight: () => (
-            <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />
-          ),
-        }}
-      />
+    <SafeAreaView className="flex-1 bg-zinc-50" edges={["bottom"]}>
+      <Tabs.Screen options={{
+        headerRight: () => <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />,
+      }} />
+
       {tasks.length > 0 && done.length > 0 && (
-        <View className="mx-4 mt-4 p-3 bg-violet-50 border border-violet-100 rounded-xl">
-          <Text className="text-center text-sm text-violet-800">
-            {done.length} / {tasks.length} tareas completadas
-          </Text>
+        <View className="mx-4 mt-3 bg-white rounded-2xl px-4 py-3 shadow-sm" style={{ borderLeftWidth: 3, borderLeftColor: COLOR }}>
+          <View className="flex-row items-center justify-between mb-1.5">
+            <Text className="text-sm font-semibold text-slate-700">Progreso</Text>
+            <Text className="text-sm font-bold" style={{ color: done.length === tasks.length ? "#059669" : COLOR }}>
+              {done.length}/{tasks.length}
+            </Text>
+          </View>
+          <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <View
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.round((done.length / tasks.length) * 100)}%`,
+                backgroundColor: done.length === tasks.length ? "#059669" : COLOR,
+              }}
+            />
+          </View>
         </View>
       )}
+
       <FlatList
         data={[...pending, ...done]}
         keyExtractor={(t) => String(t.id)}
-        contentContainerClassName="px-4 py-4"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 96 }}
         ListEmptyComponent={
-          <View className="items-center py-16">
-            <Ionicons name="checkmark-circle-outline" size={40} color="#9ca3af" />
-            <Text className="mt-3 text-gray-400">Sin tareas añadidas</Text>
-            <Text className="mt-1 text-xs text-gray-400">
-              Pulsa "+" para añadir una tarea
+          <View className="items-center py-20">
+            <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: COLOR_BG }}>
+              <Ionicons name="checkmark-circle-outline" size={32} color={COLOR} />
+            </View>
+            <Text className="text-base font-semibold text-slate-700">Sin tareas añadidas</Text>
+            <Text className="mt-1 text-xs text-slate-400 text-center px-8">
+              Pulsa + para añadir una tarea pendiente
             </Text>
           </View>
         }
         renderItem={renderTask}
       />
-      <View className="mx-4 mb-4">
-        <TouchableOpacity
-          onPress={openAdd}
-          className="bg-violet-600 rounded-xl py-3 flex-row items-center justify-center gap-2"
-        >
-          <Ionicons name="add-circle-outline" size={18} color="white" />
-          <Text className="text-white font-semibold">Nueva tarea</Text>
-        </TouchableOpacity>
-      </View>
+
+      <SectionFAB onPress={openAdd} color={COLOR} />
+
       <TaskFormModal
         tripId={tripId} visible={formOpen} initialData={editingTask}
         onClose={() => { setFormOpen(false); setEditingTask(undefined); }}
