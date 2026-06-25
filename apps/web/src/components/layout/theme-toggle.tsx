@@ -30,17 +30,17 @@ export function ThemeToggle() {
         ) : (
           <SunMoon className="h-4 w-4" />
         )}
-        <span className="sr-only">Cambiar tema</span>
+        <span className="sr-only">Theme</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")} className="gap-2 cursor-pointer">
-          <Sun className="h-4 w-4" /> Claro
+          <Sun className="h-4 w-4" /> Light
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")} className="gap-2 cursor-pointer">
-          <Moon className="h-4 w-4" /> Oscuro
+          <Moon className="h-4 w-4" /> Dark
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")} className="gap-2 cursor-pointer">
-          <SunMoon className="h-4 w-4" /> Sistema
+          <SunMoon className="h-4 w-4" /> System
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

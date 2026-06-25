@@ -11,10 +11,11 @@ import {
   Utensils, Landmark, Navigation, Ticket, Package,
 } from "lucide-react";
 import { format, differenceInDays, startOfDay, addDays, isSameDay } from "date-fns";
-import { es } from "date-fns/locale";
+import { es as esLocale, enUS } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
 import { TripNav } from "@/components/trips/trip-nav";
 import { ImportTrigger } from "@/components/import/ImportTrigger";
+import { getT } from "@/lib/locale";
 import type { Flight, Accommodation, Activity } from "@prisma/client";
 
 // ─── Timeline types ──────────────────────────────────────────────────────────
@@ -55,21 +56,25 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
   const { tripId } = await params;
   const session = await auth();
 
-  const trip = await prisma.trip.findUnique({
-    where: { id: tripId },
-    include: {
-      destinations:   { orderBy: { order: "asc" } },
-      flights:        { orderBy: { departureAt: "asc" } },
-      accommodations: { orderBy: { checkIn: "asc" } },
-      activities:     { orderBy: { scheduledAt: "asc" } },
-      expenses:       { select: { amount: true } },
-      packingItems:   { select: { packed: true } },
-      _count:         { select: { documents: true, tasks: true } },
-    },
-  });
+  const [trip, t] = await Promise.all([
+    prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        destinations:   { orderBy: { order: "asc" } },
+        flights:        { orderBy: { departureAt: "asc" } },
+        accommodations: { orderBy: { checkIn: "asc" } },
+        activities:     { orderBy: { scheduledAt: "asc" } },
+        expenses:       { select: { amount: true } },
+        packingItems:   { select: { packed: true } },
+        _count:         { select: { documents: true, tasks: true } },
+      },
+    }),
+    getT(),
+  ]);
 
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
+  const dfLocale = t.locale === "es" ? esLocale : enUS;
   const agentosEnabled = !!(process.env.AGENTOS_URL && process.env.AGENTOS_API_KEY);
 
   // ── Build timeline ──────────────────────────────────────────────────────
@@ -145,17 +150,19 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
           <div className="space-y-2 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-4xl font-bold tracking-tight leading-none">{trip.name}</h1>
-              <TripStatusBadge status={trip.status} />
+              <TripStatusBadge status={trip.status} locale={t.locale} />
             </div>
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 shrink-0" />
                 <span className="font-mono text-xs">
-                  {format(trip.startDate, "dd MMM yyyy", { locale: es })}
+                  {format(trip.startDate, "dd MMM yyyy", { locale: dfLocale })}
                   {" — "}
-                  {format(trip.endDate, "dd MMM yyyy", { locale: es })}
+                  {format(trip.endDate, "dd MMM yyyy", { locale: dfLocale })}
                 </span>
-                <Badge variant="outline" className="text-xs">{totalDays} días</Badge>
+                <Badge variant="outline" className="text-xs">
+                  {totalDays} {totalDays === 1 ? t.day : t.days}
+                </Badge>
               </span>
               {trip.destinations.length > 0 && (
                 <span className="flex items-center gap-1.5">
@@ -177,25 +184,25 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             />
             <Link href={`/trips/${trip.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Editar
+              {t.editBtn}
             </Link>
           </div>
         </div>
 
-        {/* Countdown progress bar — solo visible si el viaje ha empezado */}
+        {/* Countdown progress bar */}
         {(isOngoing || isPast) && (
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground/60 font-mono">
-                {format(trip.startDate, "d MMM", { locale: es })}
+                {format(trip.startDate, "d MMM", { locale: dfLocale })}
               </span>
               <span className="text-xs text-muted-foreground font-medium">
                 {isOngoing
-                  ? `Día ${daysElapsed} de ${totalDays}`
-                  : "Viaje completado"}
+                  ? t.dayOf(daysElapsed, totalDays)
+                  : t.tripCompleted}
               </span>
               <span className="text-xs text-muted-foreground/60 font-mono">
-                {format(trip.endDate, "d MMM", { locale: es })}
+                {format(trip.endDate, "d MMM", { locale: dfLocale })}
               </span>
             </div>
             <div className="h-1 bg-muted rounded-full overflow-hidden">
@@ -214,7 +221,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         <Card>
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-muted-foreground mb-1">
-              {isOngoing ? "En curso" : daysUntilTrip > 0 ? "Faltan" : "Hace"}
+              {isOngoing ? t.inProgress : daysUntilTrip > 0 ? t.daysUntil(0).split(" ")[0] : t.locale === "es" ? "Hace" : "Ago"}
             </p>
             {isOngoing ? (
               <p className="text-3xl font-bold leading-none">
@@ -224,7 +231,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             ) : (
               <p className="text-3xl font-bold leading-none">
                 {Math.abs(daysUntilTrip)}
-                <span className="text-sm font-normal text-muted-foreground ml-1.5">días</span>
+                <span className="text-sm font-normal text-muted-foreground ml-1.5">{t.days}</span>
               </p>
             )}
           </CardContent>
@@ -234,16 +241,16 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         <Card>
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-muted-foreground mb-1">
-              {trip.budget ? "Gastado" : "Gastos"}
+              {trip.budget ? t.statsSpent : t.statsExpenses}
             </p>
             <p className="text-3xl font-bold leading-none">
-              {totalExpenses.toLocaleString("es-ES", { maximumFractionDigits: 0 })}
+              {totalExpenses.toLocaleString(t.dateLocale, { maximumFractionDigits: 0 })}
               <span className="text-xs font-normal text-muted-foreground ml-1.5">{trip.currency}</span>
             </p>
             {trip.budget && (
               <>
                 <p className="text-xs text-muted-foreground mt-1">
-                  de {trip.budget.toLocaleString("es-ES", { maximumFractionDigits: 0 })} {trip.currency}
+                  {t.locale === "es" ? "de" : "of"} {trip.budget.toLocaleString(t.dateLocale, { maximumFractionDigits: 0 })} {trip.currency}
                 </p>
                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                   <div
@@ -263,11 +270,13 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         {/* Flights */}
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-1">Vuelos</p>
+            <p className="text-xs text-muted-foreground mb-1">{t.statsFlights}</p>
             <p className="text-3xl font-bold leading-none">
               {trip.flights.length}
               {trip.flights.length === 0 && (
-                <span className="text-xs font-normal text-muted-foreground ml-1.5">sin añadir</span>
+                <span className="text-xs font-normal text-muted-foreground ml-1.5">
+                  {t.locale === "es" ? "sin añadir" : "none added"}
+                </span>
               )}
             </p>
           </CardContent>
@@ -276,17 +285,17 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         {/* Activities */}
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-1">Actividades</p>
+            <p className="text-xs text-muted-foreground mb-1">{t.statsActivities}</p>
             <p className="text-3xl font-bold leading-none">{trip.activities.length}</p>
             <div className="mt-1 flex gap-1.5 flex-wrap">
               {pendingActs > 0 && (
                 <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-600 px-1 h-4">
-                  {pendingActs} pendientes
+                  {pendingActs} {t.statusPending.toLowerCase()}
                 </Badge>
               )}
               {confirmedActs > 0 && pendingActs === 0 && (
                 <Badge variant="outline" className="text-xs border-green-300 text-green-600 px-1 h-4">
-                  todo reservado
+                  {t.locale === "es" ? "todo reservado" : "all booked"}
                 </Badge>
               )}
             </div>
@@ -302,7 +311,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               {trip.budget !== null && trip.budget > 0 && budgetPct !== null && (
                 <div className="flex-1 min-w-28">
                   <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                    <span>Presupuesto</span>
+                    <span>{t.budget}</span>
                     <span className="font-mono tabular-nums">{Math.round(budgetPct)}%</span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -320,7 +329,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               {totalPackItems > 0 && (
                 <div className="flex-1 min-w-28">
                   <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                    <span>Equipaje</span>
+                    <span>{t.packing}</span>
                     <span className="font-mono tabular-nums">{packedItems}/{totalPackItems}</span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -334,7 +343,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               {trip.activities.length > 0 && (
                 <div className="flex-1 min-w-28">
                   <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                    <span>Actividades confirmadas</span>
+                    <span>{t.confirmedActivities}</span>
                     <span className="font-mono tabular-nums">{confirmedActs}/{trip.activities.length}</span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -355,7 +364,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
       {/* ── Timeline ────────────────────────────────────────────────────── */}
       <div>
-        <h2 className="font-semibold mb-4">Cronología del viaje</h2>
+        <h2 className="font-semibold mb-4">{t.tripTimeline}</h2>
 
         <div>
           {days.map((day, index) => {
@@ -367,15 +376,13 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             if (isEmpty) {
               return (
                 <div key={day.dayNumber} className="flex gap-3 items-start">
-                  {/* Spine — smaller dot for empty days */}
                   <div className="flex flex-col items-center w-6 shrink-0">
                     <div className="mt-1.5 w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
                     {!isLast && <div className="w-px flex-1 bg-border/50 mt-1 min-h-[12px]" />}
                   </div>
-                  {/* Compact row */}
                   <div className="pb-2 flex-1 flex items-center gap-2">
                     <span className="text-xs text-muted-foreground/70 capitalize">
-                      Día {day.dayNumber} · {format(day.date, "EEE d MMM", { locale: es })}
+                      {t.dayN(day.dayNumber)} · {format(day.date, "EEE d MMM", { locale: dfLocale })}
                     </span>
                     {day.city && (
                       <span className="text-xs text-muted-foreground/50">
@@ -389,7 +396,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
             return (
               <div key={day.dayNumber} className="flex gap-3">
-                {/* Spine */}
                 <div className="flex flex-col items-center w-6 shrink-0">
                   <div className={`mt-1.5 w-2.5 h-2.5 rounded-full border-2 shrink-0 ${
                     isToday    ? "bg-primary border-primary ring-2 ring-primary/20" :
@@ -399,18 +405,16 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
                   {!isLast && <div className="w-px flex-1 bg-border mt-1" />}
                 </div>
 
-                {/* Day content */}
                 <div className="pb-5 flex-1 min-w-0">
-                  {/* Day header */}
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className={`text-sm font-semibold ${isDayPast ? "text-muted-foreground" : ""}`}>
-                      Día {day.dayNumber}
+                      {t.dayN(day.dayNumber)}
                     </span>
                     <span className="text-xs text-muted-foreground capitalize">
-                      {format(day.date, "EEEE d MMM", { locale: es })}
+                      {format(day.date, "EEEE d MMM", { locale: dfLocale })}
                     </span>
                     {isToday && (
-                      <Badge className="text-xs px-1.5 h-4 shrink-0">Hoy</Badge>
+                      <Badge className="text-xs px-1.5 h-4 shrink-0">{t.today}</Badge>
                     )}
                     {day.city && (
                       <Badge variant="outline" className="text-xs px-1.5 h-4 shrink-0">
@@ -420,10 +424,9 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
                     )}
                   </div>
 
-                  {/* Events */}
                   <div className="space-y-1">
                     {day.events.map((event, ei) => (
-                      <EventRow key={ei} event={event} tripId={trip.id} />
+                      <EventRow key={ei} event={event} tripId={trip.id} t={t} />
                     ))}
                   </div>
                 </div>
@@ -435,10 +438,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         {/* Undated activities */}
         {undatedActivities.length > 0 && (
           <div className="mt-2 p-3 border border-dashed rounded-lg">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Sin fecha asignada</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t.undatedActivities}</p>
             <div className="space-y-1">
               {undatedActivities.map((act) => (
-                <EventRow key={act.id} event={{ type: "activity", data: act }} tripId={trip.id} />
+                <EventRow key={act.id} event={{ type: "activity", data: act }} tripId={trip.id} t={t} />
               ))}
             </div>
           </div>
@@ -450,6 +453,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+import type { WebTKeys } from "@/i18n";
+
 const ACTIVITY_ICONS: Record<string, React.ElementType> = {
   RESTAURANT: Utensils,
   MUSEUM:     Landmark,
@@ -460,7 +465,7 @@ const ACTIVITY_ICONS: Record<string, React.ElementType> = {
   OTHER:      Star,
 };
 
-function EventRow({ event, tripId }: { event: DayEvent; tripId: string }) {
+function EventRow({ event, tripId, t }: { event: DayEvent; tripId: string; t: WebTKeys }) {
   const href =
     event.type === "flight"        ? `/trips/${tripId}/flights#${event.data.id}` :
     event.type === "accommodation" ? `/trips/${tripId}/accommodations#${event.data.id}` :
@@ -473,7 +478,7 @@ function EventRow({ event, tripId }: { event: DayEvent; tripId: string }) {
       <Link href={href} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 hover:brightness-95 transition-[filter]">
         <Plane className={`h-3 w-3 text-blue-600 shrink-0 ${role === "arrival" ? "scale-x-[-1]" : ""}`} />
         <span className="font-medium text-blue-700 dark:text-blue-400 shrink-0">
-          {role === "departure" ? "Salida" : "Llegada"}
+          {role === "departure" ? t.flightDeparture : t.flightArrival}
         </span>
         <span className="text-muted-foreground truncate">
           {f.airline} {f.flightNumber} · {f.origin} → {f.destination}
@@ -481,7 +486,7 @@ function EventRow({ event, tripId }: { event: DayEvent; tripId: string }) {
         <span className="text-muted-foreground shrink-0 ml-auto font-mono">
           {time ? format(time, "HH:mm") : "—"}
         </span>
-        <ConfirmBadge confirmed={!!f.bookingRef} />
+        <ConfirmBadge confirmed={!!f.bookingRef} t={t} />
       </Link>
     );
   }
@@ -492,11 +497,11 @@ function EventRow({ event, tripId }: { event: DayEvent; tripId: string }) {
       <Link href={href} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 hover:brightness-95 transition-[filter]">
         <Hotel className="h-3 w-3 text-emerald-600 shrink-0" />
         <span className="font-medium text-emerald-700 dark:text-emerald-400 shrink-0">
-          {role === "checkin" ? "Check-in" : "Check-out"}
+          {role === "checkin" ? t.checkIn : t.checkOut}
         </span>
         <span className="text-muted-foreground truncate">{a.name}</span>
         {a.city && <span className="text-muted-foreground shrink-0 hidden sm:block">· {a.city}</span>}
-        <ConfirmBadge confirmed={!!a.bookingRef} className="ml-auto" />
+        <ConfirmBadge confirmed={!!a.bookingRef} t={t} className="ml-auto" />
       </Link>
     );
   }
@@ -527,34 +532,34 @@ function EventRow({ event, tripId }: { event: DayEvent; tripId: string }) {
           {act.location}
         </span>
       )}
-      <ActivityStatusBadge status={act.status} className="ml-auto shrink-0" />
+      <ActivityStatusBadge status={act.status} t={t} className="ml-auto shrink-0" />
     </Link>
   );
 }
 
-function ConfirmBadge({ confirmed, className = "" }: { confirmed: boolean; className?: string }) {
+function ConfirmBadge({ confirmed, t, className = "" }: { confirmed: boolean; t: WebTKeys; className?: string }) {
   if (confirmed) {
     return (
       <Badge variant="secondary" className={`text-xs h-4 px-1 shrink-0 ${className}`}>
         <CheckCircle2 className="h-2.5 w-2.5 mr-0.5 text-green-600" />
-        Confirmado
+        {t.confirmed}
       </Badge>
     );
   }
   return (
     <Badge variant="outline" className={`text-xs h-4 px-1 shrink-0 border-yellow-300 text-yellow-600 ${className}`}>
       <Circle className="h-2.5 w-2.5 mr-0.5" />
-      Sin confirmar
+      {t.unconfirmed}
     </Badge>
   );
 }
 
-function ActivityStatusBadge({ status, className = "" }: { status: string; className?: string }) {
+function ActivityStatusBadge({ status, t, className = "" }: { status: string; t: WebTKeys; className?: string }) {
   const configs: Record<string, { label: string; icon: React.ElementType; cls: string }> = {
-    CONFIRMED: { label: "Confirmado", icon: CheckCircle2, cls: "border-green-300  text-green-600" },
-    RESERVED:  { label: "Reservado",  icon: CheckCircle2, cls: "border-green-300  text-green-600" },
-    PENDING:   { label: "Pendiente",  icon: Circle,       cls: "border-yellow-300 text-yellow-600" },
-    CANCELLED: { label: "Cancelado",  icon: AlertCircle,  cls: "text-muted-foreground" },
+    CONFIRMED: { label: t.statusConfirmed, icon: CheckCircle2, cls: "border-green-300  text-green-600" },
+    RESERVED:  { label: t.statusReserved,  icon: CheckCircle2, cls: "border-green-300  text-green-600" },
+    PENDING:   { label: t.statusPending,   icon: Circle,       cls: "border-yellow-300 text-yellow-600" },
+    CANCELLED: { label: t.statusCancelled, icon: AlertCircle,  cls: "text-muted-foreground" },
   };
   const cfg = configs[status];
   if (!cfg) return null;

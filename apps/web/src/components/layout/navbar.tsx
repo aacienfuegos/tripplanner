@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import { Plane, Map, LogOut, User, ShieldCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
+import { LanguageToggle } from "./language-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,18 +16,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useT } from "@/contexts/LanguageContext";
 
 interface NavbarProps {
   user: { name?: string | null; email?: string | null; image?: string | null; isAdmin?: boolean };
 }
 
-const navLinks = [
-  { href: "/dashboard", label: "Inicio", icon: Map },
-  { href: "/trips", label: "Mis viajes", icon: Plane },
-];
-
 export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
+  const { t } = useT();
+
+  const navLinks = [
+    { href: "/dashboard", label: t.navHome, icon: Map },
+    { href: "/trips", label: t.navTrips, icon: Plane },
+  ];
 
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -58,30 +61,31 @@ export function Navbar({ user }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-1">
+          <LanguageToggle />
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger className="relative h-9 w-9 rounded-full cursor-pointer outline-none">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user.image ?? undefined} alt={user.name ?? "Usuario"} />
+                <AvatarImage src={user.image ?? undefined} alt={user.name ?? "User"} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user.name ?? "Usuario"}</p>
+                <p className="text-sm font-medium">{user.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2">
                 <User className="h-4 w-4" />
-                <Link href="/profile" className="flex-1">Perfil</Link>
+                <Link href="/profile" className="flex-1">{t.navProfile}</Link>
               </DropdownMenuItem>
               {user.isAdmin && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="gap-2">
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    <Link href="/admin" className="flex-1">Panel de administración</Link>
+                    <Link href="/admin" className="flex-1">{t.navAdmin}</Link>
                   </DropdownMenuItem>
                 </>
               )}
@@ -91,7 +95,7 @@ export function Navbar({ user }: NavbarProps) {
                 onClick={() => signOut({ callbackUrl: "/auth/signin" })}
               >
                 <LogOut className="h-4 w-4" />
-                Cerrar sesión
+                {t.navSignOut}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

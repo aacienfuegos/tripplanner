@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { format, differenceInDays, isBefore } from "date-fns";
+import { es as esLocale, enUS } from "date-fns/locale";
 import { Plus, FileText, Trash2, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,38 +12,45 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DocumentForm } from "./document-form";
 import { deleteDocument } from "@/actions/documents";
 import type { Document } from "@/types";
-import { differenceInDays, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useT } from "@/contexts/LanguageContext";
 
-const typeLabels: Record<string, string> = {
-  PASSPORT: "Pasaporte", VISA: "Visado", INSURANCE: "Seguro",
-  TICKET: "Billete", VOUCHER: "Voucher", OTHER: "Otro",
-};
 const typeIcons: Record<string, string> = {
   PASSPORT: "🛂", VISA: "🔖", INSURANCE: "🏥", TICKET: "🎫", VOUCHER: "📄", OTHER: "📎",
 };
 
 export function DocumentsList({ tripId, documents }: { tripId: string; documents: Document[] }) {
+  const { t } = useT();
+  const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Document | null>(null);
 
+  const typeLabels: Record<string, string> = {
+    PASSPORT: t.locale === "es" ? "Pasaporte" : "Passport",
+    VISA: t.locale === "es" ? "Visado" : "Visa",
+    INSURANCE: t.locale === "es" ? "Seguro" : "Insurance",
+    TICKET: t.locale === "es" ? "Billete" : "Ticket",
+    VOUCHER: "Voucher",
+    OTHER: t.locale === "es" ? "Otro" : "Other",
+  };
+
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este documento?")) return;
-    try { await deleteDocument(tripId, id); toast.success("Eliminado"); }
-    catch { toast.error("Error al eliminar"); }
+    if (!confirm(t.locale === "es" ? "¿Eliminar este documento?" : "Delete this document?")) return;
+    try { await deleteDocument(tripId, id); toast.success(t.locale === "es" ? "Eliminado" : "Deleted"); }
+    catch { toast.error(t.error); }
   }
 
   return (
     <div className="space-y-4">
       <Button onClick={() => { setEditing(null); setOpen(true); }}>
-        <Plus className="h-4 w-4 mr-2" /> Añadir documento
+        <Plus className="h-4 w-4 mr-2" /> {t.addDocument}
       </Button>
 
       {documents.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-10 text-center text-muted-foreground">
             <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p>No hay documentos registrados</p>
+            <p>{t.noDocuments}</p>
           </CardContent>
         </Card>
       ) : (
@@ -64,9 +71,9 @@ export function DocumentsList({ tripId, documents }: { tripId: string; documents
                       {doc.expiresAt && (
                         <p className={`text-sm flex items-center gap-1 ${isExpired ? "text-destructive" : isExpiringSoon ? "text-yellow-600" : "text-muted-foreground"}`}>
                           {(isExpired || isExpiringSoon) && <AlertTriangle className="h-3.5 w-3.5" />}
-                          Caduca: {format(doc.expiresAt, "d MMM yyyy", { locale: es })}
-                          {isExpired && " (caducado)"}
-                          {!isExpired && isExpiringSoon && ` (${differenceInDays(doc.expiresAt, new Date())} días)`}
+                          {t.expiresAt}: {format(doc.expiresAt, "d MMM yyyy", { locale: dfLocale })}
+                          {isExpired && ` (${t.expired})`}
+                          {!isExpired && isExpiringSoon && ` (${differenceInDays(doc.expiresAt, new Date())} ${t.days})`}
                         </p>
                       )}
                       {doc.notes && <p className="text-sm text-muted-foreground">{doc.notes}</p>}
@@ -98,7 +105,7 @@ export function DocumentsList({ tripId, documents }: { tripId: string; documents
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar documento" : "Añadir documento"}</DialogTitle>
+            <DialogTitle>{editing ? t.editDocument : t.addDocument}</DialogTitle>
           </DialogHeader>
           <DocumentForm tripId={tripId} document={editing ?? undefined} onSuccess={() => setOpen(false)} />
         </DialogContent>
