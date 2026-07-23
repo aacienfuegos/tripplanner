@@ -6,13 +6,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Plane, Hotel, Star, FileText, DollarSign, ShoppingBag, MapPin, ClipboardList,
+  Plane, Hotel, Star, MapPin,
   Calendar, Pencil, Clock, CheckCircle2, Circle, AlertCircle,
   Utensils, Landmark, Navigation, Ticket, Package,
 } from "lucide-react";
 import { format, differenceInDays, startOfDay, addDays, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
+import { TripNav } from "@/components/trips/trip-nav";
 import { ImportTrigger } from "@/components/import/ImportTrigger";
 import type { Flight, Accommodation, Activity } from "@prisma/client";
 
@@ -120,15 +121,15 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
   const packedItems      = trip.packingItems.filter((i) => i.packed).length;
   const totalPackItems   = trip.packingItems.length;
 
-  const sections = [
-    { href: "flights",        label: "Vuelos",      icon: Plane,          count: trip.flights.length },
-    { href: "accommodations", label: "Alojamiento", icon: Hotel,          count: trip.accommodations.length },
-    { href: "activities",     label: "Actividades", icon: Star,           count: trip.activities.length },
-    { href: "tasks",          label: "Tareas",      icon: ClipboardList,  count: trip._count.tasks },
-    { href: "documents",      label: "Documentos",  icon: FileText,       count: trip._count.documents },
-    { href: "expenses",       label: "Gastos",      icon: DollarSign,     count: trip.expenses.length },
-    { href: "packing",        label: "Equipaje",    icon: ShoppingBag,    count: totalPackItems },
-  ];
+  const navCounts = {
+    flights: trip.flights.length,
+    accommodations: trip.accommodations.length,
+    activities: trip.activities.length,
+    expenses: trip.expenses.length,
+    packingItems: totalPackItems,
+    documents: trip._count.documents,
+    tasks: trip._count.tasks,
+  };
 
   const hasQuickStatus =
     (trip.budget !== null && trip.budget > 0) ||
@@ -350,21 +351,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
       )}
 
       {/* ── Section navigation ───────────────────────────────────────────── */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {sections.map(({ href, label, icon: Icon, count }) => (
-          <Link
-            key={href}
-            href={`/trips/${trip.id}/${href}`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <Icon className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-            <span className="shrink-0">{label}</span>
-            {count > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-xs h-4 px-1 shrink-0">{count}</Badge>
-            )}
-          </Link>
-        ))}
-      </div>
+      <TripNav tripId={trip.id} counts={navCounts} />
 
       {/* ── Timeline ────────────────────────────────────────────────────── */}
       <div>
