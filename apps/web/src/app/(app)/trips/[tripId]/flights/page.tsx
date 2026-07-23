@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FlightsList } from "@/components/flights/flights-list";
 import { SectionHeader } from "@/components/layout/section-header";
+import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { Plane } from "lucide-react";
 
 export default async function FlightsPage({ params }: { params: Promise<{ tripId: string }> }) {
@@ -13,6 +14,7 @@ export default async function FlightsPage({ params }: { params: Promise<{ tripId
     include: { flights: { orderBy: { departureAt: "asc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();
+  const counts = await getTripNavCounts(tripId);
 
   return (
     <div className="space-y-6">
@@ -21,6 +23,7 @@ export default async function FlightsPage({ params }: { params: Promise<{ tripId
         tripName={trip.name}
         title="Vuelos"
         icon={<Plane className="h-5 w-5" />}
+        counts={counts}
       />
       <FlightsList tripId={trip.id} flights={trip.flights} tripStartDate={trip.startDate} />
     </div>
