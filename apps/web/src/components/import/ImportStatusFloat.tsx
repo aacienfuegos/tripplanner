@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useImportJob } from "@/lib/import-job-context";
+import { useT } from "@/contexts/LanguageContext";
 
 export function ImportStatusFloat() {
+  const { t } = useT();
   const { status, tripId, error, dismissError, consumePayload, openWizard } = useImportJob();
   const router = useRouter();
   const pathname = usePathname();
@@ -63,14 +65,14 @@ export function ImportStatusFloat() {
         >
           <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span className="text-emerald-800 dark:text-emerald-300 font-medium">
-            ¡Importación lista! Revisar →
+            {t.importReadyToast}
           </span>
         </button>
       ) : isError ? (
         <div className={`${chipCls} max-w-sm`}>
           <AlertCircle className="h-4 w-4 text-destructive shrink-0 self-start mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-foreground font-medium leading-tight">Error en la importación</p>
+            <p className="text-foreground font-medium leading-tight">{t.importErrorTitle}</p>
             {error && (
               <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
             )}
@@ -79,7 +81,7 @@ export function ImportStatusFloat() {
             type="button"
             onClick={dismissError}
             className="text-muted-foreground hover:text-foreground shrink-0 ml-1"
-            aria-label="Cerrar"
+            aria-label={t.close}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -87,7 +89,7 @@ export function ImportStatusFloat() {
       ) : (
         <div className={chipCls}>
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
-          <span className="text-muted-foreground">Analizando tu reserva…</span>
+          <span className="text-muted-foreground">{t.analyzingReservation}</span>
         </div>
       )}
     </div>

@@ -3,16 +3,11 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const MESSAGES = [
-  "Leyendo el contenido del viaje…",
-  "Identificando vuelos y reservas…",
-  "Extrayendo fechas y destinos…",
-  "Organizando la información…",
-  "Preparando los datos para revisar…",
-];
+import { useT } from "@/contexts/LanguageContext";
 
 export function AgentOSLoader({ className }: { className?: string }) {
+  const { t } = useT();
+  const MESSAGES = t.agentosLoaderMessages;
   const [elapsed, setElapsed] = useState(0);
   const [msgIndex, setMsgIndex] = useState(0);
   const [visible, setVisible] = useState(true);

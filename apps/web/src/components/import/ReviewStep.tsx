@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es as esLocale, enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { Plane, Hotel, Star, DollarSign, ShoppingBag, FileText, AlertTriangle, Loader2 } from "lucide-react";
 import { ImportPayload } from "@tripplanner/shared";
@@ -10,17 +10,21 @@ import { bulkImport, checkDuplicates, DuplicateFlags } from "@/actions/import";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useT } from "@/contexts/LanguageContext";
+import type { WebTKeys } from "@/i18n";
 
 type SectionKey = "flights" | "accommodations" | "activities" | "expenses" | "packing" | "documents";
 
-const SECTION_CONFIG: Record<SectionKey, { label: string; icon: React.ElementType }> = {
-  flights:        { label: "Vuelos",        icon: Plane },
-  accommodations: { label: "Alojamientos",  icon: Hotel },
-  activities:     { label: "Actividades",   icon: Star },
-  expenses:       { label: "Gastos",        icon: DollarSign },
-  packing:        { label: "Equipaje",      icon: ShoppingBag },
-  documents:      { label: "Documentos",    icon: FileText },
-};
+function sectionConfig(t: WebTKeys): Record<SectionKey, { label: string; icon: React.ElementType }> {
+  return {
+    flights:        { label: t.sectionFlights,        icon: Plane },
+    accommodations: { label: t.sectionAccommodations, icon: Hotel },
+    activities:     { label: t.sectionActivities,     icon: Star },
+    expenses:       { label: t.sectionExpenses,        icon: DollarSign },
+    packing:        { label: t.sectionPacking,        icon: ShoppingBag },
+    documents:      { label: t.sectionDocuments,      icon: FileText },
+  };
+}
 
 type SelectionState = Record<SectionKey, boolean[]>;
 
@@ -57,6 +61,8 @@ export function ReviewStep({
   onBack: () => void;
   onDone: () => void;
 }) {
+  const { t } = useT();
+  const SECTION_CONFIG = sectionConfig(t);
   const [selection, setSelection] = useState<SelectionState>(() => initSelection(payload));
   const [dupFlags, setDupFlags] = useState<DuplicateFlags | null>(null);
   const [isChecking, setIsChecking] = useState(true);
@@ -123,17 +129,17 @@ export function ReviewStep({
       try {
         const result = await bulkImport(tripId, filtered);
         const parts = [
-          result.flights        > 0 && `${result.flights} vuelo${result.flights > 1 ? "s" : ""}`,
-          result.accommodations > 0 && `${result.accommodations} alojamiento${result.accommodations > 1 ? "s" : ""}`,
-          result.activities     > 0 && `${result.activities} actividad${result.activities > 1 ? "es" : ""}`,
-          result.expenses       > 0 && `${result.expenses} gasto${result.expenses > 1 ? "s" : ""}`,
-          result.packing        > 0 && `${result.packing} ítem${result.packing > 1 ? "s de equipaje" : " de equipaje"}`,
-          result.documents      > 0 && `${result.documents} documento${result.documents > 1 ? "s" : ""}`,
+          result.flights        > 0 && t.unitFlight(result.flights),
+          result.accommodations > 0 && t.unitAccommodation(result.accommodations),
+          result.activities     > 0 && t.unitActivity(result.activities),
+          result.expenses       > 0 && t.unitExpense(result.expenses),
+          result.packing        > 0 && t.unitPacking(result.packing),
+          result.documents      > 0 && t.unitDocument(result.documents),
         ].filter(Boolean);
-        toast.success(`Importados: ${parts.join(", ")}`);
+        toast.success(`${t.importedToastPrefix}: ${parts.join(", ")}`);
         onDone();
       } catch {
-        toast.error("Error al importar. Inténtalo de nuevo.");
+        toast.error(t.importErrorToast);
       }
     });
   };
@@ -142,18 +148,18 @@ export function ReviewStep({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm text-muted-foreground">
-          Revisa los ítems detectados. Desmarca los que no quieras importar.
+          {t.reviewIntro}
         </p>
         {isChecking && (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Verificando duplicados…
+            {t.checkingDuplicates}
           </span>
         )}
         {!isChecking && totalDuplicates > 0 && (
           <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-600 shrink-0">
             <AlertTriangle className="h-3 w-3 mr-1" />
-            {totalDuplicates} posible{totalDuplicates > 1 ? "s duplicados" : " duplicado"}
+            {t.possibleDuplicates(totalDuplicates)}
           </Badge>
         )}
       </div>
@@ -185,14 +191,14 @@ export function ReviewStep({
             <TabsContent key={key} value={key} className="mt-3 space-y-1">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-muted-foreground">
-                  {selection[key].filter(Boolean).length} de {items.length} seleccionados
+                  {t.selectedOfTotal(selection[key].filter(Boolean).length, items.length)}
                 </span>
                 <button
                   type="button"
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => toggleAll(key, !allSelected)}
                 >
-                  {allSelected ? "Deseleccionar todo" : "Seleccionar todo"}
+                  {allSelected ? t.deselectAll : t.selectAll}
                 </button>
               </div>
 
@@ -208,7 +214,7 @@ export function ReviewStep({
                     className="mt-0.5 accent-primary"
                   />
                   <div className="flex-1 min-w-0">
-                    <ItemSummary section={key} item={item} />
+                    <ItemSummary section={key} item={item} t={t} />
                   </div>
                   {sectionDups[idx] && (
                     <Badge
@@ -216,7 +222,7 @@ export function ReviewStep({
                       className="text-xs border-yellow-400 text-yellow-600 px-1 h-4 shrink-0 self-start mt-0.5"
                     >
                       <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
-                      Duplicado
+                      {t.duplicate}
                     </Badge>
                   )}
                 </label>
@@ -228,39 +234,37 @@ export function ReviewStep({
 
       <div className="flex justify-between items-center pt-2 border-t">
         <Button variant="ghost" size="sm" onClick={onBack} disabled={isPending}>
-          ← Volver
+          {t.backArrow}
         </Button>
         <Button
           size="sm"
           onClick={handleImport}
           disabled={totalSelected === 0 || isPending || isChecking}
         >
-          {isPending
-            ? "Importando..."
-            : `Importar ${totalSelected} ítem${totalSelected !== 1 ? "s" : ""}`}
+          {isPending ? t.importingEllipsis : t.importNItems(totalSelected)}
         </Button>
       </div>
     </div>
   );
 }
 
-function safeDate(value: string | null | undefined, fmt: string): string {
+function safeDate(value: string | null | undefined, fmt: string, t: WebTKeys): string {
   if (!value) return "—";
   try {
-    return format(new Date(value), fmt, { locale: es });
+    return format(new Date(value), fmt, { locale: t.locale === "es" ? esLocale : enUS });
   } catch {
     return value;
   }
 }
 
-function ItemSummary({ section, item }: { section: SectionKey; item: any }) {
+function ItemSummary({ section, item, t }: { section: SectionKey; item: any; t: WebTKeys }) {
   switch (section) {
     case "flights":
       return (
         <div className="text-xs space-y-0.5">
           <p className="font-medium">{item.airline} {item.flightNumber}</p>
           <p className="text-muted-foreground">{item.origin} → {item.destination}</p>
-          <p className="text-muted-foreground">{safeDate(item.departureAt, "d MMM yyyy · HH:mm")}</p>
+          <p className="text-muted-foreground">{safeDate(item.departureAt, "d MMM yyyy · HH:mm", t)}</p>
         </div>
       );
     case "accommodations":
@@ -269,7 +273,7 @@ function ItemSummary({ section, item }: { section: SectionKey; item: any }) {
           <p className="font-medium">{item.name}</p>
           <p className="text-muted-foreground">{item.city} · {item.type}</p>
           <p className="text-muted-foreground">
-            {safeDate(item.checkIn, "d MMM")} — {safeDate(item.checkOut, "d MMM yyyy")}
+            {safeDate(item.checkIn, "d MMM", t)} — {safeDate(item.checkOut, "d MMM yyyy", t)}
           </p>
         </div>
       );
@@ -281,7 +285,7 @@ function ItemSummary({ section, item }: { section: SectionKey; item: any }) {
             {item.type}{item.city ? ` · ${item.city}` : ""}
           </p>
           {item.scheduledAt && (
-            <p className="text-muted-foreground">{safeDate(item.scheduledAt, "d MMM yyyy · HH:mm")}</p>
+            <p className="text-muted-foreground">{safeDate(item.scheduledAt, "d MMM yyyy · HH:mm", t)}</p>
           )}
         </div>
       );
@@ -292,7 +296,7 @@ function ItemSummary({ section, item }: { section: SectionKey; item: any }) {
           <p className="text-muted-foreground">
             {item.amount} {item.currency} · {item.category}
           </p>
-          <p className="text-muted-foreground">{safeDate(item.date, "d MMM yyyy")}</p>
+          <p className="text-muted-foreground">{safeDate(item.date, "d MMM yyyy", t)}</p>
         </div>
       );
     case "packing":
@@ -311,7 +315,7 @@ function ItemSummary({ section, item }: { section: SectionKey; item: any }) {
           <p className="text-muted-foreground">{item.type}</p>
           {item.expiresAt && (
             <p className="text-muted-foreground">
-              Vence: {safeDate(item.expiresAt, "d MMM yyyy")}
+              {t.expiresAt}: {safeDate(item.expiresAt, "d MMM yyyy", t)}
             </p>
           )}
         </div>

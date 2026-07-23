@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Upload, FileText } from "lucide-react";
 import { AgentOSLoader } from "./AgentOSLoader";
+import { useT } from "@/contexts/LanguageContext";
 
 async function loadPdfJs() {
   const pdfjs = await import("pdfjs-dist");
@@ -47,6 +48,7 @@ export function AutoImportStep({
   tripEndDate?: string;
   onSwitchToManual: () => void;
 }) {
+  const { t } = useT();
   const { startImport, status: jobStatus } = useImportJob();
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<LocalStatus>("idle");
@@ -66,9 +68,7 @@ export function AutoImportStep({
         try {
           const text = await extractPdfText(file);
           if (!text.trim() || text.trim().length < 50) {
-            setError(
-              "El PDF puede no contener texto seleccionable (podría ser una imagen escaneada). Prueba a copiar el texto manualmente.",
-            );
+            setError(t.pdfNoTextError);
             setStatus("idle");
             return;
           }
@@ -76,7 +76,7 @@ export function AutoImportStep({
           setPdfName(file.name);
           setStatus("idle");
         } catch {
-          setError("No se pudo leer el PDF. Copia el texto manualmente en el área de abajo.");
+          setError(t.pdfReadError);
           setStatus("idle");
         }
       } else {
@@ -100,9 +100,7 @@ export function AutoImportStep({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Pega aquí el contenido de tu reserva (email, itinerario, confirmación…) o sube el PDF.
-        La IA extraerá la información automáticamente en segundo plano — puedes cerrar esta ventana
-        mientras esperas.
+        {t.autoImportIntro}
       </p>
 
       {pdfName && (
@@ -122,7 +120,7 @@ export function AutoImportStep({
       <Textarea
         value={content}
         onChange={(e) => { setContent(e.target.value); setError(null); setPdfName(null); }}
-        placeholder="Pega aquí el texto de tu confirmación de vuelo, reserva de hotel, itinerario..."
+        placeholder={t.autoImportPlaceholder}
         className="font-mono text-xs min-h-48 resize-none"
         disabled={status === "extracting"}
       />
@@ -140,9 +138,7 @@ export function AutoImportStep({
         className="w-full border border-dashed rounded-lg p-4 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors text-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Upload className="h-4 w-4 mx-auto mb-1.5" />
-        {status === "extracting"
-          ? "Extrayendo texto del PDF…"
-          : "Sube un PDF o fichero .txt"}
+        {status === "extracting" ? t.extractingPdf : t.uploadPdfOrTxt}
       </button>
       <input
         ref={fileRef}
@@ -162,7 +158,7 @@ export function AutoImportStep({
               className="text-xs underline underline-offset-2 text-muted-foreground hover:text-foreground"
               onClick={onSwitchToManual}
             >
-              Usar modo manual en su lugar
+              {t.useManualModeInstead}
             </button>
           </div>
         </div>
@@ -174,14 +170,14 @@ export function AutoImportStep({
           className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
           onClick={onSwitchToManual}
         >
-          Prefiero usar mi propia IA →
+          {t.preferOwnAi}
         </button>
         <Button
           size="sm"
           onClick={handleSubmit}
           disabled={!content.trim() || status === "extracting"}
         >
-          Analizar con IA →
+          {t.analyzeWithAi}
         </Button>
       </div>
     </div>

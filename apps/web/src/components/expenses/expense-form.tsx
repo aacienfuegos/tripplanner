@@ -10,31 +10,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createExpense, updateExpense } from "@/actions/expenses";
 import type { Expense } from "@/types";
 import { format } from "date-fns";
+import { useT } from "@/contexts/LanguageContext";
 
 interface Props { tripId: string; expense?: Expense; currency: string; tripStartDate: Date; onSuccess: () => void; }
 
 export function ExpenseForm({ tripId, expense: e, currency, tripStartDate, onSuccess }: Props) {
+  const { t } = useT();
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
       try {
-        if (e) { await updateExpense(tripId, e.id, formData); toast.success("Actualizado"); }
-        else { await createExpense(tripId, formData); toast.success("Añadido"); }
+        if (e) { await updateExpense(tripId, e.id, formData); toast.success(t.toastUpdated); }
+        else { await createExpense(tripId, formData); toast.success(t.toastAdded); }
         onSuccess();
-      } catch { toast.error("Error al guardar"); }
+      } catch { toast.error(t.toastErrorSaving); }
     });
   }
 
   return (
     <form action={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="description">Descripción *</Label>
+        <Label htmlFor="description">{t.descriptionLabel} *</Label>
         <Input id="description" name="description" required defaultValue={e?.description} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="category">Categoría</Label>
+          <Label htmlFor="category">{t.category}</Label>
           <Select name="category" defaultValue={e?.category ?? "OTHER"}>
             <SelectTrigger id="category"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -45,28 +47,28 @@ export function ExpenseForm({ tripId, expense: e, currency, tripStartDate, onSuc
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="amount">Importe *</Label>
+          <Label htmlFor="amount">{t.amount} *</Label>
           <Input id="amount" name="amount" type="number" step="0.01" required defaultValue={e?.amount} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="currency">Moneda</Label>
+          <Label htmlFor="currency">{t.tripCurrency}</Label>
           <Input id="currency" name="currency" defaultValue={e?.currency ?? currency} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="date">Fecha *</Label>
+          <Label htmlFor="date">{t.expenseDate} *</Label>
           <Input id="date" name="date" type="date" required defaultValue={e ? format(e.date, "yyyy-MM-dd") : format(tripStartDate, "yyyy-MM-dd")} />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="notes">Notas</Label>
+        <Label htmlFor="notes">{t.notes}</Label>
         <Textarea id="notes" name="notes" rows={2} defaultValue={e?.notes ?? ""} />
       </div>
       <div className="flex items-center gap-2">
         <input type="checkbox" id="paid" name="paid" value="true" defaultChecked={e?.paid} className="h-4 w-4" />
-        <Label htmlFor="paid">Ya pagado</Label>
+        <Label htmlFor="paid">{t.alreadyPaidLabel}</Label>
       </div>
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Guardando..." : e ? "Guardar cambios" : "Añadir gasto"}
+        {isPending ? t.savingEllipsis : e ? t.saveChanges : t.addExpense}
       </Button>
     </form>
   );

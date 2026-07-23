@@ -10,19 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDocument, updateDocument } from "@/actions/documents";
 import type { Document } from "@/types";
 import { format } from "date-fns";
+import { useT } from "@/contexts/LanguageContext";
 
 interface Props { tripId: string; document?: Document; onSuccess: () => void; }
 
 export function DocumentForm({ tripId, document: d, onSuccess }: Props) {
+  const { t } = useT();
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
       try {
-        if (d) { await updateDocument(tripId, d.id, formData); toast.success("Actualizado"); }
-        else { await createDocument(tripId, formData); toast.success("Añadido"); }
+        if (d) { await updateDocument(tripId, d.id, formData); toast.success(t.toastUpdated); }
+        else { await createDocument(tripId, formData); toast.success(t.toastAdded); }
         onSuccess();
-      } catch { toast.error("Error al guardar"); }
+      } catch { toast.error(t.toastErrorSaving); }
     });
   }
 
@@ -30,7 +32,7 @@ export function DocumentForm({ tripId, document: d, onSuccess }: Props) {
     <form action={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="type">Tipo</Label>
+          <Label htmlFor="type">{t.typeLabel}</Label>
           <Select name="type" defaultValue={d?.type ?? "OTHER"}>
             <SelectTrigger id="type"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -41,24 +43,24 @@ export function DocumentForm({ tripId, document: d, onSuccess }: Props) {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="name">Nombre *</Label>
+          <Label htmlFor="name">{t.nameLabel} *</Label>
           <Input id="name" name="name" required defaultValue={d?.name} placeholder="Pasaporte ES123" />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="expiresAt">Fecha de caducidad</Label>
+        <Label htmlFor="expiresAt">{t.expiryDate}</Label>
         <Input id="expiresAt" name="expiresAt" type="date" defaultValue={d?.expiresAt ? format(d.expiresAt, "yyyy-MM-dd") : ""} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="fileUrl">Enlace al documento</Label>
+        <Label htmlFor="fileUrl">{t.documentLinkLabel}</Label>
         <Input id="fileUrl" name="fileUrl" type="url" placeholder="https://drive.google.com/..." defaultValue={d?.fileUrl ?? ""} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="notes">Notas</Label>
+        <Label htmlFor="notes">{t.notes}</Label>
         <Textarea id="notes" name="notes" rows={2} defaultValue={d?.notes ?? ""} />
       </div>
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Guardando..." : d ? "Guardar cambios" : "Añadir documento"}
+        {isPending ? t.savingEllipsis : d ? t.saveChanges : t.addDocument}
       </Button>
     </form>
   );

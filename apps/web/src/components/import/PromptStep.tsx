@@ -4,6 +4,7 @@ import { useState } from "react";
 import { generateImportPrompt } from "@tripplanner/shared";
 import { Button } from "@/components/ui/button";
 import { Copy, Download, Check } from "lucide-react";
+import { useT } from "@/contexts/LanguageContext";
 
 export function PromptStep({
   tripStartDate,
@@ -16,6 +17,7 @@ export function PromptStep({
   onNext: () => void;
   onSwitchToAuto?: () => void;
 }) {
+  const { t } = useT();
   const [copied, setCopied] = useState(false);
   const prompt = generateImportPrompt({ tripStartDate, tripEndDate });
 
@@ -38,8 +40,7 @@ export function PromptStep({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Copia este prompt y pégalo en Claude, ChatGPT o Gemini junto con el contenido
-        de tu PDF, email de reserva o itinerario.
+        {t.promptIntro}
       </p>
 
       <pre className="text-xs bg-muted rounded-lg p-3 overflow-y-auto max-h-56 font-mono leading-relaxed whitespace-pre-wrap break-words">
@@ -51,11 +52,11 @@ export function PromptStep({
           {copied
             ? <Check className="h-3.5 w-3.5 mr-1.5 text-green-600" />
             : <Copy className="h-3.5 w-3.5 mr-1.5" />}
-          {copied ? "Copiado" : "Copiar al portapapeles"}
+          {copied ? t.copied : t.copyToClipboard}
         </Button>
         <Button variant="outline" size="sm" onClick={handleDownload}>
           <Download className="h-3.5 w-3.5 mr-1.5" />
-          Descargar .txt
+          {t.downloadTxt}
         </Button>
       </div>
 
@@ -66,13 +67,13 @@ export function PromptStep({
             className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
             onClick={onSwitchToAuto}
           >
-            ← Usar modo automático
+            {t.useAutoMode}
           </button>
         ) : (
           <span />
         )}
         <Button size="sm" onClick={onNext}>
-          Ya tengo la respuesta →
+          {t.haveResponse}
         </Button>
       </div>
     </div>

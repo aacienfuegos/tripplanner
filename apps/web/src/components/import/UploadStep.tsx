@@ -5,8 +5,10 @@ import { importPayloadSchema, ImportPayload } from "@tripplanner/shared";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Upload } from "lucide-react";
+import { useT } from "@/contexts/LanguageContext";
+import type { WebTKeys } from "@/i18n";
 
-function parsePayload(raw: string, setError: (e: string | null) => void): ImportPayload | null {
+function parsePayload(raw: string, setError: (e: string | null) => void, t: WebTKeys): ImportPayload | null {
   setError(null);
   if (!raw.trim()) return null;
 
@@ -14,9 +16,7 @@ function parsePayload(raw: string, setError: (e: string | null) => void): Import
   try {
     json = JSON.parse(raw);
   } catch {
-    setError(
-      "El JSON no es válido. Asegúrate de que la respuesta de la IA no incluye texto ni comillas adicionales fuera del JSON."
-    );
+    setError(t.invalidJson);
     return null;
   }
 
@@ -24,7 +24,7 @@ function parsePayload(raw: string, setError: (e: string | null) => void): Import
   if (!result.success) {
     const first = result.error.issues[0];
     const path = first?.path?.join(".");
-    setError(path ? `Campo "${path}": ${first.message}` : (first?.message ?? "Error de formato en la respuesta."));
+    setError(path ? t.fieldError(path, first.message) : (first?.message ?? t.formatError));
     return null;
   }
 
@@ -49,6 +49,7 @@ export function UploadStep({
   onBack: () => void;
   onNext: (payload: ImportPayload) => void;
 }) {
+  const { t } = useT();
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -58,22 +59,20 @@ export function UploadStep({
     if (!file) return;
     const content = await file.text();
     setText(content);
-    const payload = parsePayload(content, setError);
+    const payload = parsePayload(content, setError, t);
     if (!payload) return;
     if (countItems(payload) === 0) {
-      setError("El fichero no contiene ningún ítem reconocible.");
+      setError(t.noItemsFile);
       return;
     }
     onNext(payload);
   };
 
   const handleNext = () => {
-    const payload = parsePayload(text, setError);
+    const payload = parsePayload(text, setError, t);
     if (!payload) return;
     if (countItems(payload) === 0) {
-      setError(
-        "El JSON no contiene ningún ítem reconocible. Asegúrate de que la IA encontró datos en el contenido que le pasaste."
-      );
+      setError(t.noItemsJson);
       return;
     }
     onNext(payload);
@@ -82,7 +81,7 @@ export function UploadStep({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Pega el JSON que devolvió la IA, o sube directamente el fichero{" "}
+        {t.uploadIntroPrefix}{" "}
         <code className="text-xs bg-muted px-1 rounded">.json</code>.
       </p>
 
@@ -105,7 +104,7 @@ export function UploadStep({
         className="w-full border border-dashed rounded-lg p-4 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors text-center cursor-pointer"
       >
         <Upload className="h-4 w-4 mx-auto mb-1.5" />
-        Arrastra un fichero .json o haz clic para seleccionarlo
+        {t.dropZoneJsonText}
       </button>
       <input
         ref={fileRef}
@@ -124,10 +123,10 @@ export function UploadStep({
 
       <div className="flex justify-between pt-2 border-t">
         <Button variant="ghost" size="sm" onClick={onBack}>
-          ← Volver
+          {t.backArrow}
         </Button>
         <Button size="sm" onClick={handleNext} disabled={!text.trim()}>
-          Revisar ítems →
+          {t.reviewItemsBtn}
         </Button>
       </div>
     </div>
