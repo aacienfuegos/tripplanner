@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AccommodationsList } from "@/components/accommodations/accommodations-list";
 import { SectionHeader } from "@/components/layout/section-header";
+import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { Hotel } from "lucide-react";
 
 export default async function AccommodationsPage({ params }: { params: Promise<{ tripId: string }> }) {
@@ -13,10 +14,11 @@ export default async function AccommodationsPage({ params }: { params: Promise<{
     include: { accommodations: { orderBy: { checkIn: "asc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();
+  const counts = await getTripNavCounts(tripId);
 
   return (
     <div className="space-y-6">
-      <SectionHeader tripId={trip.id} tripName={trip.name} title="Alojamiento" icon={<Hotel className="h-5 w-5" />} />
+      <SectionHeader tripId={trip.id} tripName={trip.name} title="Alojamiento" icon={<Hotel className="h-5 w-5" />} counts={counts} />
       <AccommodationsList tripId={trip.id} accommodations={trip.accommodations} tripStartDate={trip.startDate} />
     </div>
   );

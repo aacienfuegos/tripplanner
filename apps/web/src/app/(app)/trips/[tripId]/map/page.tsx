@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SectionHeader } from "@/components/layout/section-header";
+import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { TripMapView, type MapPoint } from "@/components/map/TripMapView";
 import { geocodeAccommodation, geocodeActivity } from "@/lib/geocode-items";
 import { MapPin } from "lucide-react";
@@ -101,9 +102,11 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
     trip.accommodations.filter((a) => a.latitude === null).length +
     trip.activities.filter((a) => a.latitude === null && (a.location || a.city)).length;
 
+  const counts = await getTripNavCounts(trip.id);
+
   return (
     <div className="space-y-6">
-      <SectionHeader tripId={trip.id} tripName={trip.name} title="Mapa" icon={<MapPin className="h-5 w-5" />} />
+      <SectionHeader tripId={trip.id} tripName={trip.name} title="Mapa" icon={<MapPin className="h-5 w-5" />} counts={counts} />
 
       {points.length === 0 ? (
         <div className="border border-dashed rounded-lg p-10 text-center text-sm text-muted-foreground">
