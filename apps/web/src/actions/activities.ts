@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { activitySchema } from "@/lib/schemas";
+import { geocodeActivity } from "@/lib/geocode-items";
 
 async function requireTripOwner(tripId: string) {
   const session = await auth();
@@ -17,7 +18,7 @@ export async function createActivity(tripId: string, formData: FormData) {
   await requireTripOwner(tripId);
   const data = activitySchema.parse(Object.fromEntries(formData));
 
-  await prisma.activity.create({
+  const created = await prisma.activity.create({
     data: {
       tripId,
       ...data,
@@ -28,6 +29,7 @@ export async function createActivity(tripId: string, formData: FormData) {
     },
   });
 
+  void geocodeActivity(created.id);
   revalidatePath(`/trips/${tripId}/activities`);
 }
 
@@ -43,9 +45,12 @@ export async function updateActivity(tripId: string, id: string, formData: FormD
       duration: data.duration ? parseInt(data.duration) : null,
       price: data.price ? parseFloat(data.price) : null,
       confirmationUrl: data.confirmationUrl || null,
+      latitude: null,
+      longitude: null,
     },
   });
 
+  void geocodeActivity(id);
   revalidatePath(`/trips/${tripId}/activities`);
 }
 

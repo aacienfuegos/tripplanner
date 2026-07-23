@@ -128,6 +128,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
     { href: "documents",      label: "Documentos",  icon: FileText,       count: trip._count.documents },
     { href: "expenses",       label: "Gastos",      icon: DollarSign,     count: trip.expenses.length },
     { href: "packing",        label: "Equipaje",    icon: ShoppingBag,    count: totalPackItems },
+    { href: "map",            label: "Mapa",        icon: MapPin,         count: 0 },
   ];
 
   const hasQuickStatus =
