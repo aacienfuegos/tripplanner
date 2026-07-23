@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ExpensesList } from "@/components/expenses/expenses-list";
 import { SectionHeader } from "@/components/layout/section-header";
+import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { DollarSign } from "lucide-react";
 
 export default async function ExpensesPage({ params }: { params: Promise<{ tripId: string }> }) {
@@ -13,6 +14,7 @@ export default async function ExpensesPage({ params }: { params: Promise<{ tripI
     include: { expenses: { orderBy: { date: "desc" } } },
   });
   if (!trip || trip.userId !== session!.user!.id) notFound();
+  const counts = await getTripNavCounts(tripId);
 
   const amountInTripCurrency = (e: (typeof trip.expenses)[number]) =>
     e.currency === trip.currency ? e.amount : (e.convertedAmount ?? e.amount);
@@ -22,7 +24,7 @@ export default async function ExpensesPage({ params }: { params: Promise<{ tripI
 
   return (
     <div className="space-y-6">
-      <SectionHeader tripId={trip.id} tripName={trip.name} title="Gastos" icon={<DollarSign className="h-5 w-5" />} />
+      <SectionHeader tripId={trip.id} tripName={trip.name} title="Gastos" icon={<DollarSign className="h-5 w-5" />} counts={counts} />
       <ExpensesList
         tripId={trip.id}
         expenses={trip.expenses}
