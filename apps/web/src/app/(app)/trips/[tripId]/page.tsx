@@ -64,7 +64,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         flights:        { orderBy: { departureAt: "asc" } },
         accommodations: { orderBy: { checkIn: "asc" } },
         activities:     { orderBy: { scheduledAt: "asc" } },
-        expenses:       { select: { amount: true } },
+        expenses:       { select: { amount: true, currency: true, convertedAmount: true } },
         packingItems:   { select: { packed: true } },
         _count:         { select: { documents: true, tasks: true } },
       },
@@ -113,7 +113,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
   // ── Quick stats ─────────────────────────────────────────────────────────
 
-  const totalExpenses    = trip.expenses.reduce((s, e) => s + e.amount, 0);
+  const totalExpenses    = trip.expenses.reduce(
+    (s, e) => s + (e.currency === trip.currency ? e.amount : (e.convertedAmount ?? e.amount)),
+    0
+  );
   const budgetPct        = trip.budget ? Math.min(100, (totalExpenses / trip.budget) * 100) : null;
   const confirmedActs    = trip.activities.filter((a) => a.status === "CONFIRMED" || a.status === "RESERVED").length;
   const pendingActs      = trip.activities.filter((a) => a.status === "PENDING").length;

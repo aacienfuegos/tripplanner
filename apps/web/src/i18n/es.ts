@@ -294,6 +294,7 @@ export const es = {
   sectionDocuments: "Documentos",
   sectionExpenses: "Gastos",
   sectionPacking: "Equipaje",
+  sectionMap: "Mapa",
   moreSections: "Más",
 
   // --- Misc ---

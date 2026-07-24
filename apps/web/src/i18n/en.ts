@@ -296,6 +296,7 @@ export const en: WebTKeys = {
   sectionDocuments: "Documents",
   sectionExpenses: "Expenses",
   sectionPacking: "Packing",
+  sectionMap: "Map",
   moreSections: "More",
 
   // --- Misc ---

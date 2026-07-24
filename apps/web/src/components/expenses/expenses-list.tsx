@@ -51,8 +51,11 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
     catch { toast.error(t.error); }
   }
 
+  const amountInTripCurrency = (e: Expense) =>
+    e.currency === currency ? e.amount : (e.convertedAmount ?? e.amount);
+
   const byCategory = expenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] ?? 0) + e.amount;
+    acc[e.category] = (acc[e.category] ?? 0) + amountInTripCurrency(e);
     return acc;
   }, {} as Record<string, number>);
 
@@ -133,7 +136,14 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-semibold">{e.amount.toLocaleString()} {e.currency}</span>
+                    <span className="font-semibold">
+                      {e.amount.toLocaleString()} {e.currency}
+                      {e.currency !== currency && e.convertedAmount != null && (
+                        <span className="text-muted-foreground font-normal text-xs">
+                          {" "}(≈ {e.convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency})
+                        </span>
+                      )}
+                    </span>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(e); setOpen(true); }}>✏️</Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
