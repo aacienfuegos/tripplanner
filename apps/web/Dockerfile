@@ -34,9 +34,10 @@ ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-# npm bundles undici internally; the runner never calls npm so remove it
-# to reduce the attack surface.
-RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/undici
+# The runner never calls npm/npx (entrypoint.sh invokes prisma/next directly
+# from node_modules/.bin) — remove the bundled npm install entirely instead
+# of chasing individual CVEs in its internal deps (undici, tar, brace-expansion, ...).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Hoisted node_modules live at the monorepo root (/app/node_modules)
 # Needed because prisma migrate deploy runs prisma.config.ts via tsx (devDep)
