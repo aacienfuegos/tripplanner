@@ -16,8 +16,11 @@ export default async function ExpensesPage({ params }: { params: Promise<{ tripI
   if (!trip || trip.userId !== session!.user!.id) notFound();
   const counts = await getTripNavCounts(tripId);
 
-  const total = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
-  const paid = trip.expenses.filter((e) => e.paid).reduce((sum, e) => sum + e.amount, 0);
+  const amountInTripCurrency = (e: (typeof trip.expenses)[number]) =>
+    e.currency === trip.currency ? e.amount : (e.convertedAmount ?? e.amount);
+
+  const total = trip.expenses.reduce((sum, e) => sum + amountInTripCurrency(e), 0);
+  const paid = trip.expenses.filter((e) => e.paid).reduce((sum, e) => sum + amountInTripCurrency(e), 0);
 
   return (
     <div className="space-y-6">
