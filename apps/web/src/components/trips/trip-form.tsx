@@ -13,6 +13,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createTrip, updateTrip } from "@/actions/trips";
 import type { Trip } from "@/types";
 import { format } from "date-fns";
+import { useT } from "@/contexts/LanguageContext";
 
 const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "MXN", "ARS", "CLP", "COP"];
 
@@ -21,6 +22,7 @@ interface TripFormProps {
 }
 
 export function TripForm({ trip }: TripFormProps) {
+  const { t } = useT();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -29,14 +31,14 @@ export function TripForm({ trip }: TripFormProps) {
       try {
         if (trip) {
           await updateTrip(trip.id, formData);
-          toast.success("Viaje actualizado");
+          toast.success(t.locale === "es" ? "Viaje actualizado" : "Trip updated");
           router.push(`/trips/${trip.id}`);
         } else {
           await createTrip(formData);
         }
       } catch (error) {
         if (isRedirectError(error)) throw error;
-        toast.error("Error al guardar el viaje");
+        toast.error(t.locale === "es" ? "Error al guardar el viaje" : "Error saving trip");
       }
     });
   }
@@ -46,22 +48,22 @@ export function TripForm({ trip }: TripFormProps) {
       <CardContent className="pt-6">
         <form action={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="name">Nombre del viaje *</Label>
+            <Label htmlFor="name">{t.tripName} *</Label>
             <Input
               id="name"
               name="name"
-              placeholder="ej. Japón 2025"
+              placeholder={t.locale === "es" ? "ej. Japón 2025" : "e.g. Japan 2025"}
               defaultValue={trip?.name}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
+            <Label htmlFor="description">{t.tripDescription}</Label>
             <Textarea
               id="description"
               name="description"
-              placeholder="Una breve descripción del viaje..."
+              placeholder={t.tripDescriptionPlaceholder}
               defaultValue={trip?.description ?? ""}
               rows={3}
             />
@@ -69,7 +71,7 @@ export function TripForm({ trip }: TripFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Fecha de inicio *</Label>
+              <Label htmlFor="startDate">{t.startDate} *</Label>
               <Input
                 id="startDate"
                 name="startDate"
@@ -79,7 +81,7 @@ export function TripForm({ trip }: TripFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endDate">Fecha de fin *</Label>
+              <Label htmlFor="endDate">{t.endDate} *</Label>
               <Input
                 id="endDate"
                 name="endDate"
@@ -92,7 +94,7 @@ export function TripForm({ trip }: TripFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="currency">Moneda</Label>
+              <Label htmlFor="currency">{t.tripCurrency}</Label>
               <Select name="currency" defaultValue={trip?.currency ?? "EUR"}>
                 <SelectTrigger id="currency">
                   <SelectValue />
@@ -105,7 +107,7 @@ export function TripForm({ trip }: TripFormProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="budget">Presupuesto total</Label>
+              <Label htmlFor="budget">{t.tripBudget}</Label>
               <Input
                 id="budget"
                 name="budget"
@@ -119,15 +121,12 @@ export function TripForm({ trip }: TripFormProps) {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Guardando..." : trip ? "Guardar cambios" : "Crear viaje"}
+              {isPending
+                ? (t.locale === "es" ? "Guardando..." : "Saving...")
+                : trip ? t.updateTrip : t.createTrip}
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => router.back()}
-              disabled={isPending}
-            >
-              Cancelar
+            <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isPending}>
+              {t.cancel}
             </Button>
           </div>
         </form>

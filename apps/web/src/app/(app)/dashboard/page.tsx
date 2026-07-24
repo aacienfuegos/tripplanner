@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plane, Hotel, Star, Calendar, MapPin, Plus, TrendingUp } from "lucide-react";
 import { format, differenceInDays, isFuture, isPast } from "date-fns";
-import { es } from "date-fns/locale";
+import { es as esLocale, enUS } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
-import { cn } from "@/lib/utils";
+import { getT } from "@/lib/locale";
 
 export default async function DashboardPage() {
   const session = await auth();
   const userId = session!.user!.id!;
 
-  const [trips, upcomingFlights, upcomingAccommodations] = await Promise.all([
+  const [t, trips, upcomingFlights, upcomingAccommodations] = await Promise.all([
+    getT(),
     prisma.trip.findMany({
       where: { userId },
       include: {
@@ -38,30 +39,36 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const activeTrip = trips.find((t) => !isPast(t.endDate) && !isFuture(t.startDate));
-  const nextTrip = trips.find((t) => isFuture(t.startDate));
+  const dfLocale = t.locale === "es" ? esLocale : enUS;
+
+  const activeTrip = trips.find((tr) => !isPast(tr.endDate) && !isFuture(tr.startDate));
+  const nextTrip = trips.find((tr) => isFuture(tr.startDate));
   const stats = {
     total: trips.length,
-    upcoming: trips.filter((t) => isFuture(t.startDate)).length,
-    ongoing: trips.filter((t) => !isPast(t.endDate) && !isFuture(t.startDate)).length,
+    upcoming: trips.filter((tr) => isFuture(tr.startDate)).length,
+    ongoing: trips.filter((tr) => !isPast(tr.endDate) && !isFuture(tr.startDate)).length,
   };
+
+  const firstName = session?.user?.name?.split(" ")[0];
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
-            Hola, {session?.user?.name?.split(" ")[0] ?? "viajero"} 👋
+            {firstName ? `${t.dashboardTitle}, ${firstName} 👋` : `${t.dashboardTitle} 👋`}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {stats.total === 0
-              ? "Empieza creando tu primer viaje"
-              : `Tienes ${stats.total} viaje${stats.total > 1 ? "s" : ""} registrado${stats.total > 1 ? "s" : ""}`}
+              ? t.noTripsYetHint
+              : t.locale === "es"
+                ? `Tienes ${stats.total} viaje${stats.total > 1 ? "s" : ""} registrado${stats.total > 1 ? "s" : ""}`
+                : `You have ${stats.total} ${stats.total === 1 ? "trip" : "trips"} registered`}
           </p>
         </div>
         <Link href="/trips/new" className={buttonVariants()}>
           <Plus className="h-4 w-4 mr-2" />
-          Nuevo viaje
+          {t.newTrip}
         </Link>
       </div>
 
@@ -69,21 +76,23 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total viajes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t.locale === "es" ? "Total viajes" : "Total trips"}
+            </CardTitle>
             <Plane className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Próximos</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.statusUpcoming}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{stats.upcoming}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">En curso</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.statusOngoing}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{stats.ongoing}</div></CardContent>
@@ -95,7 +104,7 @@ export default async function DashboardPage() {
         <Card className="border-primary/50 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-base font-medium text-muted-foreground">
-              {activeTrip ? "Viaje en curso" : "Próximo viaje"}
+              {activeTrip ? t.statusOngoing : t.statusUpcoming}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -108,10 +117,12 @@ export default async function DashboardPage() {
                     <h2 className="text-xl font-bold">{trip.name}</h2>
                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                       <Calendar className="h-3.5 w-3.5" />
-                      {format(trip.startDate, "d MMM", { locale: es })} —{" "}
-                      {format(trip.endDate, "d MMM yyyy", { locale: es })}
+                      {format(trip.startDate, "d MMM", { locale: dfLocale })} —{" "}
+                      {format(trip.endDate, "d MMM yyyy", { locale: dfLocale })}
                       {!activeTrip && daysUntil > 0 && (
-                        <Badge variant="secondary" className="ml-2">En {daysUntil} días</Badge>
+                        <Badge variant="secondary" className="ml-2">
+                          {t.locale === "es" ? `En ${daysUntil} días` : `In ${daysUntil} days`}
+                        </Badge>
                       )}
                     </p>
                     {trip.destinations.length > 0 && (
@@ -123,15 +134,15 @@ export default async function DashboardPage() {
                     <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
                       <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
                         <Plane className="h-3 w-3" />
-                        {trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}
+                        {trip._count.flights} {t.flights.toLowerCase()}
                       </Link>
                       <Link href={`/trips/${trip.id}/accommodations`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
                         <Hotel className="h-3 w-3" />
-                        {trip._count.accommodations} aloj.
+                        {trip._count.accommodations} {t.locale === "es" ? "aloj." : "accom."}
                       </Link>
                       <Link href={`/trips/${trip.id}/activities`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
                         <Star className="h-3 w-3" />
-                        {trip._count.activities} activ.
+                        {trip._count.activities} {t.locale === "es" ? "activ." : "activ."}
                       </Link>
                     </div>
                   </div>
@@ -139,7 +150,7 @@ export default async function DashboardPage() {
                     href={`/trips/${trip.id}`}
                     className={buttonVariants({ variant: "outline", size: "sm" })}
                   >
-                    Ver viaje
+                    {t.locale === "es" ? "Ver viaje" : "View trip"}
                   </Link>
                 </div>
               );
@@ -151,12 +162,16 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Próximos vuelos</CardTitle>
+            <CardTitle className="text-base">
+              {t.locale === "es" ? "Próximos vuelos" : "Upcoming flights"}
+            </CardTitle>
             <Plane className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {upcomingFlights.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay vuelos próximos.</p>
+              <p className="text-sm text-muted-foreground">
+                {t.locale === "es" ? "No hay vuelos próximos." : "No upcoming flights."}
+              </p>
             ) : (
               <div className="space-y-3">
                 {upcomingFlights.map((f) => (
@@ -167,7 +182,7 @@ export default async function DashboardPage() {
                   >
                     <p className="font-medium text-blue-700 dark:text-blue-400">{f.origin} → {f.destination}</p>
                     <p className="text-muted-foreground text-xs">
-                      {f.airline} {f.flightNumber}{f.departureAt ? ` · ${format(f.departureAt, "d MMM, HH:mm", { locale: es })}` : ""}
+                      {f.airline} {f.flightNumber}{f.departureAt ? ` · ${format(f.departureAt, "d MMM, HH:mm", { locale: dfLocale })}` : ""}
                     </p>
                     <p className="text-muted-foreground text-xs">{f.trip.name}</p>
                   </Link>
@@ -179,12 +194,16 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Próximos alojamientos</CardTitle>
+            <CardTitle className="text-base">
+              {t.locale === "es" ? "Próximos alojamientos" : "Upcoming accommodations"}
+            </CardTitle>
             <Hotel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {upcomingAccommodations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay alojamientos próximos.</p>
+              <p className="text-sm text-muted-foreground">
+                {t.locale === "es" ? "No hay alojamientos próximos." : "No upcoming accommodations."}
+              </p>
             ) : (
               <div className="space-y-3">
                 {upcomingAccommodations.map((a) => (
@@ -195,7 +214,7 @@ export default async function DashboardPage() {
                   >
                     <p className="font-medium text-emerald-700 dark:text-emerald-400">{a.name}</p>
                     <p className="text-muted-foreground text-xs">
-                      {a.city}{a.checkIn ? ` · Check-in ${format(a.checkIn, "d MMM", { locale: es })}` : ""}
+                      {a.city}{a.checkIn ? ` · ${t.checkIn} ${format(a.checkIn, "d MMM", { locale: dfLocale })}` : ""}
                     </p>
                     <p className="text-muted-foreground text-xs">{a.trip.name}</p>
                   </Link>
@@ -209,9 +228,9 @@ export default async function DashboardPage() {
       {trips.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Mis viajes</h2>
+            <h2 className="font-semibold">{t.myTrips}</h2>
             <Link href="/trips" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              Ver todos
+              {t.viewAll}
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -224,8 +243,8 @@ export default async function DashboardPage() {
                       <TripStatusBadge status={trip.status} />
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      {format(trip.startDate, "d MMM", { locale: es })} —{" "}
-                      {format(trip.endDate, "d MMM yyyy", { locale: es })}
+                      {format(trip.startDate, "d MMM", { locale: dfLocale })} —{" "}
+                      {format(trip.endDate, "d MMM yyyy", { locale: dfLocale })}
                     </p>
                     {trip.destinations.length > 0 && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
@@ -237,13 +256,13 @@ export default async function DashboardPage() {
                   <div className="flex gap-3 mt-3 pt-2 border-t text-xs text-muted-foreground">
                     <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
                       <Plane className="h-3 w-3" />
-                      {trip._count.flights} vuelo{trip._count.flights !== 1 ? "s" : ""}
+                      {trip._count.flights} {t.flights.toLowerCase()}
                     </Link>
                     <Link href={`/trips/${trip.id}/accommodations`} className="hover:text-foreground hover:underline transition-colors">
-                      {trip._count.accommodations} aloj.
+                      {trip._count.accommodations} {t.locale === "es" ? "aloj." : "accom."}
                     </Link>
                     <Link href={`/trips/${trip.id}/activities`} className="hover:text-foreground hover:underline transition-colors">
-                      {trip._count.activities} activ.
+                      {trip._count.activities} {t.locale === "es" ? "activ." : "activ."}
                     </Link>
                   </div>
                 </CardContent>
@@ -257,13 +276,11 @@ export default async function DashboardPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Plane className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Planifica tu primer viaje</h3>
-            <p className="text-muted-foreground text-sm mb-6 max-w-sm">
-              Organiza vuelos, alojamientos, actividades, presupuesto y mucho más en un solo lugar.
-            </p>
+            <h3 className="font-semibold text-lg mb-2">{t.noTripsYet}</h3>
+            <p className="text-muted-foreground text-sm mb-6 max-w-sm">{t.noTripsYetHint}</p>
             <Link href="/trips/new" className={buttonVariants()}>
               <Plus className="h-4 w-4 mr-2" />
-              Crear viaje
+              {t.createFirstTrip}
             </Link>
           </CardContent>
         </Card>

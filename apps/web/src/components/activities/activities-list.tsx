@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es as esLocale, enUS } from "date-fns/locale";
 import { Plus, Star, Trash2, ExternalLink, MapPin } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,46 +13,59 @@ import { ActivityForm } from "./activity-form";
 import { deleteActivity, updateActivityStatus } from "@/actions/activities";
 import type { Activity, BookingStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/contexts/LanguageContext";
 
-const typeLabels: Record<string, string> = {
-  ACTIVITY: "Actividad", RESTAURANT: "Restaurante", MUSEUM: "Museo",
-  TOUR: "Tour", TRANSPORT: "Transporte", SHOW: "Espectáculo", OTHER: "Otro",
-};
-const statusLabels: Record<BookingStatus, string> = {
-  PENDING: "Pendiente", RESERVED: "Reservado", CONFIRMED: "Confirmado", CANCELLED: "Cancelado",
-};
 const statusVariants: Record<BookingStatus, "default" | "secondary" | "outline" | "destructive"> = {
   PENDING: "secondary", RESERVED: "default", CONFIRMED: "default", CANCELLED: "destructive",
 };
 const statusCycle: BookingStatus[] = ["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"];
 
 export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: string; activities: Activity[]; tripStartDate: Date }) {
+  const { t } = useT();
+  const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Activity | null>(null);
 
+  const typeLabels: Record<string, string> = {
+    ACTIVITY: t.locale === "es" ? "Actividad" : "Activity",
+    RESTAURANT: t.locale === "es" ? "Restaurante" : "Restaurant",
+    MUSEUM: t.locale === "es" ? "Museo" : "Museum",
+    TOUR: "Tour",
+    TRANSPORT: t.locale === "es" ? "Transporte" : "Transport",
+    SHOW: t.locale === "es" ? "Espectáculo" : "Show",
+    OTHER: t.locale === "es" ? "Otro" : "Other",
+  };
+
+  const statusLabels: Record<BookingStatus, string> = {
+    PENDING: t.statusPending,
+    RESERVED: t.statusReserved,
+    CONFIRMED: t.statusConfirmed,
+    CANCELLED: t.statusCancelled,
+  };
+
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar esta actividad?")) return;
-    try { await deleteActivity(tripId, id); toast.success("Eliminada"); }
-    catch { toast.error("Error al eliminar"); }
+    if (!confirm(t.locale === "es" ? "¿Eliminar esta actividad?" : "Delete this activity?")) return;
+    try { await deleteActivity(tripId, id); toast.success(t.locale === "es" ? "Eliminada" : "Deleted"); }
+    catch { toast.error(t.error); }
   }
 
   async function cycleStatus(activity: Activity) {
     const next = statusCycle[(statusCycle.indexOf(activity.status) + 1) % statusCycle.length];
     try { await updateActivityStatus(tripId, activity.id, next); }
-    catch { toast.error("Error"); }
+    catch { toast.error(t.error); }
   }
 
   return (
     <div className="space-y-4">
       <Button onClick={() => { setEditing(null); setOpen(true); }}>
-        <Plus className="h-4 w-4 mr-2" /> Añadir actividad
+        <Plus className="h-4 w-4 mr-2" /> {t.addActivity}
       </Button>
 
       {activities.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-10 text-center text-muted-foreground">
             <Star className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p>No hay actividades registradas</p>
+            <p>{t.noActivities}</p>
           </CardContent>
         </Card>
       ) : (
@@ -72,11 +85,11 @@ export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: 
                       </button>
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">
-                      {act.scheduledAt && <p>{format(act.scheduledAt, "d MMM yyyy, HH:mm", { locale: es })}</p>}
+                      {act.scheduledAt && <p>{format(act.scheduledAt, "d MMM yyyy, HH:mm", { locale: dfLocale })}</p>}
                       {act.location && <p>📍 {act.location}{act.city && `, ${act.city}`}</p>}
                       {act.duration && <p>⏱ {act.duration} min</p>}
                       {act.price && <p>💶 {act.price}€</p>}
-                      {act.bookingRef && <p>Ref: <span className="font-mono font-medium text-foreground">{act.bookingRef}</span></p>}
+                      {act.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{act.bookingRef}</span></p>}
                       {act.description && <p className="italic">{act.description}</p>}
                     </div>
                   </div>
@@ -87,7 +100,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: 
                         target="_blank"
                         rel="noopener noreferrer"
                         className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-                        title="Ver en Google Maps"
+                        title={t.locale === "es" ? "Ver en Google Maps" : "View on Google Maps"}
                       >
                         <MapPin className="h-4 w-4 text-blue-500" />
                       </a>
@@ -117,7 +130,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar actividad" : "Añadir actividad"}</DialogTitle>
+            <DialogTitle>{editing ? t.editActivity : t.addActivity}</DialogTitle>
           </DialogHeader>
           <ActivityForm tripId={tripId} activity={editing ?? undefined} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
         </DialogContent>

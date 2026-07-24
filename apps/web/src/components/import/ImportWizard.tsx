@@ -14,20 +14,20 @@ import { PromptStep } from "./PromptStep";
 import { UploadStep } from "./UploadStep";
 import { ReviewStep } from "./ReviewStep";
 import { AutoImportStep } from "./AutoImportStep";
+import { useT } from "@/contexts/LanguageContext";
+import type { WebTKeys } from "@/i18n";
 
 type Step = 1 | 2 | 3;
 type Mode = "auto" | "manual";
 
-function stepLabel(step: Step, mode: Mode): string {
+function stepLabel(step: Step, mode: Mode, t: WebTKeys): string {
   if (mode === "auto") {
-    return step === 1
-      ? "Paso 1 de 2 — Introduce el contenido del viaje"
-      : "Paso 2 de 2 — Revisa y confirma";
+    return step === 1 ? t.importStepAuto1 : t.importStepAuto2;
   }
   const labels: Record<Step, string> = {
-    1: "Paso 1 de 3 — Obtén el prompt para la IA",
-    2: "Paso 2 de 3 — Sube la respuesta de la IA",
-    3: "Paso 3 de 3 — Revisa y confirma",
+    1: t.importStepManual1,
+    2: t.importStepManual2,
+    3: t.importStepManual3,
   };
   return labels[step];
 }
@@ -49,6 +49,7 @@ export function ImportWizard({
   agentosEnabled?: boolean;
   initialPayload?: ImportPayload | null;
 }) {
+  const { t } = useT();
   const [step, setStep] = useState<Step>(1);
   const [mode, setMode] = useState<Mode>(agentosEnabled ? "auto" : "manual");
   const [payload, setPayload] = useState<ImportPayload | null>(null);
@@ -91,8 +92,8 @@ export function ImportWizard({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden gap-3">
         <DialogHeader>
-          <DialogTitle>Importar vía IA</DialogTitle>
-          <DialogDescription>{stepLabel(step, mode)}</DialogDescription>
+          <DialogTitle>{t.importAI}</DialogTitle>
+          <DialogDescription>{stepLabel(step, mode, t)}</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-1.5">

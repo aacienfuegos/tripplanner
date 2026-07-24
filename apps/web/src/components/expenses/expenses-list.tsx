@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es as esLocale, enUS } from "date-fns/locale";
 import { Plus, DollarSign, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ExpenseForm } from "./expense-form";
 import { deleteExpense, toggleExpensePaid } from "@/actions/expenses";
 import type { Expense } from "@/types";
-
-const catLabels: Record<string, string> = {
-  FLIGHT: "Vuelo", ACCOMMODATION: "Alojamiento", FOOD: "Comida",
-  TRANSPORT: "Transporte", ACTIVITY: "Actividad", SHOPPING: "Compras", OTHER: "Otro",
-};
+import { useT } from "@/contexts/LanguageContext";
 
 interface Props {
   tripId: string;
@@ -29,18 +25,30 @@ interface Props {
 }
 
 export function ExpensesList({ tripId, expenses, currency, budget, total, paid, tripStartDate }: Props) {
+  const { t } = useT();
+  const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
 
+  const catLabels: Record<string, string> = {
+    FLIGHT: t.flights,
+    ACCOMMODATION: t.accommodations,
+    FOOD: t.locale === "es" ? "Comida" : "Food",
+    TRANSPORT: t.locale === "es" ? "Transporte" : "Transport",
+    ACTIVITY: t.activities,
+    SHOPPING: t.locale === "es" ? "Compras" : "Shopping",
+    OTHER: t.locale === "es" ? "Otro" : "Other",
+  };
+
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este gasto?")) return;
-    try { await deleteExpense(tripId, id); toast.success("Eliminado"); }
-    catch { toast.error("Error al eliminar"); }
+    if (!confirm(t.locale === "es" ? "¿Eliminar este gasto?" : "Delete this expense?")) return;
+    try { await deleteExpense(tripId, id); toast.success(t.locale === "es" ? "Eliminado" : "Deleted"); }
+    catch { toast.error(t.error); }
   }
 
   async function handleTogglePaid(e: Expense) {
     try { await toggleExpensePaid(tripId, e.id, !e.paid); }
-    catch { toast.error("Error"); }
+    catch { toast.error(t.error); }
   }
 
   const amountInTripCurrency = (e: Expense) =>
@@ -54,22 +62,30 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
   return (
     <div className="space-y-4">
       <Button onClick={() => { setEditing(null); setOpen(true); }}>
-        <Plus className="h-4 w-4 mr-2" /> Añadir gasto
+        <Plus className="h-4 w-4 mr-2" /> {t.addExpense}
       </Button>
 
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
-          <CardHeader className="pb-1 pt-4"><CardTitle className="text-sm text-muted-foreground">Total gastado</CardTitle></CardHeader>
+          <CardHeader className="pb-1 pt-4">
+            <CardTitle className="text-sm text-muted-foreground">{t.totalExpenses}</CardTitle>
+          </CardHeader>
           <CardContent><p className="text-2xl font-bold">{total.toLocaleString()} {currency}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-1 pt-4"><CardTitle className="text-sm text-muted-foreground">Pagado</CardTitle></CardHeader>
+          <CardHeader className="pb-1 pt-4">
+            <CardTitle className="text-sm text-muted-foreground">{t.paid}</CardTitle>
+          </CardHeader>
           <CardContent><p className="text-2xl font-bold text-green-600">{paid.toLocaleString()} {currency}</p></CardContent>
         </Card>
         {budget && (
           <Card>
-            <CardHeader className="pb-1 pt-4"><CardTitle className="text-sm text-muted-foreground">Presupuesto restante</CardTitle></CardHeader>
+            <CardHeader className="pb-1 pt-4">
+              <CardTitle className="text-sm text-muted-foreground">
+                {t.locale === "es" ? "Presupuesto restante" : "Remaining budget"}
+              </CardTitle>
+            </CardHeader>
             <CardContent>
               <p className={`text-2xl font-bold ${budget - total < 0 ? "text-destructive" : ""}`}>
                 {(budget - total).toLocaleString()} {currency}
@@ -84,7 +100,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
         <div className="flex flex-wrap gap-2">
           {Object.entries(byCategory).map(([cat, amount]) => (
             <Badge key={cat} variant="secondary">
-              {catLabels[cat]}: {amount.toLocaleString()} {currency}
+              {catLabels[cat] ?? cat}: {amount.toLocaleString()} {currency}
             </Badge>
           ))}
         </div>
@@ -94,7 +110,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
         <Card className="border-dashed">
           <CardContent className="py-10 text-center text-muted-foreground">
             <DollarSign className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p>No hay gastos registrados</p>
+            <p>{t.noExpenses}</p>
           </CardContent>
         </Card>
       ) : (
@@ -112,10 +128,10 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{e.description}</span>
-                      <Badge variant="outline" className="text-xs shrink-0">{catLabels[e.category]}</Badge>
+                      <Badge variant="outline" className="text-xs shrink-0">{catLabels[e.category] ?? e.category}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {format(e.date, "d MMM yyyy", { locale: es })}
+                      {format(e.date, "d MMM yyyy", { locale: dfLocale })}
                       {e.notes && ` · ${e.notes}`}
                     </p>
                   </div>
@@ -143,7 +159,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar gasto" : "Añadir gasto"}</DialogTitle>
+            <DialogTitle>{editing ? t.editExpense : t.addExpense}</DialogTitle>
           </DialogHeader>
           <ExpenseForm tripId={tripId} expense={editing ?? undefined} currency={currency} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
         </DialogContent>

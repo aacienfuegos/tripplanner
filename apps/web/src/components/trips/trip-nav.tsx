@@ -13,28 +13,37 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { TripNavCounts } from "@/lib/trip-nav-counts";
+import { useT } from "@/contexts/LanguageContext";
+import type { WebTKeys } from "@/i18n";
 
 interface TripNavProps {
   tripId: string;
   counts: TripNavCounts;
 }
 
-const MAIN_SECTIONS = [
-  { href: "flights", label: "Vuelos", icon: Plane, countKey: "flights" },
-  { href: "accommodations", label: "Alojamientos", icon: Hotel, countKey: "accommodations" },
-  { href: "activities", label: "Actividades", icon: Star, countKey: "activities" },
-  { href: "expenses", label: "Gastos", icon: DollarSign, countKey: "expenses" },
-] as const;
+function mainSections(t: WebTKeys) {
+  return [
+    { href: "flights", label: t.sectionFlights, icon: Plane, countKey: "flights" },
+    { href: "accommodations", label: t.sectionAccommodations, icon: Hotel, countKey: "accommodations" },
+    { href: "activities", label: t.sectionActivities, icon: Star, countKey: "activities" },
+    { href: "expenses", label: t.sectionExpenses, icon: DollarSign, countKey: "expenses" },
+  ] as const;
+}
 
-const MORE_SECTIONS = [
-  { href: "packing", label: "Maleta", icon: ShoppingBag, countKey: "packingItems" },
-  { href: "documents", label: "Documentos", icon: FileText, countKey: "documents" },
-  { href: "tasks", label: "Tareas", icon: ClipboardList, countKey: "tasks" },
-] as const;
+function moreSections(t: WebTKeys) {
+  return [
+    { href: "packing", label: t.sectionPacking, icon: ShoppingBag, countKey: "packingItems" },
+    { href: "documents", label: t.sectionDocuments, icon: FileText, countKey: "documents" },
+    { href: "tasks", label: t.sectionTasks, icon: ClipboardList, countKey: "tasks" },
+  ] as const;
+}
 
 export function TripNav({ tripId, counts }: TripNavProps) {
+  const { t } = useT();
   const pathname = usePathname();
   const base = `/trips/${tripId}`;
+  const MAIN_SECTIONS = mainSections(t);
+  const MORE_SECTIONS = moreSections(t);
   const isMoreActive =
     MORE_SECTIONS.some((s) => pathname === `${base}/${s.href}`) || pathname === `${base}/map`;
 
@@ -63,7 +72,7 @@ export function TripNav({ tripId, counts }: TripNavProps) {
           className={cn(buttonVariants({ variant: isMoreActive ? "secondary" : "outline", size: "sm" }), "shrink-0")}
         >
           <MoreHorizontal className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-          Más
+          {t.moreSections}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           {MORE_SECTIONS.map(({ href, label, icon: Icon, countKey }) => {
@@ -81,7 +90,7 @@ export function TripNav({ tripId, counts }: TripNavProps) {
           <DropdownMenuItem className="gap-2">
             <Link href={`${base}/map`} className="flex flex-1 items-center gap-2">
               <MapPin className="h-4 w-4" />
-              <span className="flex-1">Mapa</span>
+              <span className="flex-1">{t.sectionMap}</span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>

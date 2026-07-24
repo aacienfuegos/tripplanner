@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createAccommodation, updateAccommodation } from "@/actions/accommodations";
 import type { Accommodation } from "@/types";
 import { format } from "date-fns";
+import { useT } from "@/contexts/LanguageContext";
 
 interface Props { tripId: string; accommodation?: Accommodation; tripStartDate: Date; onSuccess: () => void; }
 
 export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onSuccess }: Props) {
+  const { t } = useT();
   const [isPending, startTransition] = useTransition();
 
   const fmt = (d: Date) => format(d, "yyyy-MM-dd");
@@ -24,10 +26,10 @@ export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onS
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
       try {
-        if (a) { await updateAccommodation(tripId, a.id, formData); toast.success("Actualizado"); }
-        else { await createAccommodation(tripId, formData); toast.success("Añadido"); }
+        if (a) { await updateAccommodation(tripId, a.id, formData); toast.success(t.toastUpdated); }
+        else { await createAccommodation(tripId, formData); toast.success(t.toastAdded); }
         onSuccess();
-      } catch { toast.error("Error al guardar"); }
+      } catch { toast.error(t.toastErrorSaving); }
     });
   }
 
@@ -35,11 +37,11 @@ export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onS
     <form action={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5 col-span-2">
-          <Label htmlFor="name">Nombre *</Label>
+          <Label htmlFor="name">{t.nameLabel} *</Label>
           <Input id="name" name="name" placeholder="Hotel Madrid" defaultValue={a?.name} required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="type">Tipo</Label>
+          <Label htmlFor="type">{t.typeLabel}</Label>
           <Select name="type" defaultValue={a?.type ?? "HOTEL"}>
             <SelectTrigger id="type"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -50,11 +52,11 @@ export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onS
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="city">Ciudad *</Label>
+          <Label htmlFor="city">{t.city} *</Label>
           <Input id="city" name="city" placeholder="Madrid" defaultValue={a?.city} required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="checkIn">Check-in *</Label>
+          <Label htmlFor="checkIn">{t.checkInDate} *</Label>
           <Input
             id="checkIn"
             name="checkIn"
@@ -65,7 +67,7 @@ export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onS
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="checkOut">Check-out *</Label>
+          <Label htmlFor="checkOut">{t.checkOutDate} *</Label>
           <Input
             key={checkIn}
             id="checkOut"
@@ -76,34 +78,34 @@ export function AccommodationForm({ tripId, accommodation: a, tripStartDate, onS
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pricePerNight">€/noche</Label>
+          <Label htmlFor="pricePerNight">{t.pricePerNight}</Label>
           <Input id="pricePerNight" name="pricePerNight" type="number" step="0.01" defaultValue={a?.pricePerNight ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="price">Precio total</Label>
+          <Label htmlFor="price">{t.totalPrice}</Label>
           <Input id="price" name="price" type="number" step="0.01" defaultValue={a?.price ?? ""} />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="address">Dirección</Label>
+        <Label htmlFor="address">{t.address}</Label>
         <Input id="address" name="address" defaultValue={a?.address ?? ""} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="bookingRef">Referencia</Label>
+          <Label htmlFor="bookingRef">{t.bookingRef}</Label>
           <Input id="bookingRef" name="bookingRef" defaultValue={a?.bookingRef ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="confirmationUrl">URL confirmación</Label>
+          <Label htmlFor="confirmationUrl">{t.confirmationUrlLabel}</Label>
           <Input id="confirmationUrl" name="confirmationUrl" type="url" placeholder="https://..." defaultValue={a?.confirmationUrl ?? ""} />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="notes">Notas</Label>
+        <Label htmlFor="notes">{t.notes}</Label>
         <Textarea id="notes" name="notes" rows={2} defaultValue={a?.notes ?? ""} />
       </div>
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Guardando..." : a ? "Guardar cambios" : "Añadir alojamiento"}
+        {isPending ? t.savingEllipsis : a ? t.saveChanges : t.addAccommodation}
       </Button>
     </form>
   );

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es as esLocale, enUS } from "date-fns/locale";
 import { Plus, ClipboardList, Pencil, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,12 +13,8 @@ import { TaskForm } from "./task-form";
 import { deleteTask, toggleTaskDone } from "@/actions/tasks";
 import type { Task, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
-
-const priorityConfig: Record<TaskPriority, { label: string; cls: string }> = {
-  HIGH:   { label: "Alta",  cls: "border-red-300 text-red-600" },
-  MEDIUM: { label: "Media", cls: "border-yellow-300 text-yellow-600" },
-  LOW:    { label: "Baja",  cls: "border-blue-300 text-blue-500" },
-};
+import { useT } from "@/contexts/LanguageContext";
+import type { Locale } from "date-fns";
 
 const priorityOrder: Record<TaskPriority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
@@ -35,35 +31,43 @@ function sortTasks(tasks: Task[]): Task[] {
 }
 
 export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) {
+  const { t } = useT();
+  const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
 
+  const priorityConfig: Record<TaskPriority, { label: string; cls: string }> = {
+    HIGH:   { label: t.priorityHigh,   cls: "border-red-300 text-red-600" },
+    MEDIUM: { label: t.priorityMedium, cls: "border-yellow-300 text-yellow-600" },
+    LOW:    { label: t.priorityLow,    cls: "border-blue-300 text-blue-500" },
+  };
+
   async function handleToggle(task: Task) {
     try { await toggleTaskDone(tripId, task.id, !task.done); }
-    catch { toast.error("Error al actualizar"); }
+    catch { toast.error(t.error); }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar esta tarea?")) return;
-    try { await deleteTask(tripId, id); toast.success("Tarea eliminada"); }
-    catch { toast.error("Error al eliminar"); }
+    if (!confirm(t.locale === "es" ? "¿Eliminar esta tarea?" : "Delete this task?")) return;
+    try { await deleteTask(tripId, id); toast.success(t.locale === "es" ? "Tarea eliminada" : "Task deleted"); }
+    catch { toast.error(t.error); }
   }
 
   const sorted = sortTasks(tasks);
-  const pending = sorted.filter((t) => !t.done);
-  const done    = sorted.filter((t) => t.done);
+  const pending = sorted.filter((task) => !task.done);
+  const done    = sorted.filter((task) => task.done);
 
   return (
     <div className="space-y-4">
       <Button onClick={() => { setEditing(null); setOpen(true); }}>
-        <Plus className="h-4 w-4 mr-2" /> Añadir tarea
+        <Plus className="h-4 w-4 mr-2" /> {t.addTask}
       </Button>
 
       {tasks.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-10 text-center text-muted-foreground">
             <ClipboardList className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p>No hay tareas registradas</p>
+            <p>{t.noTasks}</p>
           </CardContent>
         </Card>
       ) : (
@@ -74,6 +78,8 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
                 <TaskRow
                   key={task.id}
                   task={task}
+                  priorityConfig={priorityConfig}
+                  dfLocale={dfLocale}
                   onToggle={() => handleToggle(task)}
                   onEdit={() => { setEditing(task); setOpen(true); }}
                   onDelete={() => handleDelete(task.id)}
@@ -85,12 +91,14 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
           {done.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Completadas ({done.length})
+                {t.locale === "es" ? `Completadas (${done.length})` : `Completed (${done.length})`}
               </p>
               {done.map((task) => (
                 <TaskRow
                   key={task.id}
                   task={task}
+                  priorityConfig={priorityConfig}
+                  dfLocale={dfLocale}
                   onToggle={() => handleToggle(task)}
                   onEdit={() => { setEditing(task); setOpen(true); }}
                   onDelete={() => handleDelete(task.id)}
@@ -104,7 +112,7 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar tarea" : "Nueva tarea"}</DialogTitle>
+            <DialogTitle>{editing ? t.editTask : t.addTask}</DialogTitle>
           </DialogHeader>
           <TaskForm tripId={tripId} task={editing ?? undefined} onSuccess={() => setOpen(false)} />
         </DialogContent>
@@ -114,9 +122,11 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
 }
 
 function TaskRow({
-  task, onToggle, onEdit, onDelete,
+  task, priorityConfig, dfLocale, onToggle, onEdit, onDelete,
 }: {
   task: Task;
+  priorityConfig: Record<TaskPriority, { label: string; cls: string }>;
+  dfLocale: Locale;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -135,7 +145,6 @@ function TaskRow({
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-muted-foreground/40 hover:border-primary",
             )}
-            aria-label={task.done ? "Marcar como pendiente" : "Marcar como hecha"}
           >
             {task.done && (
               <svg viewBox="0 0 12 12" className="h-3 w-3 fill-current">
@@ -157,7 +166,7 @@ function TaskRow({
               {task.dueDate && (
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  {format(task.dueDate, "d MMM yyyy", { locale: es })}
+                  {format(task.dueDate, "d MMM yyyy", { locale: dfLocale })}
                 </span>
               )}
               {task.notes && <span className="italic truncate">{task.notes}</span>}

@@ -9,14 +9,15 @@ interface SectionHeaderProps {
   title: string;
   icon: React.ReactNode;
   counts: TripNavCounts;
+  tripsLabel?: string;
 }
 
-export function SectionHeader({ tripId, tripName, title, icon, counts }: SectionHeaderProps) {
+export function SectionHeader({ tripId, tripName, title, icon, counts, tripsLabel = "Viajes" }: SectionHeaderProps) {
   return (
     <div className="space-y-4">
       <div>
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-3">
-          <Link href="/trips" className="hover:text-foreground">Viajes</Link>
+          <Link href="/trips" className="hover:text-foreground">{tripsLabel}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <Link href={`/trips/${tripId}`} className="hover:text-foreground">{tripName}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
