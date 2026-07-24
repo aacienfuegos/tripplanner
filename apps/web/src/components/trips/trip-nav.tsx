@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plane, Hotel, Star, DollarSign, ShoppingBag, FileText, ClipboardList, MoreHorizontal } from "lucide-react";
+import { Plane, Hotel, Star, DollarSign, ShoppingBag, FileText, ClipboardList, MapPin, MoreHorizontal } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,7 +35,8 @@ const MORE_SECTIONS = [
 export function TripNav({ tripId, counts }: TripNavProps) {
   const pathname = usePathname();
   const base = `/trips/${tripId}`;
-  const isMoreActive = MORE_SECTIONS.some((s) => pathname === `${base}/${s.href}`);
+  const isMoreActive =
+    MORE_SECTIONS.some((s) => pathname === `${base}/${s.href}`) || pathname === `${base}/map`;
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -77,6 +78,12 @@ export function TripNav({ tripId, counts }: TripNavProps) {
               </DropdownMenuItem>
             );
           })}
+          <DropdownMenuItem className="gap-2">
+            <Link href={`${base}/map`} className="flex flex-1 items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <span className="flex-1">Mapa</span>
+            </Link>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

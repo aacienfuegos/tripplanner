@@ -161,6 +161,8 @@ model Accommodation {
   confirmationUrl String?
   price           Float?
   pricePerNight   Float?
+  latitude        Float?
+  longitude       Float?
   notes           String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
@@ -191,6 +193,8 @@ model Activity {
   confirmationUrl String?
   price           Float?
   status          BookingStatus @default(PENDING)
+  latitude        Float?
+  longitude       Float?
   notes           String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)

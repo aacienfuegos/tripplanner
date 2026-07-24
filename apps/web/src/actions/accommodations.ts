@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { accommodationSchema } from "@/lib/schemas";
+import { geocodeAccommodation } from "@/lib/geocode-items";
 
 async function requireTripOwner(tripId: string) {
   const session = await auth();
@@ -17,7 +18,7 @@ export async function createAccommodation(tripId: string, formData: FormData) {
   await requireTripOwner(tripId);
   const data = accommodationSchema.parse(Object.fromEntries(formData));
 
-  await prisma.accommodation.create({
+  const created = await prisma.accommodation.create({
     data: {
       tripId,
       ...data,
@@ -29,6 +30,7 @@ export async function createAccommodation(tripId: string, formData: FormData) {
     },
   });
 
+  void geocodeAccommodation(created.id);
   revalidatePath(`/trips/${tripId}/accommodations`);
 }
 
@@ -45,9 +47,12 @@ export async function updateAccommodation(tripId: string, id: string, formData: 
       price: data.price ? parseFloat(data.price) : null,
       pricePerNight: data.pricePerNight ? parseFloat(data.pricePerNight) : null,
       confirmationUrl: data.confirmationUrl || null,
+      latitude: null,
+      longitude: null,
     },
   });
 
+  void geocodeAccommodation(id);
   revalidatePath(`/trips/${tripId}/accommodations`);
 }
 
