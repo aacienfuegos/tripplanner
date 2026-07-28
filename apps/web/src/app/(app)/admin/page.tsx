@@ -51,13 +51,13 @@ export default async function AdminPage() {
                 <>
                   <Globe className="h-4 w-4 text-green-600" />
                   <span className="text-sm font-medium">Registro abierto</span>
-                  <Badge variant="outline" className="text-green-600 border-green-600">Activo</Badge>
+                  <Badge variant="success">Activo</Badge>
                 </>
               ) : (
                 <>
                   <Lock className="h-4 w-4 text-orange-600" />
                   <span className="text-sm font-medium">Registro restringido</span>
-                  <Badge variant="outline" className="text-orange-600 border-orange-600">Activo</Badge>
+                  <Badge variant="warning">Activo</Badge>
                 </>
               )}
             </div>

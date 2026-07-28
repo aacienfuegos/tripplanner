@@ -292,12 +292,12 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             <p className="text-3xl font-bold leading-none">{trip.activities.length}</p>
             <div className="mt-1 flex gap-1.5 flex-wrap">
               {pendingActs > 0 && (
-                <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-600 px-1 h-4">
+                <Badge variant="warning" className="text-xs px-1 h-4">
                   {pendingActs} {t.statusPending.toLowerCase()}
                 </Badge>
               )}
               {confirmedActs > 0 && pendingActs === 0 && (
-                <Badge variant="outline" className="text-xs border-green-300 text-green-600 px-1 h-4">
+                <Badge variant="success" className="text-xs px-1 h-4">
                   {t.locale === "es" ? "todo reservado" : "all booked"}
                 </Badge>
               )}
@@ -543,14 +543,14 @@ function EventRow({ event, tripId, t }: { event: DayEvent; tripId: string; t: We
 function ConfirmBadge({ confirmed, t, className = "" }: { confirmed: boolean; t: WebTKeys; className?: string }) {
   if (confirmed) {
     return (
-      <Badge variant="secondary" className={`text-xs h-4 px-1 shrink-0 ${className}`}>
-        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5 text-green-600" />
+      <Badge variant="success" className={`text-xs h-4 px-1 shrink-0 ${className}`}>
+        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
         {t.confirmed}
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className={`text-xs h-4 px-1 shrink-0 border-yellow-300 text-yellow-600 ${className}`}>
+    <Badge variant="warning" className={`text-xs h-4 px-1 shrink-0 ${className}`}>
       <Circle className="h-2.5 w-2.5 mr-0.5" />
       {t.unconfirmed}
     </Badge>
@@ -558,17 +558,17 @@ function ConfirmBadge({ confirmed, t, className = "" }: { confirmed: boolean; t:
 }
 
 function ActivityStatusBadge({ status, t, className = "" }: { status: string; t: WebTKeys; className?: string }) {
-  const configs: Record<string, { label: string; icon: React.ElementType; cls: string }> = {
-    CONFIRMED: { label: t.statusConfirmed, icon: CheckCircle2, cls: "border-green-300  text-green-600" },
-    RESERVED:  { label: t.statusReserved,  icon: CheckCircle2, cls: "border-green-300  text-green-600" },
-    PENDING:   { label: t.statusPending,   icon: Circle,       cls: "border-yellow-300 text-yellow-600" },
-    CANCELLED: { label: t.statusCancelled, icon: AlertCircle,  cls: "text-muted-foreground" },
+  const configs: Record<string, { label: string; icon: React.ElementType; variant: "success" | "warning" | "outline" }> = {
+    CONFIRMED: { label: t.statusConfirmed, icon: CheckCircle2, variant: "success" },
+    RESERVED:  { label: t.statusReserved,  icon: CheckCircle2, variant: "success" },
+    PENDING:   { label: t.statusPending,   icon: Circle,       variant: "warning" },
+    CANCELLED: { label: t.statusCancelled, icon: AlertCircle,  variant: "outline" },
   };
   const cfg = configs[status];
   if (!cfg) return null;
   const Icon = cfg.icon;
   return (
-    <Badge variant="outline" className={`text-xs h-4 px-1 ${cfg.cls} ${className}`}>
+    <Badge variant={cfg.variant} className={`text-xs h-4 px-1 ${cfg.variant === "outline" ? "text-muted-foreground" : ""} ${className}`}>
       <Icon className="h-2.5 w-2.5 mr-0.5" />
       {cfg.label}
     </Badge>

@@ -4,11 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Plane, Trash2, ExternalLink, ArrowRight } from "lucide-react";
+import { Plus, Plane, Pencil, Trash2, ExternalLink, ArrowRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FlightForm } from "./flight-form";
 import { deleteFlight } from "@/actions/flights";
 import type { Flight } from "@/types";
@@ -21,9 +22,16 @@ export function FlightsList({ tripId, flights, tripStartDate, currency }: { trip
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Flight | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   async function handleDelete(flightId: string) {
-    if (!confirm(t.locale === "es" ? "¿Eliminar este vuelo?" : "Delete this flight?")) return;
+    const ok = await confirm({
+      title: t.locale === "es" ? "¿Eliminar este vuelo?" : "Delete this flight?",
+      confirmLabel: t.delete,
+      cancelLabel: t.cancel,
+      destructive: true,
+    });
+    if (!ok) return;
     try { await deleteFlight(tripId, flightId); toast.success(t.locale === "es" ? "Vuelo eliminado" : "Flight deleted"); }
     catch { toast.error(t.error); }
   }
@@ -77,7 +85,9 @@ export function FlightsList({ tripId, flights, tripStartDate, currency }: { trip
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
-                    <Button variant="ghost" size="icon" onClick={() => { setEditing(flight); setOpen(true); }}>✏️</Button>
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(flight); setOpen(true); }}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(flight.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -97,6 +107,7 @@ export function FlightsList({ tripId, flights, tripStartDate, currency }: { trip
           <FlightForm tripId={tripId} flight={editing ?? undefined} tripStartDate={tripStartDate} currency={currency} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }

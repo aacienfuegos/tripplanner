@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { TripMapView, type MapPoint, type FlightSegment } from "@/components/map/TripMapView";
 import { geocodeAccommodation, geocodeActivity, geocodeFlight } from "@/lib/geocode-items";
+import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
@@ -140,11 +141,13 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
       <SectionHeader tripId={trip.id} tripName={trip.name} title={t.sectionMap} icon={<MapPin className="h-5 w-5" />} counts={counts} />
 
       {points.length === 0 && flightSegments.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-10 text-center text-sm text-muted-foreground">
-          <MapPin className="h-8 w-8 mx-auto mb-3 opacity-40" />
-          <p>{t.noGeolocatedItems}</p>
-          <p className="mt-1">{t.noGeolocatedItemsHint}</p>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="py-10 text-center text-muted-foreground">
+            <MapPin className="h-8 w-8 mx-auto mb-3 opacity-50" />
+            <p>{t.noGeolocatedItems}</p>
+            <p className="mt-1">{t.noGeolocatedItemsHint}</p>
+          </CardContent>
+        </Card>
       ) : (
         <TripMapView
           points={points}

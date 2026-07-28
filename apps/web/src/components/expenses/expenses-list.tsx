@@ -4,11 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, DollarSign, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { Plus, DollarSign, Pencil, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExpenseForm } from "./expense-form";
 import { deleteExpense, toggleExpensePaid } from "@/actions/expenses";
 import type { Expense } from "@/types";
@@ -30,6 +31,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const catLabels: Record<string, string> = {
     FLIGHT: t.flights,
@@ -42,7 +44,13 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
   };
 
   async function handleDelete(id: string) {
-    if (!confirm(t.locale === "es" ? "¿Eliminar este gasto?" : "Delete this expense?")) return;
+    const ok = await confirm({
+      title: t.locale === "es" ? "¿Eliminar este gasto?" : "Delete this expense?",
+      confirmLabel: t.delete,
+      cancelLabel: t.cancel,
+      destructive: true,
+    });
+    if (!ok) return;
     try { await deleteExpense(tripId, id); toast.success(t.locale === "es" ? "Eliminado" : "Deleted"); }
     catch { toast.error(t.error); }
   }
@@ -145,8 +153,10 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
                         </span>
                       )}
                     </span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(e); setOpen(true); }}>✏️</Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)}>
+                    <Button variant="ghost" size="icon-sm" onClick={() => { setEditing(e); setOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(e.id)}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </div>
@@ -165,6 +175,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
           <ExpenseForm tripId={tripId} expense={editing ?? undefined} currency={currency} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }
