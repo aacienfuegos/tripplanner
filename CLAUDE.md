@@ -76,9 +76,11 @@ npm run -w apps/web prisma migrate dev
 
 ### Autenticación local (dev)
 
-Credenciales fijas vía `apps/web/.env`:
-- Email: `admin@dev.local`
-- Password: `admin123`
+`next dev` solo carga `.env*` desde `apps/web/` (no desde la raíz del monorepo). Copiar `apps/web/.env.example` a `apps/web/.env` (gitignored) y rellenar `DATABASE_URL`, `AUTH_SECRET`, etc.
+
+El formulario "Dev Login" en `/auth/signin` se activa solo si `DEV_ADMIN_EMAIL`/`DEV_ADMIN_PASSWORD` están definidas en `apps/web/.env` (y `NODE_ENV !== "production"`). Dejar ambas vacías para desactivarlo. Valores típicos en desarrollo:
+- Email: `admin`
+- Password: `admin`
 - User ID fijo: `dev-local-user-001`
 
 El usuario dev se crea automáticamente en la DB en el primer login (`events.signIn` en `auth.ts`).
