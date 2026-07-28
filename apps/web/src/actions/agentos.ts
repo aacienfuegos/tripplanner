@@ -64,7 +64,7 @@ export async function runAgentOSImport(
         prompt: userMessage,
         model: "claude-sonnet-4-6",
         timeout_seconds: 300,
-        tools: ["WebFetch", "WebSearch"],
+        tools: [],
       }),
     });
   } catch {
