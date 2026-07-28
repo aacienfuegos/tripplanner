@@ -16,10 +16,11 @@ interface FlightFormProps {
   tripId: string;
   flight?: Flight;
   tripStartDate: Date;
+  currency: string;
   onSuccess: () => void;
 }
 
-export function FlightForm({ tripId, flight, tripStartDate, onSuccess }: FlightFormProps) {
+export function FlightForm({ tripId, flight, tripStartDate, currency, onSuccess }: FlightFormProps) {
   const { t } = useT();
   const [isPending, startTransition] = useTransition();
 
@@ -115,7 +116,7 @@ export function FlightForm({ tripId, flight, tripStartDate, onSuccess }: FlightF
           <Input id="bookingRef" name="bookingRef" placeholder="ABC123" defaultValue={flight?.bookingRef ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="price">{t.price} (€)</Label>
+          <Label htmlFor="price">{t.price} ({currency})</Label>
           <Input id="price" name="price" type="number" step="0.01" defaultValue={flight?.price ?? ""} />
         </div>
       </div>

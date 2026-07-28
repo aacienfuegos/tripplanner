@@ -30,7 +30,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ tri
         icon={<Star className="h-5 w-5" />}
         counts={counts}
       />
-      <ActivitiesList tripId={trip.id} activities={trip.activities} tripStartDate={trip.startDate} />
+      <ActivitiesList tripId={trip.id} activities={trip.activities} tripStartDate={trip.startDate} currency={trip.currency} />
     </div>
   );
 }

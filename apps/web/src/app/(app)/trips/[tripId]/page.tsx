@@ -16,6 +16,7 @@ import { TripStatusBadge } from "@/components/trips/trip-status-badge";
 import { TripNav } from "@/components/trips/trip-nav";
 import { ImportTrigger } from "@/components/import/ImportTrigger";
 import { getT } from "@/lib/locale";
+import { formatCurrency } from "@/lib/currency";
 import type { Flight, Accommodation, Activity } from "@prisma/client";
 
 // ─── Timeline types ──────────────────────────────────────────────────────────
@@ -247,13 +248,12 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               {trip.budget ? t.statsSpent : t.statsExpenses}
             </p>
             <p className="text-3xl font-bold leading-none">
-              {totalExpenses.toLocaleString(t.dateLocale, { maximumFractionDigits: 0 })}
-              <span className="text-xs font-normal text-muted-foreground ml-1.5">{trip.currency}</span>
+              {formatCurrency(totalExpenses, trip.currency, t.dateLocale, { maximumFractionDigits: 0 })}
             </p>
             {trip.budget && (
               <>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t.locale === "es" ? "de" : "of"} {trip.budget.toLocaleString(t.dateLocale, { maximumFractionDigits: 0 })} {trip.currency}
+                  {t.locale === "es" ? "de" : "of"} {formatCurrency(trip.budget, trip.currency, t.dateLocale, { maximumFractionDigits: 0 })}
                 </p>
                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                   <div

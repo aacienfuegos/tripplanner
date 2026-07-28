@@ -14,8 +14,9 @@ import { deleteAccommodation } from "@/actions/accommodations";
 import type { Accommodation } from "@/types";
 import { cn } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/currency";
 
-export function AccommodationsList({ tripId, accommodations, tripStartDate }: { tripId: string; accommodations: Accommodation[]; tripStartDate: Date }) {
+export function AccommodationsList({ tripId, accommodations, tripStartDate, currency }: { tripId: string; accommodations: Accommodation[]; tripStartDate: Date; currency: string }) {
   const { t } = useT();
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
@@ -64,8 +65,8 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate }: { 
                               {nights} {t.locale === "es" ? `noche${nights !== 1 ? "s" : ""}` : `night${nights !== 1 ? "s" : ""}`}
                             </>
                           )}
-                          {a.pricePerNight && ` · ${a.pricePerNight}€/${t.locale === "es" ? "noche" : "night"}`}
-                          {a.price && ` · ${t.locale === "es" ? "Total" : "Total"}: ${a.price}€`}
+                          {a.pricePerNight && ` · ${formatCurrency(a.pricePerNight, currency, t.dateLocale)}/${t.locale === "es" ? "noche" : "night"}`}
+                          {a.price && ` · ${t.locale === "es" ? "Total" : "Total"}: ${formatCurrency(a.price, currency, t.dateLocale)}`}
                         </p>
                         {a.address && <p>{a.address}</p>}
                         {a.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{a.bookingRef}</span></p>}
@@ -111,7 +112,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate }: { 
           <DialogHeader>
             <DialogTitle>{editing ? t.editAccommodation : t.addAccommodation}</DialogTitle>
           </DialogHeader>
-          <AccommodationForm tripId={tripId} accommodation={editing ?? undefined} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
+          <AccommodationForm tripId={tripId} accommodation={editing ?? undefined} tripStartDate={tripStartDate} currency={currency} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

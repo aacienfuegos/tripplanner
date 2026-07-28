@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Star, Trash2, ExternalLink, MapPin } from "lucide-react";
+import { Plus, Star, Trash2, ExternalLink, MapPin, Banknote } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +14,14 @@ import { deleteActivity, updateActivityStatus } from "@/actions/activities";
 import type { Activity, BookingStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/currency";
 
 const statusVariants: Record<BookingStatus, "default" | "secondary" | "outline" | "destructive"> = {
   PENDING: "secondary", RESERVED: "default", CONFIRMED: "default", CANCELLED: "destructive",
 };
 const statusCycle: BookingStatus[] = ["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"];
 
-export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: string; activities: Activity[]; tripStartDate: Date }) {
+export function ActivitiesList({ tripId, activities, tripStartDate, currency }: { tripId: string; activities: Activity[]; tripStartDate: Date; currency: string }) {
   const { t } = useT();
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
@@ -88,7 +89,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: 
                       {act.scheduledAt && <p>{format(act.scheduledAt, "d MMM yyyy, HH:mm", { locale: dfLocale })}</p>}
                       {act.location && <p>📍 {act.location}{act.city && `, ${act.city}`}</p>}
                       {act.duration && <p>⏱ {act.duration} min</p>}
-                      {act.price && <p>💶 {act.price}€</p>}
+                      {act.price && <p className="flex items-center gap-1"><Banknote className="h-3 w-3" /> {formatCurrency(act.price, currency, t.dateLocale)}</p>}
                       {act.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{act.bookingRef}</span></p>}
                       {act.description && <p className="italic">{act.description}</p>}
                     </div>
@@ -132,7 +133,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate }: { tripId: 
           <DialogHeader>
             <DialogTitle>{editing ? t.editActivity : t.addActivity}</DialogTitle>
           </DialogHeader>
-          <ActivityForm tripId={tripId} activity={editing ?? undefined} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
+          <ActivityForm tripId={tripId} activity={editing ?? undefined} tripStartDate={tripStartDate} currency={currency} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

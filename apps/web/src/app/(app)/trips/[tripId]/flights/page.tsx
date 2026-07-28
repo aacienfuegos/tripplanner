@@ -30,7 +30,7 @@ export default async function FlightsPage({ params }: { params: Promise<{ tripId
         icon={<Plane className="h-5 w-5" />}
         counts={counts}
       />
-      <FlightsList tripId={trip.id} flights={trip.flights} tripStartDate={trip.startDate} />
+      <FlightsList tripId={trip.id} flights={trip.flights} tripStartDate={trip.startDate} currency={trip.currency} />
     </div>
   );
 }
