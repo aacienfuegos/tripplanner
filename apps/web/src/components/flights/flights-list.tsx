@@ -13,7 +13,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FlightForm } from "./flight-form";
 import { deleteFlight } from "@/actions/flights";
 import type { Flight } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/currency";
 
@@ -75,7 +75,7 @@ export function FlightsList({ tripId, flights, tripStartDate, currency }: { trip
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {flight.confirmationUrl && (
+                    {flight.confirmationUrl && isHttpUrl(flight.confirmationUrl) && (
                       <a
                         href={flight.confirmationUrl}
                         target="_blank"

@@ -42,7 +42,7 @@ export async function updateTrip(tripId: string, formData: FormData) {
   const data = tripSchema.parse(raw);
 
   await prisma.trip.update({
-    where: { id: tripId },
+    where: { id: tripId, userId },
     data: {
       name: data.name,
       description: data.description,
@@ -62,7 +62,7 @@ export async function deleteTrip(tripId: string) {
   const userId = await requireUser();
   await assertTripOwner(tripId, userId);
 
-  await prisma.trip.delete({ where: { id: tripId } });
+  await prisma.trip.delete({ where: { id: tripId, userId } });
   revalidatePath("/trips");
   redirect("/trips");
 }
@@ -73,7 +73,7 @@ export async function updateTripStatus(tripId: string, status: string) {
   const parsed = tripStatusSchema.parse(status);
 
   await prisma.trip.update({
-    where: { id: tripId },
+    where: { id: tripId, userId },
     data: { status: parsed },
   });
   revalidatePath(`/trips/${tripId}`);

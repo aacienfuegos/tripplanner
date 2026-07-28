@@ -13,7 +13,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AccommodationForm } from "./accommodation-form";
 import { deleteAccommodation } from "@/actions/accommodations";
 import type { Accommodation } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/currency";
 
@@ -92,7 +92,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
                           <MapPin className="h-4 w-4 text-blue-500" />
                         </a>
                       )}
-                      {a.confirmationUrl && (
+                      {a.confirmationUrl && isHttpUrl(a.confirmationUrl) && (
                         <a
                           href={a.confirmationUrl}
                           target="_blank"

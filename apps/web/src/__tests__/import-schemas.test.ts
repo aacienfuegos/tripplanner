@@ -53,6 +53,21 @@ describe("importFlightSchema", () => {
     expect(importFlightSchema.safeParse({ ...valid, class: "FIRST_CLASS" }).success).toBe(false);
   });
 
+  it("accepts a valid https confirmationUrl", () => {
+    const result = importFlightSchema.safeParse({ ...valid, confirmationUrl: "https://iberia.com/booking/123" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects javascript: URI for confirmationUrl (XSS)", () => {
+    const result = importFlightSchema.safeParse({ ...valid, confirmationUrl: "javascript:alert(document.cookie)" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects data: URI for confirmationUrl (XSS)", () => {
+    const result = importFlightSchema.safeParse({ ...valid, confirmationUrl: "data:text/html,<script>alert(1)</script>" });
+    expect(result.success).toBe(false);
+  });
+
   it("accepts all valid class values", () => {
     for (const cls of ["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"] as const) {
       expect(importFlightSchema.safeParse({ ...valid, class: cls }).success).toBe(true);
@@ -84,6 +99,11 @@ describe("importAccommodationSchema", () => {
   it("rejects missing city", () => {
     const { city: _c, ...without } = valid;
     expect(importAccommodationSchema.safeParse(without).success).toBe(false);
+  });
+
+  it("rejects javascript: URI for confirmationUrl (XSS)", () => {
+    const result = importAccommodationSchema.safeParse({ ...valid, confirmationUrl: "javascript:alert(1)" });
+    expect(result.success).toBe(false);
   });
 });
 

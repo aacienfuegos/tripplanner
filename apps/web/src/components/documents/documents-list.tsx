@@ -13,7 +13,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DocumentForm } from "./document-form";
 import { deleteDocument } from "@/actions/documents";
 import type { Document } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -88,7 +88,7 @@ export function DocumentsList({ tripId, documents }: { tripId: string; documents
                       {doc.notes && <p className="text-sm text-muted-foreground">{doc.notes}</p>}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {doc.fileUrl && (
+                      {doc.fileUrl && isHttpUrl(doc.fileUrl) && (
                         <a
                           href={doc.fileUrl}
                           target="_blank"
