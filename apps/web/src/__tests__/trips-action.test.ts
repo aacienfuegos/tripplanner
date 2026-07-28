@@ -17,6 +17,7 @@ vi.mock("@/lib/auth", () => ({
 const findUnique = vi.fn();
 const update = vi.fn();
 const del = vi.fn();
+const userFindUnique = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -24,6 +25,9 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: (...args: unknown[]) => findUnique(...args),
       update: (...args: unknown[]) => update(...args),
       delete: (...args: unknown[]) => del(...args),
+    },
+    user: {
+      findUnique: (...args: unknown[]) => userFindUnique(...args),
     },
   },
 }));
@@ -37,6 +41,8 @@ vi.mock("@/lib/prisma", () => ({
 describe("updateTrip / deleteTrip / updateTripStatus — userId in where", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // requireUser()'s status revalidation (#177) passes — user isn't DENIED.
+    userFindUnique.mockResolvedValue({ status: "APPROVED" });
     // Trip belongs to the authenticated user — ownership check passes.
     findUnique.mockResolvedValue({ userId: "user-attacker" });
   });
