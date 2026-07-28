@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
-import { TripMapView, type MapPoint } from "@/components/map/TripMapView";
-import { geocodeAccommodation, geocodeActivity } from "@/lib/geocode-items";
+import { TripMapView, type MapPoint, type FlightSegment } from "@/components/map/TripMapView";
+import { geocodeAccommodation, geocodeActivity, geocodeFlight } from "@/lib/geocode-items";
 import { MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
@@ -19,19 +19,33 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
   const [session, t] = await Promise.all([auth(), getT()]);
   const dateFnsLocale = t.locale === "es" ? es : enUS;
 
-  const trip = await prisma.trip.findUnique({
-    where: { id: tripId },
-    include: {
-      accommodations: {
-        select: { id: true, name: true, city: true, address: true, checkIn: true, latitude: true, longitude: true },
-        orderBy: { checkIn: "asc" },
-      },
-      activities: {
-        select: { id: true, name: true, city: true, location: true, scheduledAt: true, latitude: true, longitude: true },
-        orderBy: { scheduledAt: "asc" },
-      },
+  const tripInclude = {
+    accommodations: {
+      select: { id: true, name: true, city: true, address: true, checkIn: true, latitude: true, longitude: true },
+      orderBy: { checkIn: "asc" },
     },
-  });
+    activities: {
+      select: { id: true, name: true, city: true, location: true, scheduledAt: true, latitude: true, longitude: true },
+      orderBy: { scheduledAt: "asc" },
+    },
+    flights: {
+      select: {
+        id: true,
+        airline: true,
+        flightNumber: true,
+        origin: true,
+        destination: true,
+        originLat: true,
+        originLng: true,
+        destinationLat: true,
+        destinationLng: true,
+        departureAt: true,
+      },
+      orderBy: { departureAt: "asc" },
+    },
+  } as const;
+
+  const trip = await prisma.trip.findUnique({ where: { id: tripId }, include: tripInclude });
 
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
@@ -46,25 +60,19 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
       pending.push(geocodeActivity(a.id));
     }
   }
+  for (const f of trip.flights) {
+    if ((f.originLat === null || f.destinationLat === null) && pending.length < BACKFILL_LIMIT) {
+      pending.push(geocodeFlight(f.id));
+    }
+  }
 
   if (pending.length > 0) {
     await Promise.all(pending);
-    const refreshed = await prisma.trip.findUnique({
-      where: { id: tripId },
-      include: {
-        accommodations: {
-          select: { id: true, name: true, city: true, address: true, checkIn: true, latitude: true, longitude: true },
-          orderBy: { checkIn: "asc" },
-        },
-        activities: {
-          select: { id: true, name: true, city: true, location: true, scheduledAt: true, latitude: true, longitude: true },
-          orderBy: { scheduledAt: "asc" },
-        },
-      },
-    });
+    const refreshed = await prisma.trip.findUnique({ where: { id: tripId }, include: tripInclude });
     if (refreshed) {
       trip.accommodations = refreshed.accommodations;
       trip.activities = refreshed.activities;
+      trip.flights = refreshed.flights;
     }
   }
 
@@ -100,9 +108,27 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
     });
   }
 
+  const flightSegments: FlightSegment[] = [];
+  for (const f of trip.flights) {
+    if (f.originLat === null || f.originLng === null || f.destinationLat === null || f.destinationLng === null) continue;
+    flightSegments.push({
+      id: f.id,
+      originName: f.origin,
+      destinationName: f.destination,
+      originLat: f.originLat,
+      originLng: f.originLng,
+      destinationLat: f.destinationLat,
+      destinationLng: f.destinationLng,
+      label: [f.airline, f.flightNumber].filter(Boolean).join(" "),
+      dateLabel: f.departureAt ? format(f.departureAt, "d MMM HH:mm", { locale: dateFnsLocale }) : null,
+      detailHref: `/trips/${trip.id}/flights#${f.id}`,
+    });
+  }
+
   const missing =
     trip.accommodations.filter((a) => a.latitude === null).length +
-    trip.activities.filter((a) => a.latitude === null && (a.location || a.city)).length;
+    trip.activities.filter((a) => a.latitude === null && (a.location || a.city)).length +
+    trip.flights.filter((f) => f.originLat === null || f.destinationLat === null).length;
 
   const counts = await getTripNavCounts(trip.id);
 
@@ -110,7 +136,7 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
     <div className="space-y-6">
       <SectionHeader tripId={trip.id} tripName={trip.name} title={t.sectionMap} icon={<MapPin className="h-5 w-5" />} counts={counts} />
 
-      {points.length === 0 ? (
+      {points.length === 0 && flightSegments.length === 0 ? (
         <div className="border border-dashed rounded-lg p-10 text-center text-sm text-muted-foreground">
           <MapPin className="h-8 w-8 mx-auto mb-3 opacity-40" />
           <p>{t.noGeolocatedItems}</p>
@@ -119,8 +145,9 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
       ) : (
         <TripMapView
           points={points}
+          flights={flightSegments}
           pendingLabel={missing > 0 ? t.pendingGeolocation(missing) : null}
-          labels={{ accommodation: t.accommodations, activity: t.activities, viewDetail: t.viewDetail }}
+          labels={{ accommodation: t.accommodations, activity: t.activities, flight: t.flights, viewDetail: t.viewDetail }}
         />
       )}
     </div>

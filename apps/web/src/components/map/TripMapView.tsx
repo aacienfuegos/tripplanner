@@ -15,9 +15,23 @@ export type MapPoint = {
   readonly detailHref: string;
 };
 
+export type FlightSegment = {
+  readonly id: string;
+  readonly originName: string;
+  readonly destinationName: string;
+  readonly originLat: number;
+  readonly originLng: number;
+  readonly destinationLat: number;
+  readonly destinationLng: number;
+  readonly label: string;
+  readonly dateLabel: string | null;
+  readonly detailHref: string;
+};
+
 export type MapLabels = {
   readonly accommodation: string;
   readonly activity: string;
+  readonly flight: string;
   readonly viewDetail: string;
 };
 
@@ -30,16 +44,18 @@ const TripMap = dynamic(() => import("./TripMap").then((m) => m.TripMap), {
 
 export function TripMapView({
   points,
+  flights,
   pendingLabel,
   labels,
 }: {
   points: readonly MapPoint[];
+  flights: readonly FlightSegment[];
   pendingLabel: string | null;
   labels: MapLabels;
 }) {
   return (
     <div className="space-y-2">
-      <TripMap points={points} labels={labels} />
+      <TripMap points={points} flights={flights} labels={labels} />
       {pendingLabel && <p className="text-xs text-muted-foreground">{pendingLabel}</p>}
     </div>
   );

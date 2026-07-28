@@ -127,6 +127,10 @@ model Flight {
   flightNumber   String?
   origin         String
   destination    String
+  originLat      Float?
+  originLng      Float?
+  destinationLat Float?
+  destinationLng Float?
   departureAt    DateTime?
   arrivalAt      DateTime?
   bookingRef     String?
