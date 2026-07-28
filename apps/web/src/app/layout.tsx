@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/layout/theme-provider";
@@ -11,11 +12,13 @@ export const metadata: Metadata = {
   description: "Organiza tus viajes: vuelos, hoteles, actividades y más",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="es" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full bg-background text-foreground" suppressHydrationWarning>
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           {children}
           <Toaster richColors position="top-right" />
         </ThemeProvider>
