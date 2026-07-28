@@ -18,7 +18,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.aacienfuegos.tripplanner"
+      "package": "com.aacienfuegos.tripplanner",
+      "allowBackup": false
     },
     "plugins": [
       "expo-router",
