@@ -313,4 +313,164 @@ export const en: WebTKeys = {
   pendingGeolocation: (n: number) =>
     `${n} item${n === 1 ? "" : "s"} not located yet. Geolocation completes progressively; reopen the map in a few seconds.`,
   viewDetail: "View details",
+
+  // --- Trip stats (dashboard / detail) ---
+  totalTripsLabel: "Total trips",
+  tripsRegisteredCount: (n: number) => `You have ${n} ${n === 1 ? "trip" : "trips"} registered`,
+  inXDays: (n: number) => `In ${n} days`,
+  accomAbbrev: "accom.",
+  activAbbrev: "activ.",
+  viewTripBtn: "View trip",
+  upcomingFlightsTitle: "Upcoming flights",
+  noUpcomingFlights: "No upcoming flights.",
+  upcomingAccommodationsTitle: "Upcoming accommodations",
+  noUpcomingAccommodations: "No upcoming accommodations.",
+  daysUntilLabel: "In",
+  daysAgoLabel: "Ago",
+  ofLabel: "of",
+  noneAddedLabel: "none added",
+  allBookedLabel: "all booked",
+
+  // --- Shared category/type labels ---
+  otherLabel: "Other",
+  transportLabel: "Transport",
+  viewOnGoogleMaps: "View on Google Maps",
+
+  // --- Accommodations list ---
+  nightsLabel: (n: number) => `${n} night${n !== 1 ? "s" : ""}`,
+  perNightLabel: "night",
+  totalLabel: "Total",
+  confirmDeleteAccommodation: "Delete this accommodation?",
+  deletedToastAccommodation: "Deleted",
+
+  // --- Activities list ---
+  activityTypeActivity: "Activity",
+  activityTypeRestaurant: "Restaurant",
+  activityTypeMuseum: "Museum",
+  activityTypeTour: "Tour",
+  activityTypeShow: "Show",
+  confirmDeleteActivity: "Delete this activity?",
+  deletedToastActivity: "Deleted",
+
+  // --- Documents list ---
+  documentTypePassport: "Passport",
+  documentTypeVisa: "Visa",
+  documentTypeInsurance: "Insurance",
+  documentTypeTicket: "Ticket",
+  documentTypeVoucher: "Voucher",
+  confirmDeleteDocument: "Delete this document?",
+  deletedToastDocument: "Deleted",
+
+  // --- Expenses list ---
+  remainingBudgetLabel: "Remaining budget",
+  expenseCategoryFood: "Food",
+  expenseCategoryShopping: "Shopping",
+  confirmDeleteExpense: "Delete this expense?",
+  deletedToastExpense: "Deleted",
+
+  // --- Flights list ---
+  confirmDeleteFlight: "Delete this flight?",
+  flightDeletedToast: "Flight deleted",
+
+  // --- Packing list ---
+  packingPresetCategories: [
+    "Documents", "Clothing", "Footwear", "Toiletries", "Medication",
+    "Electronics", "Accessories", "Entertainment", "Food & drinks",
+  ] as string[],
+  addDefaultListBtn: "Add default list",
+  defaultListAddedToast: "Default list added",
+  enterCategoryError: "Enter a category",
+  itemLabel: "Item",
+  itemNamePlaceholder: "Item name",
+  categoryNamePlaceholder: "Category name",
+  packedCountSuffix: (n: number) => (n === 1 ? "packed" : "packed"),
+
+  // --- Tasks list ---
+  confirmDeleteTask: "Delete this task?",
+  taskDeletedToast: "Task deleted",
+  completedCountLabel: (n: number) => `Completed (${n})`,
+
+  // --- Trip form ---
+  tripNamePlaceholder: "e.g. Japan 2025",
+
+  // --- Flight class ---
+  flightClassEconomy: "Economy",
+  flightClassPremiumEconomy: "Premium Economy",
+  flightClassBusiness: "Business",
+
+  // --- Theme toggle ---
+  themeLabel: "Theme",
+  themeLight: "Light",
+  themeDark: "Dark",
+  themeSystem: "System",
+
+  // --- Misc shared ---
+  or: "or",
+
+  // --- Admin ---
+  adminPanelSubtitle: "Manage access to TripPlanner",
+  registrationModeTitle: "Registration mode",
+  registrationModeDesc: "Control who can register in the app",
+  registrationOpenLabel: "Registration open",
+  registrationRestrictedLabel: "Registration restricted",
+  activeLabel: "Active",
+  closeRegistrationBtn: "Close registration",
+  openRegistrationBtn: "Open registration",
+  registrationOpenHint: "Anyone who signs in will get access automatically.",
+  registrationRestrictedHint: "New users remain pending until you approve them manually.",
+  pendingRequestsTitle: "Pending requests",
+  pendingRequestsDesc: "Users waiting for approval",
+  noPendingRequests: "No pending requests",
+  noNameLabel: "No name",
+  approveBtn: "Approve",
+  denyBtn: "Deny",
+  approvedUsersTitle: "Approved users",
+  approvedUsersDesc: "Users with active access",
+  noApprovedUsers: "No approved users yet",
+  revokeBtn: "Revoke",
+  deniedUsersTitle: "Denied users",
+  deniedUsersDesc: "Users with blocked access",
+  restoreBtn: "Restore",
+
+  // --- Profile ---
+  profileSubtitle: "Your account and preferences",
+  userLabel: "User",
+  tripsCountLabel: (n: number) => `Trip${n !== 1 ? "s" : ""}`,
+  memberSinceLabel: "Member since",
+  adminLabel: "Admin",
+  profileUpdatedToast: "Profile updated",
+  profileErrorSavingToast: "Error saving profile",
+  editProfileTitle: "Edit profile",
+  editProfileDesc: "Update your name and profile photo",
+  fullNamePlaceholder: "Your full name",
+  photoUrlLabel: "Photo URL",
+  photoUrlPlaceholder: "https://example.com/photo.jpg",
+
+  // --- Onboarding ---
+  yourNameLabel: "Your name",
+  nameQuestionPlaceholder: "What should we call you?",
+  profilePhotoLabel: "Profile photo",
+  startPlanningBtn: "Start planning",
+  welcomeTitle: "Welcome to TripPlanner!",
+  welcomeSubtitle: "Before we start, tell us your name.",
+  completeProfileTitle: "Complete your profile",
+  completeProfileDesc: "We just need your name to personalize the experience.",
+
+  // --- Auth (extended) ---
+  pendingApprovalTitle: "Access pending approval",
+  pendingApprovalDesc: "Your request has been received. The admin will review it shortly.",
+  pendingCheckHint: "If you've already been approved, click Check to verify.",
+  checkAccessBtn: "Check access",
+  authErrorConfig: "Server configuration error.",
+  authErrorAccessDenied: "Access denied.",
+  authErrorVerification: "The verification link has expired.",
+  authErrorDefault: "An error occurred while signing in.",
+  authErrorTitle: "Authentication error",
+  backToSignInBtn: "Back to sign in",
+  signInSubtitle: "Sign in to manage your trips",
+  continueWithGoogle: "Continue with Google",
+  continueWithGithub: "Continue with GitHub",
+  sendMagicLinkBtn: "Send access link",
+  enterBtn: "Enter",
+  devModeLabel: "🛠 Local dev mode",
 };

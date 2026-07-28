@@ -311,6 +311,166 @@ export const es = {
   pendingGeolocation: (n: number) =>
     `${n} elemento${n === 1 ? "" : "s"} sin ubicar todavía. La geolocalización se completa de forma progresiva; vuelve a abrir el mapa en unos segundos.`,
   viewDetail: "Ver detalle",
+
+  // --- Trip stats (dashboard / detail) ---
+  totalTripsLabel: "Total viajes",
+  tripsRegisteredCount: (n: number) => `Tienes ${n} viaje${n > 1 ? "s" : ""} registrado${n > 1 ? "s" : ""}`,
+  inXDays: (n: number) => `En ${n} días`,
+  accomAbbrev: "aloj.",
+  activAbbrev: "activ.",
+  viewTripBtn: "Ver viaje",
+  upcomingFlightsTitle: "Próximos vuelos",
+  noUpcomingFlights: "No hay vuelos próximos.",
+  upcomingAccommodationsTitle: "Próximos alojamientos",
+  noUpcomingAccommodations: "No hay alojamientos próximos.",
+  daysUntilLabel: "Faltan",
+  daysAgoLabel: "Hace",
+  ofLabel: "de",
+  noneAddedLabel: "sin añadir",
+  allBookedLabel: "todo reservado",
+
+  // --- Shared category/type labels ---
+  otherLabel: "Otro",
+  transportLabel: "Transporte",
+  viewOnGoogleMaps: "Ver en Google Maps",
+
+  // --- Accommodations list ---
+  nightsLabel: (n: number) => `${n} noche${n !== 1 ? "s" : ""}`,
+  perNightLabel: "noche",
+  totalLabel: "Total",
+  confirmDeleteAccommodation: "¿Eliminar este alojamiento?",
+  deletedToastAccommodation: "Eliminado",
+
+  // --- Activities list ---
+  activityTypeActivity: "Actividad",
+  activityTypeRestaurant: "Restaurante",
+  activityTypeMuseum: "Museo",
+  activityTypeTour: "Tour",
+  activityTypeShow: "Espectáculo",
+  confirmDeleteActivity: "¿Eliminar esta actividad?",
+  deletedToastActivity: "Eliminada",
+
+  // --- Documents list ---
+  documentTypePassport: "Pasaporte",
+  documentTypeVisa: "Visado",
+  documentTypeInsurance: "Seguro",
+  documentTypeTicket: "Billete",
+  documentTypeVoucher: "Voucher",
+  confirmDeleteDocument: "¿Eliminar este documento?",
+  deletedToastDocument: "Eliminado",
+
+  // --- Expenses list ---
+  remainingBudgetLabel: "Presupuesto restante",
+  expenseCategoryFood: "Comida",
+  expenseCategoryShopping: "Compras",
+  confirmDeleteExpense: "¿Eliminar este gasto?",
+  deletedToastExpense: "Eliminado",
+
+  // --- Flights list ---
+  confirmDeleteFlight: "¿Eliminar este vuelo?",
+  flightDeletedToast: "Vuelo eliminado",
+
+  // --- Packing list ---
+  packingPresetCategories: [
+    "Documentos", "Ropa", "Calzado", "Higiene", "Medicamentos",
+    "Electrónica", "Accesorios", "Entretenimiento", "Comida y bebida",
+  ] as string[],
+  addDefaultListBtn: "Añadir lista base",
+  defaultListAddedToast: "Lista base añadida",
+  enterCategoryError: "Indica una categoría",
+  itemLabel: "Item",
+  itemNamePlaceholder: "Nombre del item",
+  categoryNamePlaceholder: "Nombre de categoría",
+  packedCountSuffix: (n: number) => `empaquetado${n !== 1 ? "s" : ""}`,
+
+  // --- Tasks list ---
+  confirmDeleteTask: "¿Eliminar esta tarea?",
+  taskDeletedToast: "Tarea eliminada",
+  completedCountLabel: (n: number) => `Completadas (${n})`,
+
+  // --- Trip form ---
+  tripNamePlaceholder: "ej. Japón 2025",
+
+  // --- Flight class ---
+  flightClassEconomy: "Turista",
+  flightClassPremiumEconomy: "Turista Premium",
+  flightClassBusiness: "Ejecutiva",
+
+  // --- Theme toggle ---
+  themeLabel: "Tema",
+  themeLight: "Claro",
+  themeDark: "Oscuro",
+  themeSystem: "Sistema",
+
+  // --- Misc shared ---
+  or: "o",
+
+  // --- Admin ---
+  adminPanelSubtitle: "Gestiona el acceso a TripPlanner",
+  registrationModeTitle: "Modo de registro",
+  registrationModeDesc: "Controla quién puede registrarse en la aplicación",
+  registrationOpenLabel: "Registro abierto",
+  registrationRestrictedLabel: "Registro restringido",
+  activeLabel: "Activo",
+  closeRegistrationBtn: "Cerrar registro",
+  openRegistrationBtn: "Abrir registro",
+  registrationOpenHint: "Cualquier persona que inicie sesión obtendrá acceso automáticamente.",
+  registrationRestrictedHint: "Los nuevos usuarios quedan pendientes hasta que los apruebes manualmente.",
+  pendingRequestsTitle: "Solicitudes pendientes",
+  pendingRequestsDesc: "Usuarios que esperan aprobación",
+  noPendingRequests: "No hay solicitudes pendientes",
+  noNameLabel: "Sin nombre",
+  approveBtn: "Aprobar",
+  denyBtn: "Denegar",
+  approvedUsersTitle: "Usuarios aprobados",
+  approvedUsersDesc: "Usuarios con acceso activo",
+  noApprovedUsers: "Ningún usuario aprobado todavía",
+  revokeBtn: "Revocar",
+  deniedUsersTitle: "Usuarios denegados",
+  deniedUsersDesc: "Usuarios con acceso bloqueado",
+  restoreBtn: "Restaurar",
+
+  // --- Profile ---
+  profileSubtitle: "Tu cuenta y preferencias",
+  userLabel: "Usuario",
+  tripsCountLabel: (n: number) => `Viaje${n !== 1 ? "s" : ""}`,
+  memberSinceLabel: "Miembro desde",
+  adminLabel: "Admin",
+  profileUpdatedToast: "Perfil actualizado",
+  profileErrorSavingToast: "Error al guardar el perfil",
+  editProfileTitle: "Editar perfil",
+  editProfileDesc: "Actualiza tu nombre y foto de perfil",
+  fullNamePlaceholder: "Tu nombre completo",
+  photoUrlLabel: "URL de foto",
+  photoUrlPlaceholder: "https://ejemplo.com/foto.jpg",
+
+  // --- Onboarding ---
+  yourNameLabel: "Tu nombre",
+  nameQuestionPlaceholder: "¿Cómo te llamamos?",
+  profilePhotoLabel: "Foto de perfil",
+  startPlanningBtn: "Empezar a planificar",
+  welcomeTitle: "¡Bienvenido a TripPlanner!",
+  welcomeSubtitle: "Antes de empezar, cuéntanos cómo te llamas.",
+  completeProfileTitle: "Completa tu perfil",
+  completeProfileDesc: "Solo necesitamos tu nombre para personalizar la experiencia.",
+
+  // --- Auth (extended) ---
+  pendingApprovalTitle: "Acceso pendiente de aprobación",
+  pendingApprovalDesc: "Tu solicitud ha sido recibida. El administrador la revisará en breve.",
+  pendingCheckHint: "Si ya te han aprobado, haz clic en Verificar para comprobarlo.",
+  checkAccessBtn: "Verificar acceso",
+  authErrorConfig: "Error de configuración del servidor.",
+  authErrorAccessDenied: "Acceso denegado.",
+  authErrorVerification: "El enlace de verificación ha expirado.",
+  authErrorDefault: "Se produjo un error al iniciar sesión.",
+  authErrorTitle: "Error de autenticación",
+  backToSignInBtn: "Volver al inicio de sesión",
+  signInSubtitle: "Inicia sesión para gestionar tus viajes",
+  continueWithGoogle: "Continuar con Google",
+  continueWithGithub: "Continuar con GitHub",
+  sendMagicLinkBtn: "Enviar enlace de acceso",
+  enterBtn: "Entrar",
+  devModeLabel: "🛠 Modo dev local",
 };
 
 export type WebTKeys = typeof es;

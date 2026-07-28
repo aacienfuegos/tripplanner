@@ -28,23 +28,23 @@ export function DocumentsList({ tripId, documents }: { tripId: string; documents
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const typeLabels: Record<string, string> = {
-    PASSPORT: t.locale === "es" ? "Pasaporte" : "Passport",
-    VISA: t.locale === "es" ? "Visado" : "Visa",
-    INSURANCE: t.locale === "es" ? "Seguro" : "Insurance",
-    TICKET: t.locale === "es" ? "Billete" : "Ticket",
-    VOUCHER: "Voucher",
-    OTHER: t.locale === "es" ? "Otro" : "Other",
+    PASSPORT: t.documentTypePassport,
+    VISA: t.documentTypeVisa,
+    INSURANCE: t.documentTypeInsurance,
+    TICKET: t.documentTypeTicket,
+    VOUCHER: t.documentTypeVoucher,
+    OTHER: t.otherLabel,
   };
 
   async function handleDelete(id: string) {
     const ok = await confirm({
-      title: t.locale === "es" ? "¿Eliminar este documento?" : "Delete this document?",
+      title: t.confirmDeleteDocument,
       confirmLabel: t.delete,
       cancelLabel: t.cancel,
       destructive: true,
     });
     if (!ok) return;
-    try { await deleteDocument(tripId, id); toast.success(t.locale === "es" ? "Eliminado" : "Deleted"); }
+    try { await deleteDocument(tripId, id); toast.success(t.deletedToastDocument); }
     catch { toast.error(t.error); }
   }
 

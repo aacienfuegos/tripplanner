@@ -59,11 +59,7 @@ export default async function DashboardPage() {
             {firstName ? `${t.dashboardTitle}, ${firstName} 👋` : `${t.dashboardTitle} 👋`}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {stats.total === 0
-              ? t.noTripsYetHint
-              : t.locale === "es"
-                ? `Tienes ${stats.total} viaje${stats.total > 1 ? "s" : ""} registrado${stats.total > 1 ? "s" : ""}`
-                : `You have ${stats.total} ${stats.total === 1 ? "trip" : "trips"} registered`}
+            {stats.total === 0 ? t.noTripsYetHint : t.tripsRegisteredCount(stats.total)}
           </p>
         </div>
         <Link href="/trips/new" className={buttonVariants()}>
@@ -77,7 +73,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              {t.locale === "es" ? "Total viajes" : "Total trips"}
+              {t.totalTripsLabel}
             </CardTitle>
             <Plane className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -121,7 +117,7 @@ export default async function DashboardPage() {
                       {format(trip.endDate, "d MMM yyyy", { locale: dfLocale })}
                       {!activeTrip && daysUntil > 0 && (
                         <Badge variant="secondary" className="ml-2">
-                          {t.locale === "es" ? `En ${daysUntil} días` : `In ${daysUntil} days`}
+                          {t.inXDays(daysUntil)}
                         </Badge>
                       )}
                     </p>
@@ -138,11 +134,11 @@ export default async function DashboardPage() {
                       </Link>
                       <Link href={`/trips/${trip.id}/accommodations`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
                         <Hotel className="h-3 w-3" />
-                        {trip._count.accommodations} {t.locale === "es" ? "aloj." : "accom."}
+                        {trip._count.accommodations} {t.accomAbbrev}
                       </Link>
                       <Link href={`/trips/${trip.id}/activities`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
                         <Star className="h-3 w-3" />
-                        {trip._count.activities} {t.locale === "es" ? "activ." : "activ."}
+                        {trip._count.activities} {t.activAbbrev}
                       </Link>
                     </div>
                   </div>
@@ -150,7 +146,7 @@ export default async function DashboardPage() {
                     href={`/trips/${trip.id}`}
                     className={buttonVariants({ variant: "outline", size: "sm" })}
                   >
-                    {t.locale === "es" ? "Ver viaje" : "View trip"}
+                    {t.viewTripBtn}
                   </Link>
                 </div>
               );
@@ -163,14 +159,14 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">
-              {t.locale === "es" ? "Próximos vuelos" : "Upcoming flights"}
+              {t.upcomingFlightsTitle}
             </CardTitle>
             <Plane className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {upcomingFlights.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                {t.locale === "es" ? "No hay vuelos próximos." : "No upcoming flights."}
+                {t.noUpcomingFlights}
               </p>
             ) : (
               <div className="space-y-3">
@@ -195,14 +191,14 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">
-              {t.locale === "es" ? "Próximos alojamientos" : "Upcoming accommodations"}
+              {t.upcomingAccommodationsTitle}
             </CardTitle>
             <Hotel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {upcomingAccommodations.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                {t.locale === "es" ? "No hay alojamientos próximos." : "No upcoming accommodations."}
+                {t.noUpcomingAccommodations}
               </p>
             ) : (
               <div className="space-y-3">
@@ -240,7 +236,7 @@ export default async function DashboardPage() {
                   <Link href={`/trips/${trip.id}`} className="block flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold leading-tight">{trip.name}</h3>
-                      <TripStatusBadge status={trip.status} />
+                      <TripStatusBadge status={trip.status} locale={t.locale} />
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       {format(trip.startDate, "d MMM", { locale: dfLocale })} —{" "}
@@ -259,10 +255,10 @@ export default async function DashboardPage() {
                       {trip._count.flights} {t.flights.toLowerCase()}
                     </Link>
                     <Link href={`/trips/${trip.id}/accommodations`} className="hover:text-foreground hover:underline transition-colors">
-                      {trip._count.accommodations} {t.locale === "es" ? "aloj." : "accom."}
+                      {trip._count.accommodations} {t.accomAbbrev}
                     </Link>
                     <Link href={`/trips/${trip.id}/activities`} className="hover:text-foreground hover:underline transition-colors">
-                      {trip._count.activities} {t.locale === "es" ? "activ." : "activ."}
+                      {trip._count.activities} {t.activAbbrev}
                     </Link>
                   </div>
                 </CardContent>

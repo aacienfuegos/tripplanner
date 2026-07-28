@@ -9,10 +9,10 @@ interface SectionHeaderProps {
   title: string;
   icon: React.ReactNode;
   counts: TripNavCounts;
-  tripsLabel?: string;
+  tripsLabel: string;
 }
 
-export function SectionHeader({ tripId, tripName, title, icon, counts, tripsLabel = "Viajes" }: SectionHeaderProps) {
+export function SectionHeader({ tripId, tripName, title, icon, counts, tripsLabel }: SectionHeaderProps) {
   return (
     <div className="space-y-4">
       <div>

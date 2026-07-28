@@ -30,14 +30,14 @@ export function TripForm({ trip }: TripFormProps) {
       try {
         if (trip) {
           await updateTrip(trip.id, formData);
-          toast.success(t.locale === "es" ? "Viaje actualizado" : "Trip updated");
+          toast.success(t.toastUpdated);
           router.push(`/trips/${trip.id}`);
         } else {
           await createTrip(formData);
         }
       } catch (error) {
         if (isRedirectError(error)) throw error;
-        toast.error(t.locale === "es" ? "Error al guardar el viaje" : "Error saving trip");
+        toast.error(t.toastErrorSaving);
       }
     });
   }
@@ -51,7 +51,7 @@ export function TripForm({ trip }: TripFormProps) {
             <Input
               id="name"
               name="name"
-              placeholder={t.locale === "es" ? "ej. Japón 2025" : "e.g. Japan 2025"}
+              placeholder={t.tripNamePlaceholder}
               defaultValue={trip?.name}
               required
             />
@@ -120,9 +120,7 @@ export function TripForm({ trip }: TripFormProps) {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={isPending}>
-              {isPending
-                ? (t.locale === "es" ? "Guardando..." : "Saving...")
-                : trip ? t.updateTrip : t.createTrip}
+              {isPending ? t.savingEllipsis : trip ? t.updateTrip : t.createTrip}
             </Button>
             <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isPending}>
               {t.cancel}

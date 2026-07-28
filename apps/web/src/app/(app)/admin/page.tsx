@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { UserCheck, UserX, Users, Globe, Lock } from "lucide-react";
+import { getT } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ export default async function AdminPage() {
   });
   if (!currentUser?.isAdmin) redirect("/dashboard");
 
-  const [pendingUsers, approvedUsers, deniedUsers, settings] = await Promise.all([
+  const [t, pendingUsers, approvedUsers, deniedUsers, settings] = await Promise.all([
+    getT(),
     prisma.user.findMany({ where: { status: "PENDING" }, select: { id: true, name: true, email: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     prisma.user.findMany({ where: { status: "APPROVED" }, select: { id: true, name: true, email: true, isAdmin: true }, orderBy: { createdAt: "asc" } }),
     prisma.user.findMany({ where: { status: "DENIED" }, select: { id: true, name: true, email: true, createdAt: true }, orderBy: { createdAt: "desc" } }),
@@ -32,16 +34,16 @@ export default async function AdminPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Panel de administración</h1>
-        <p className="text-sm text-muted-foreground mt-1">Gestiona el acceso a TripPlanner</p>
+        <h1 className="text-2xl font-bold">{t.navAdmin}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.adminPanelSubtitle}</p>
       </div>
 
       {/* Configuración de registro */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Modo de registro</CardTitle>
+          <CardTitle className="text-base">{t.registrationModeTitle}</CardTitle>
           <CardDescription>
-            Controla quién puede registrarse en la aplicación
+            {t.registrationModeDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -50,28 +52,26 @@ export default async function AdminPage() {
               {registrationOpen ? (
                 <>
                   <Globe className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium">Registro abierto</span>
-                  <Badge variant="success">Activo</Badge>
+                  <span className="text-sm font-medium">{t.registrationOpenLabel}</span>
+                  <Badge variant="success">{t.activeLabel}</Badge>
                 </>
               ) : (
                 <>
                   <Lock className="h-4 w-4 text-orange-600" />
-                  <span className="text-sm font-medium">Registro restringido</span>
-                  <Badge variant="warning">Activo</Badge>
+                  <span className="text-sm font-medium">{t.registrationRestrictedLabel}</span>
+                  <Badge variant="warning">{t.activeLabel}</Badge>
                 </>
               )}
             </div>
             <form action={setRegistrationOpen}>
               <input type="hidden" name="open" value={(!registrationOpen).toString()} />
               <Button type="submit" variant="outline" size="sm">
-                {registrationOpen ? "Cerrar registro" : "Abrir registro"}
+                {registrationOpen ? t.closeRegistrationBtn : t.openRegistrationBtn}
               </Button>
             </form>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {registrationOpen
-              ? "Cualquier persona que inicie sesión obtendrá acceso automáticamente."
-              : "Los nuevos usuarios quedan pendientes hasta que los apruebes manualmente."}
+            {registrationOpen ? t.registrationOpenHint : t.registrationRestrictedHint}
           </p>
         </CardContent>
       </Card>
@@ -80,16 +80,16 @@ export default async function AdminPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Solicitudes pendientes</CardTitle>
+            <CardTitle className="text-base">{t.pendingRequestsTitle}</CardTitle>
             {pendingUsers.length > 0 && (
               <Badge>{pendingUsers.length}</Badge>
             )}
           </div>
-          <CardDescription>Usuarios que esperan aprobación</CardDescription>
+          <CardDescription>{t.pendingRequestsDesc}</CardDescription>
         </CardHeader>
         <CardContent>
           {pendingUsers.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No hay solicitudes pendientes</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t.noPendingRequests}</p>
           ) : (
             <div className="space-y-3">
               {pendingUsers.map((user, i) => (
@@ -97,10 +97,10 @@ export default async function AdminPage() {
                   {i > 0 && <Separator className="mb-3" />}
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{user.name ?? "Sin nombre"}</p>
+                      <p className="text-sm font-medium truncate">{user.name ?? t.noNameLabel}</p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       <p className="text-xs text-muted-foreground">
-                        {user.createdAt.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+                        {user.createdAt.toLocaleDateString(t.dateLocale, { day: "numeric", month: "short", year: "numeric" })}
                       </p>
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -108,14 +108,14 @@ export default async function AdminPage() {
                         <input type="hidden" name="userId" value={user.id} />
                         <Button type="submit" size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50">
                           <UserCheck className="h-3.5 w-3.5 mr-1" />
-                          Aprobar
+                          {t.approveBtn}
                         </Button>
                       </form>
                       <form action={denyUser}>
                         <input type="hidden" name="userId" value={user.id} />
                         <Button type="submit" size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50">
                           <UserX className="h-3.5 w-3.5 mr-1" />
-                          Denegar
+                          {t.denyBtn}
                         </Button>
                       </form>
                     </div>
@@ -131,17 +131,17 @@ export default async function AdminPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Usuarios aprobados</CardTitle>
+            <CardTitle className="text-base">{t.approvedUsersTitle}</CardTitle>
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Users className="h-4 w-4" />
               <span className="text-sm">{approvedUsers.length}</span>
             </div>
           </div>
-          <CardDescription>Usuarios con acceso activo</CardDescription>
+          <CardDescription>{t.approvedUsersDesc}</CardDescription>
         </CardHeader>
         <CardContent>
           {approvedUsers.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Ningún usuario aprobado todavía</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t.noApprovedUsers}</p>
           ) : (
             <div className="space-y-3">
               {approvedUsers.map((user, i) => (
@@ -149,14 +149,14 @@ export default async function AdminPage() {
                   {i > 0 && <Separator className="mb-3" />}
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{user.name ?? "Sin nombre"}</p>
+                      <p className="text-sm font-medium truncate">{user.name ?? t.noNameLabel}</p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
                     {!user.isAdmin && (
                       <form action={revokeUser}>
                         <input type="hidden" name="userId" value={user.id} />
                         <Button type="submit" size="sm" variant="ghost" className="text-muted-foreground hover:text-red-600">
-                          Revocar
+                          {t.revokeBtn}
                         </Button>
                       </form>
                     )}
@@ -172,8 +172,8 @@ export default async function AdminPage() {
       {deniedUsers.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Usuarios denegados</CardTitle>
-            <CardDescription>Usuarios con acceso bloqueado</CardDescription>
+            <CardTitle className="text-base">{t.deniedUsersTitle}</CardTitle>
+            <CardDescription>{t.deniedUsersDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -182,13 +182,13 @@ export default async function AdminPage() {
                   {i > 0 && <Separator className="mb-3" />}
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{user.name ?? "Sin nombre"}</p>
+                      <p className="text-sm font-medium truncate">{user.name ?? t.noNameLabel}</p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
                     <form action={approveUser}>
                       <input type="hidden" name="userId" value={user.id} />
                       <Button type="submit" size="sm" variant="ghost">
-                        Restaurar
+                        {t.restoreBtn}
                       </Button>
                     </form>
                   </div>

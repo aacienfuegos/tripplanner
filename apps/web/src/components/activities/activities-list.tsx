@@ -30,13 +30,13 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const typeLabels: Record<string, string> = {
-    ACTIVITY: t.locale === "es" ? "Actividad" : "Activity",
-    RESTAURANT: t.locale === "es" ? "Restaurante" : "Restaurant",
-    MUSEUM: t.locale === "es" ? "Museo" : "Museum",
-    TOUR: "Tour",
-    TRANSPORT: t.locale === "es" ? "Transporte" : "Transport",
-    SHOW: t.locale === "es" ? "Espectáculo" : "Show",
-    OTHER: t.locale === "es" ? "Otro" : "Other",
+    ACTIVITY: t.activityTypeActivity,
+    RESTAURANT: t.activityTypeRestaurant,
+    MUSEUM: t.activityTypeMuseum,
+    TOUR: t.activityTypeTour,
+    TRANSPORT: t.transportLabel,
+    SHOW: t.activityTypeShow,
+    OTHER: t.otherLabel,
   };
 
   const statusLabels: Record<BookingStatus, string> = {
@@ -48,13 +48,13 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
 
   async function handleDelete(id: string) {
     const ok = await confirm({
-      title: t.locale === "es" ? "¿Eliminar esta actividad?" : "Delete this activity?",
+      title: t.confirmDeleteActivity,
       confirmLabel: t.delete,
       cancelLabel: t.cancel,
       destructive: true,
     });
     if (!ok) return;
-    try { await deleteActivity(tripId, id); toast.success(t.locale === "es" ? "Eliminada" : "Deleted"); }
+    try { await deleteActivity(tripId, id); toast.success(t.deletedToastActivity); }
     catch { toast.error(t.error); }
   }
 
@@ -121,7 +121,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
                         target="_blank"
                         rel="noopener noreferrer"
                         className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-                        title={t.locale === "es" ? "Ver en Google Maps" : "View on Google Maps"}
+                        title={t.viewOnGoogleMaps}
                       >
                         <MapPin className="h-4 w-4 text-blue-500" />
                       </a>

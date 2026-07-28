@@ -51,13 +51,13 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
 
   async function handleDelete(id: string) {
     const ok = await confirm({
-      title: t.locale === "es" ? "¿Eliminar esta tarea?" : "Delete this task?",
+      title: t.confirmDeleteTask,
       confirmLabel: t.delete,
       cancelLabel: t.cancel,
       destructive: true,
     });
     if (!ok) return;
-    try { await deleteTask(tripId, id); toast.success(t.locale === "es" ? "Tarea eliminada" : "Task deleted"); }
+    try { await deleteTask(tripId, id); toast.success(t.taskDeletedToast); }
     catch { toast.error(t.error); }
   }
 
@@ -99,7 +99,7 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
           {done.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {t.locale === "es" ? `Completadas (${done.length})` : `Completed (${done.length})`}
+                {t.completedCountLabel(done.length)}
               </p>
               {done.map((task) => (
                 <TaskRow

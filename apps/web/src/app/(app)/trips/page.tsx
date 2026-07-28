@@ -55,7 +55,7 @@ export default async function TripsPage() {
                 <CardContent className="pt-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-base leading-tight">{trip.name}</h3>
-                    <TripStatusBadge status={trip.status} />
+                    <TripStatusBadge status={trip.status} locale={t.locale} />
                   </div>
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 shrink-0" />
@@ -73,8 +73,8 @@ export default async function TripsPage() {
                       <Plane className="h-3 w-3" />
                       {trip._count.flights} {t.flights.toLowerCase()}
                     </span>
-                    <span>{trip._count.accommodations} {t.locale === "es" ? "aloj." : "accom."}</span>
-                    <span>{trip._count.activities} {t.locale === "es" ? "activ." : "activ."}</span>
+                    <span>{trip._count.accommodations} {t.accomAbbrev}</span>
+                    <span>{trip._count.activities} {t.activAbbrev}</span>
                   </div>
                 </CardContent>
               </Card>

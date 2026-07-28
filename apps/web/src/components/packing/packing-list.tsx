@@ -22,11 +22,9 @@ export function PackingList({ tripId, items }: Props) {
   const [customCategory, setCustomCategory] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
-  const PRESET_CATEGORIES = t.locale === "es"
-    ? ["Documentos", "Ropa", "Calzado", "Higiene", "Medicamentos", "Electrónica", "Accesorios", "Entretenimiento", "Comida y bebida"]
-    : ["Documents", "Clothing", "Footwear", "Toiletries", "Medication", "Electronics", "Accessories", "Entertainment", "Food & drinks"];
+  const PRESET_CATEGORIES = t.packingPresetCategories;
 
-  const OTHER_LABEL = t.locale === "es" ? "Otro" : "Other";
+  const OTHER_LABEL = t.otherLabel;
 
   const categories = [
     ...new Set([...PRESET_CATEGORIES, ...items.map((i) => i.category)]),
@@ -61,7 +59,7 @@ export function PackingList({ tripId, items }: Props) {
     setIsPending(true);
     try {
       await addDefaultPackingItems(tripId);
-      toast.success(t.locale === "es" ? "Lista base añadida" : "Default list added");
+      toast.success(t.defaultListAddedToast);
     }
     catch { toast.error(t.error); }
     finally { setIsPending(false); }
@@ -69,7 +67,7 @@ export function PackingList({ tripId, items }: Props) {
 
   async function handleCreate(formData: FormData) {
     const category = activeCategory === OTHER_LABEL ? customCategory.trim() : activeCategory;
-    if (!category) { toast.error(t.locale === "es" ? "Indica una categoría" : "Enter a category"); return; }
+    if (!category) { toast.error(t.enterCategoryError); return; }
     formData.set("category", category);
     try { await createPackingItem(tripId, formData); formRef.current?.reset(); setCustomCategory(""); }
     catch { toast.error(t.error); }
@@ -84,12 +82,12 @@ export function PackingList({ tripId, items }: Props) {
         {items.length === 0 && (
           <Button variant="outline" onClick={handleAddDefaults} disabled={isPending}>
             <Wand2 className="h-4 w-4 mr-2" />
-            {t.locale === "es" ? "Añadir lista base" : "Add default list"}
+            {t.addDefaultListBtn}
           </Button>
         )}
         {total > 0 && (
           <span className="text-sm text-muted-foreground">
-            {packed}/{total} {t.locale === "es" ? `empaquetado${packed !== 1 ? "s" : ""}` : `packed`}
+            {packed}/{total} {t.packedCountSuffix(packed)}
           </span>
         )}
       </div>
@@ -110,8 +108,8 @@ export function PackingList({ tripId, items }: Props) {
             <form ref={formRef} action={handleCreate} className="space-y-3">
               <div className="flex gap-3 flex-wrap">
                 <div className="flex-1 min-w-32">
-                  <Label htmlFor="name" className="sr-only">{t.locale === "es" ? "Item" : "Item"}</Label>
-                  <Input id="name" name="name" placeholder={t.locale === "es" ? "Nombre del item" : "Item name"} required />
+                  <Label htmlFor="name" className="sr-only">{t.itemLabel}</Label>
+                  <Input id="name" name="name" placeholder={t.itemNamePlaceholder} required />
                 </div>
                 <Input name="quantity" type="number" defaultValue="1" className="w-20" min="1" />
               </div>
@@ -127,7 +125,7 @@ export function PackingList({ tripId, items }: Props) {
                 {activeCategory === OTHER_LABEL && (
                   <Input
                     className="flex-1 min-w-28"
-                    placeholder={t.locale === "es" ? "Nombre de categoría" : "Category name"}
+                    placeholder={t.categoryNamePlaceholder}
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
                     required

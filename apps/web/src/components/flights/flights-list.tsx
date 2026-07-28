@@ -26,13 +26,13 @@ export function FlightsList({ tripId, flights, tripStartDate, currency }: { trip
 
   async function handleDelete(flightId: string) {
     const ok = await confirm({
-      title: t.locale === "es" ? "¿Eliminar este vuelo?" : "Delete this flight?",
+      title: t.confirmDeleteFlight,
       confirmLabel: t.delete,
       cancelLabel: t.cancel,
       destructive: true,
     });
     if (!ok) return;
-    try { await deleteFlight(tripId, flightId); toast.success(t.locale === "es" ? "Vuelo eliminado" : "Flight deleted"); }
+    try { await deleteFlight(tripId, flightId); toast.success(t.flightDeletedToast); }
     catch { toast.error(t.error); }
   }
 

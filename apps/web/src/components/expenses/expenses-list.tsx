@@ -36,22 +36,22 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
   const catLabels: Record<string, string> = {
     FLIGHT: t.flights,
     ACCOMMODATION: t.accommodations,
-    FOOD: t.locale === "es" ? "Comida" : "Food",
-    TRANSPORT: t.locale === "es" ? "Transporte" : "Transport",
+    FOOD: t.expenseCategoryFood,
+    TRANSPORT: t.transportLabel,
     ACTIVITY: t.activities,
-    SHOPPING: t.locale === "es" ? "Compras" : "Shopping",
-    OTHER: t.locale === "es" ? "Otro" : "Other",
+    SHOPPING: t.expenseCategoryShopping,
+    OTHER: t.otherLabel,
   };
 
   async function handleDelete(id: string) {
     const ok = await confirm({
-      title: t.locale === "es" ? "¿Eliminar este gasto?" : "Delete this expense?",
+      title: t.confirmDeleteExpense,
       confirmLabel: t.delete,
       cancelLabel: t.cancel,
       destructive: true,
     });
     if (!ok) return;
-    try { await deleteExpense(tripId, id); toast.success(t.locale === "es" ? "Eliminado" : "Deleted"); }
+    try { await deleteExpense(tripId, id); toast.success(t.deletedToastExpense); }
     catch { toast.error(t.error); }
   }
 
@@ -92,7 +92,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
           <Card>
             <CardHeader className="pb-1 pt-4">
               <CardTitle className="text-sm text-muted-foreground">
-                {t.locale === "es" ? "Presupuesto restante" : "Remaining budget"}
+                {t.remainingBudgetLabel}
               </CardTitle>
             </CardHeader>
             <CardContent>
