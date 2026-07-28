@@ -22,7 +22,9 @@
     "@hono/node-server": "2.0.11",
     "xcode": {
       "uuid": "11.1.1"
-    }
+    },
+    "brace-expansion": "5.0.8",
+    "valibot": "1.4.2"
   },
   "dependencies": {
     "react": "19.1.0",

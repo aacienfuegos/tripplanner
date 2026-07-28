@@ -122,7 +122,7 @@ export default async function SignInPage() {
                 <Input
                   id="email"
                   name="email"
-                  type="email"
+                  type="text"
                   placeholder={process.env.DEV_ADMIN_EMAIL}
                   required
                 />
