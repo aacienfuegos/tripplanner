@@ -9,18 +9,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { importPayloadSchema, ImportPayload } from "@tripplanner/shared";
-
-async function requireTripOwner(tripId: string) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin");
-  const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { userId: true } });
-  if (!trip || trip.userId !== session.user.id) redirect("/trips");
-}
+import { requireTripOwner } from "@/lib/action-auth";
 
 export type ImportResult = {
   flights: number;

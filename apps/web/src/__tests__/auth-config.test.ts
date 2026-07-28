@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { timingSafeStringEqual } from "@/lib/timing-safe";
 
 /**
  * Tests for the authorized() callback logic in auth.config.ts.
@@ -45,6 +48,8 @@ describe("auth authorized callback", () => {
 });
 
 // ─── DEV credentials authorize logic ─────────────────────────────────────────
+// Replicates src/lib/auth.ts's dev-credentials authorize(), which uses
+// timingSafeStringEqual instead of === (issue #191 — timing attack on dev login).
 
 describe("dev credentials authorize", () => {
   const DEV_EMAIL = "admin@dev.local";
@@ -53,8 +58,10 @@ describe("dev credentials authorize", () => {
 
   function authorize(email: string | undefined, password: string | undefined) {
     if (
-      email?.trim() === DEV_EMAIL.trim() &&
-      password === DEV_PASSWORD
+      email !== undefined &&
+      password !== undefined &&
+      timingSafeStringEqual(email.trim(), DEV_EMAIL.trim()) &&
+      timingSafeStringEqual(password, DEV_PASSWORD)
     ) {
       return { id: DEV_USER_ID, email: DEV_EMAIL, name: "Dev Admin" };
     }
@@ -82,5 +89,27 @@ describe("dev credentials authorize", () => {
 
   it("trims whitespace from email before comparing", () => {
     expect(authorize("  admin@dev.local  ", DEV_PASSWORD)).not.toBeNull();
+  });
+
+  it("returns null for a password of different length than the real one, without throwing", () => {
+    expect(() => authorize(DEV_EMAIL, "x")).not.toThrow();
+    expect(authorize(DEV_EMAIL, "x")).toBeNull();
+    expect(authorize(DEV_EMAIL, "a-much-longer-password-than-the-real-one")).toBeNull();
+  });
+});
+
+// ─── OAuth account linking (issue #176) ──────────────────────────────────────
+// allowDangerousEmailAccountLinking must stay off: it auto-links a new OAuth
+// sign-in to an existing account purely by matching email, with no confirmation
+// from an already-authenticated session. Guard against it creeping back in.
+
+describe("OAuth provider config — account linking", () => {
+  const authConfigSource = readFileSync(
+    join(__dirname, "../lib/auth.config.ts"),
+    "utf-8",
+  );
+
+  it("does not enable allowDangerousEmailAccountLinking anywhere", () => {
+    expect(authConfigSource).not.toMatch(/allowDangerousEmailAccountLinking/);
   });
 });
