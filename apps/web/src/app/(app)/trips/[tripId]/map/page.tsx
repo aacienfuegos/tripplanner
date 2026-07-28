@@ -40,6 +40,7 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
         destinationLat: true,
         destinationLng: true,
         departureAt: true,
+        arrivalAt: true,
       },
       orderBy: { departureAt: "asc" },
     },
@@ -121,6 +122,8 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
       destinationLng: f.destinationLng,
       label: [f.airline, f.flightNumber].filter(Boolean).join(" "),
       dateLabel: f.departureAt ? format(f.departureAt, "d MMM HH:mm", { locale: dateFnsLocale }) : null,
+      departureAt: f.departureAt ? f.departureAt.toISOString() : null,
+      arrivalAt: f.arrivalAt ? f.arrivalAt.toISOString() : null,
       detailHref: `/trips/${trip.id}/flights#${f.id}`,
     });
   }

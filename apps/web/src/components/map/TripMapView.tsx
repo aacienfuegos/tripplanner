@@ -25,6 +25,8 @@ export type FlightSegment = {
   readonly destinationLng: number;
   readonly label: string;
   readonly dateLabel: string | null;
+  readonly departureAt: string | null;
+  readonly arrivalAt: string | null;
   readonly detailHref: string;
 };
 

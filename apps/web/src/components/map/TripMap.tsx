@@ -174,6 +174,33 @@ export function TripMap({
       .map((p) => [p.lat, p.lng] as LatLngExpression);
   }, [points]);
 
+  // Tramo de tierra entre el último alojamiento/actividad antes de un vuelo y
+  // su aeropuerto de salida, y entre el aeropuerto de llegada y el siguiente
+  // alojamiento/actividad — sin esto el vuelo queda "flotando" sin conexión
+  // visible con el resto del itinerario.
+  const airportConnectors = useMemo<LatLngExpression[][]>(() => {
+    const datedPoints = points
+      .filter((p): p is MapPoint & { date: string } => p.date !== null)
+      .map((p) => ({ date: p.date, position: [p.lat, p.lng] as LatLngExpression }));
+
+    const connectors: LatLngExpression[][] = [];
+    for (const f of flights) {
+      if (f.departureAt) {
+        const before = datedPoints
+          .filter((p) => p.date <= f.departureAt!)
+          .sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0))[0];
+        if (before) connectors.push([before.position, [f.originLat, f.originLng]]);
+      }
+      if (f.arrivalAt) {
+        const after = datedPoints
+          .filter((p) => p.date >= f.arrivalAt!)
+          .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))[0];
+        if (after) connectors.push([[f.destinationLat, f.destinationLng], after.position]);
+      }
+    }
+    return connectors;
+  }, [points, flights]);
+
   const center = useMemo<LatLngExpression>(() => {
     const [first] = points;
     if (first) return [first.lat, first.lng];
@@ -198,6 +225,14 @@ export function TripMap({
       {routeCoords.length >= 2 && (
         <Polyline positions={routeCoords} pathOptions={{ color: "#2563eb", weight: 3, opacity: 0.7 }} />
       )}
+
+      {airportConnectors.map((positions, i) => (
+        <Polyline
+          key={`connector-${i}`}
+          positions={positions}
+          pathOptions={{ color: "#2563eb", weight: 2, opacity: 0.5, dashArray: "2 6" }}
+        />
+      ))}
 
       {flights.map((f) => {
         const origin: LatLngExpression = [f.originLat, f.originLng];
