@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import Resend from "next-auth/providers/resend";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
+import { timingSafeStringEqual } from "@/lib/timing-safe";
 
 export const DEV_USER_ID = "dev-local-user-001";
 
@@ -49,8 +50,10 @@ if (process.env.NODE_ENV !== "production" && process.env.DEV_ADMIN_EMAIL && proc
         const password = credentials?.password as string | undefined;
 
         if (
-          email?.trim() === process.env.DEV_ADMIN_EMAIL?.trim() &&
-          password === process.env.DEV_ADMIN_PASSWORD
+          email !== undefined &&
+          password !== undefined &&
+          timingSafeStringEqual(email.trim(), process.env.DEV_ADMIN_EMAIL!.trim()) &&
+          timingSafeStringEqual(password, process.env.DEV_ADMIN_PASSWORD!)
         ) {
           return {
             id: DEV_USER_ID,

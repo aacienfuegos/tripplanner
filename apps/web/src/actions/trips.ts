@@ -2,15 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tripSchema, tripStatusSchema } from "@/lib/schemas";
-
-async function requireUser() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin");
-  return session.user.id;
-}
+import { requireUser } from "@/lib/action-auth";
 
 export async function createTrip(formData: FormData) {
   const userId = await requireUser();

@@ -1,19 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import { expenseSchema } from "@/lib/schemas";
 import { getExchangeRate } from "@/lib/exchangeRate";
-
-async function requireTripOwner(tripId: string) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin");
-  const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { userId: true, currency: true } });
-  if (!trip || trip.userId !== session.user.id) redirect("/trips");
-  return trip;
-}
+import { requireTripOwner } from "@/lib/action-auth";
 
 async function resolveConversion(expenseCurrency: string, tripCurrency: string, amount: number) {
   if (expenseCurrency === tripCurrency) return { exchangeRate: null, convertedAmount: null };

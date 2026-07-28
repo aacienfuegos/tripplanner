@@ -1,19 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import { flightSchema } from "@/lib/schemas";
-
-async function requireTripOwner(tripId: string) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin");
-
-  const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { userId: true } });
-  if (!trip || trip.userId !== session.user.id) redirect("/trips");
-  return session.user.id;
-}
+import { requireTripOwner } from "@/lib/action-auth";
 
 export async function createFlight(tripId: string, formData: FormData) {
   await requireTripOwner(tripId);
