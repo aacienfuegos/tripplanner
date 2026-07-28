@@ -4,11 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Star, Trash2, ExternalLink, MapPin, Banknote } from "lucide-react";
+import { Plus, Star, Pencil, Trash2, ExternalLink, MapPin, Clock, Banknote } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ActivityForm } from "./activity-form";
 import { deleteActivity, updateActivityStatus } from "@/actions/activities";
 import type { Activity, BookingStatus } from "@/types";
@@ -26,6 +27,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Activity | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const typeLabels: Record<string, string> = {
     ACTIVITY: t.locale === "es" ? "Actividad" : "Activity",
@@ -45,7 +47,13 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
   };
 
   async function handleDelete(id: string) {
-    if (!confirm(t.locale === "es" ? "¿Eliminar esta actividad?" : "Delete this activity?")) return;
+    const ok = await confirm({
+      title: t.locale === "es" ? "¿Eliminar esta actividad?" : "Delete this activity?",
+      confirmLabel: t.delete,
+      cancelLabel: t.cancel,
+      destructive: true,
+    });
+    if (!ok) return;
     try { await deleteActivity(tripId, id); toast.success(t.locale === "es" ? "Eliminada" : "Deleted"); }
     catch { toast.error(t.error); }
   }
@@ -87,9 +95,21 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">
                       {act.scheduledAt && <p>{format(act.scheduledAt, "d MMM yyyy, HH:mm", { locale: dfLocale })}</p>}
-                      {act.location && <p>📍 {act.location}{act.city && `, ${act.city}`}</p>}
-                      {act.duration && <p>⏱ {act.duration} min</p>}
-                      {act.price && <p className="flex items-center gap-1"><Banknote className="h-3 w-3" /> {formatCurrency(act.price, currency, t.dateLocale)}</p>}
+                      {act.location && (
+                        <p className="flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" /> {act.location}{act.city && `, ${act.city}`}
+                        </p>
+                      )}
+                      {act.duration && (
+                        <p className="flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" /> {act.duration} min
+                        </p>
+                      )}
+                      {act.price && (
+                        <p className="flex items-center gap-1">
+                          <Banknote className="h-3.5 w-3.5" /> {formatCurrency(act.price, currency, t.dateLocale)}
+                        </p>
+                      )}
                       {act.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{act.bookingRef}</span></p>}
                       {act.description && <p className="italic">{act.description}</p>}
                     </div>
@@ -116,7 +136,9 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
-                    <Button variant="ghost" size="icon" onClick={() => { setEditing(act); setOpen(true); }}>✏️</Button>
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(act); setOpen(true); }}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(act.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -136,6 +158,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
           <ActivityForm tripId={tripId} activity={editing ?? undefined} tripStartDate={tripStartDate} currency={currency} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }

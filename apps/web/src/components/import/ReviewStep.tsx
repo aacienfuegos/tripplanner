@@ -157,7 +157,7 @@ export function ReviewStep({
           </span>
         )}
         {!isChecking && totalDuplicates > 0 && (
-          <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-600 shrink-0">
+          <Badge variant="warning" className="text-xs shrink-0">
             <AlertTriangle className="h-3 w-3 mr-1" />
             {t.possibleDuplicates(totalDuplicates)}
           </Badge>
@@ -218,8 +218,8 @@ export function ReviewStep({
                   </div>
                   {sectionDups[idx] && (
                     <Badge
-                      variant="outline"
-                      className="text-xs border-yellow-400 text-yellow-600 px-1 h-4 shrink-0 self-start mt-0.5"
+                      variant="warning"
+                      className="text-xs px-1 h-4 shrink-0 self-start mt-0.5"
                     >
                       <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
                       {t.duplicate}

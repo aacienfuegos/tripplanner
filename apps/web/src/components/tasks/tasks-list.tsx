@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TaskForm } from "./task-form";
 import { deleteTask, toggleTaskDone } from "@/actions/tasks";
 import type { Task, TaskPriority } from "@/types";
@@ -35,6 +36,7 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const priorityConfig: Record<TaskPriority, { label: string; cls: string }> = {
     HIGH:   { label: t.priorityHigh,   cls: "border-red-300 text-red-600" },
@@ -48,7 +50,13 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t.locale === "es" ? "¿Eliminar esta tarea?" : "Delete this task?")) return;
+    const ok = await confirm({
+      title: t.locale === "es" ? "¿Eliminar esta tarea?" : "Delete this task?",
+      confirmLabel: t.delete,
+      cancelLabel: t.cancel,
+      destructive: true,
+    });
+    if (!ok) return;
     try { await deleteTask(tripId, id); toast.success(t.locale === "es" ? "Tarea eliminada" : "Task deleted"); }
     catch { toast.error(t.error); }
   }
@@ -117,6 +125,7 @@ export function TasksList({ tripId, tasks }: { tripId: string; tasks: Task[] }) 
           <TaskForm tripId={tripId} task={editing ?? undefined} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }
@@ -174,10 +183,10 @@ function TaskRow({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7">
+            <Button variant="ghost" size="icon-sm" onClick={onEdit}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onDelete} className="h-7 w-7">
+            <Button variant="ghost" size="icon-sm" onClick={onDelete}>
               <Trash2 className="h-3.5 w-3.5 text-destructive" />
             </Button>
           </div>

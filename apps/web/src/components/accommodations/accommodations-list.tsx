@@ -4,11 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Hotel, Trash2, ExternalLink, Moon, MapPin } from "lucide-react";
+import { Plus, Hotel, Pencil, Trash2, ExternalLink, Moon, MapPin } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AccommodationForm } from "./accommodation-form";
 import { deleteAccommodation } from "@/actions/accommodations";
 import type { Accommodation } from "@/types";
@@ -21,9 +22,16 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Accommodation | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   async function handleDelete(id: string) {
-    if (!confirm(t.locale === "es" ? "¿Eliminar este alojamiento?" : "Delete this accommodation?")) return;
+    const ok = await confirm({
+      title: t.locale === "es" ? "¿Eliminar este alojamiento?" : "Delete this accommodation?",
+      confirmLabel: t.delete,
+      cancelLabel: t.cancel,
+      destructive: true,
+    });
+    if (!ok) return;
     try { await deleteAccommodation(tripId, id); toast.success(t.locale === "es" ? "Eliminado" : "Deleted"); }
     catch { toast.error(t.error); }
   }
@@ -94,7 +102,9 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
                           <ExternalLink className="h-4 w-4" />
                         </a>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => { setEditing(a); setOpen(true); }}>✏️</Button>
+                      <Button variant="ghost" size="icon" onClick={() => { setEditing(a); setOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(a.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -115,6 +125,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
           <AccommodationForm tripId={tripId} accommodation={editing ?? undefined} tripStartDate={tripStartDate} currency={currency} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }
