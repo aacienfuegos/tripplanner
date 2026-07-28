@@ -21,6 +21,12 @@ interface Props {
   onNext: (payload: ImportPayload) => void;
 }
 
+// Un JSON de itinerario legítimo (6 secciones, decenas de items) pesa unos
+// pocos KB. 1MB de margen cubre viajes muy grandes sin permitir que un
+// payload manipulado o pegado por error congele el hilo JS (ANR) en
+// JSON.parse/safeParse — issue #180.
+const MAX_PASTE_LENGTH = 1_000_000;
+
 export default function PasteStep({ onBack, onNext }: Props) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -33,9 +39,16 @@ export default function PasteStep({ onBack, onNext }: Props) {
 
   function handleValidate() {
     setError("");
+    const trimmed = text.trim();
+    if (trimmed.length > MAX_PASTE_LENGTH) {
+      setError(
+        `El JSON es demasiado grande (${Math.round(trimmed.length / 1024)} KB). El límite es ${Math.round(MAX_PASTE_LENGTH / 1024)} KB — revisa que no hayas pegado contenido de más.`
+      );
+      return;
+    }
     let raw: unknown;
     try {
-      raw = JSON.parse(text.trim());
+      raw = JSON.parse(trimmed);
     } catch {
       setError("El texto no es JSON válido. Asegúrate de copiar solo el JSON que generó la IA.");
       return;
