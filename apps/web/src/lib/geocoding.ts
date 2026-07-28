@@ -1,10 +1,14 @@
 import "server-only";
 import { z } from "zod";
+import { BoundedCache } from "@/lib/bounded-cache";
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 // Nominatim exige un User-Agent identificable; el default de undici hace que baneen la IP.
 const USER_AGENT = "TripPlanner/1.0 (+https://github.com/aacienfuegos/tripplanner)";
 const MIN_INTERVAL_MS = 1100;
+// Las claves son nombres/direcciones libres introducidos por usuarios — sin
+// cota, un proceso de larga duración crece indefinidamente (#195).
+const MAX_CACHE_ENTRIES = 500;
 
 export type GeoResult = {
   readonly lat: number;
@@ -26,7 +30,7 @@ const nominatimResultSchema = z.object({
 
 const nominatimResponseSchema = z.array(nominatimResultSchema);
 
-const cache = new Map<string, GeoResult | null>();
+const cache = new BoundedCache<string, GeoResult | null>(MAX_CACHE_ENTRIES);
 
 // Cola serie: Nominatim permite máx. 1 req/s. Encadenamos las llamadas y
 // esperamos el intervalo mínimo entre cada una para no disparar en paralelo.

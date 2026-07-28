@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CURRENCIES } from "@tripplanner/shared";
 
 const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
 const httpUrl = z.string().refine(isHttpUrl, "La URL debe usar http o https");
@@ -10,7 +11,7 @@ export const tripSchema = z.object({
   description: z.string().optional(),
   startDate: z.string().min(1, "La fecha de inicio es obligatoria"),
   endDate: z.string().min(1, "La fecha de fin es obligatoria"),
-  currency: z.string().default("EUR"),
+  currency: z.enum(CURRENCIES).default("EUR"),
   budget: z.string().optional(),
   coverImage: z.string().optional(),
 });
@@ -34,7 +35,7 @@ export const expenseSchema = z.object({
   category: z.enum(["FLIGHT", "ACCOMMODATION", "FOOD", "TRANSPORT", "ACTIVITY", "SHOPPING", "OTHER"]),
   description: z.string().min(1),
   amount: z.string().min(1),
-  currency: z.string().default("EUR"),
+  currency: z.enum(CURRENCIES).default("EUR"),
   date: z.string().min(1),
   paid: z.string().optional(),
   notes: z.string().optional(),
