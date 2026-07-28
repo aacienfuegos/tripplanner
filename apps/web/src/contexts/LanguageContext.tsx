@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { es, en, getStrings, type WebTKeys, type WebLocale } from "@/i18n";
 
 interface LanguageContextValue {
@@ -32,11 +33,13 @@ export function LanguageProvider({
 }) {
   const [locale, setLocaleState] = useState<WebLocale>(initialLocale);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   function setLocale(l: WebLocale) {
+    document.cookie = `locale=${l};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
     startTransition(() => {
       setLocaleState(l);
-      document.cookie = `locale=${l};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
+      router.refresh();
     });
   }
 

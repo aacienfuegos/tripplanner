@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { completeOnboarding } from "@/actions/profile";
+import { useT } from "@/contexts/LanguageContext";
 
 export function OnboardingForm() {
+  const { t } = useT();
   const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(formData: FormData) {
@@ -15,7 +17,7 @@ export function OnboardingForm() {
       try {
         await completeOnboarding(formData);
       } catch {
-        toast.error("Error al guardar el perfil");
+        toast.error(t.profileErrorSavingToast);
       }
     });
   }
@@ -23,28 +25,28 @@ export function OnboardingForm() {
   return (
     <form action={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="name">Tu nombre</Label>
+        <Label htmlFor="name">{t.yourNameLabel}</Label>
         <Input
           id="name"
           name="name"
-          placeholder="¿Cómo te llamamos?"
+          placeholder={t.nameQuestionPlaceholder}
           autoFocus
           required
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="image">Foto de perfil <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+        <Label htmlFor="image">{t.profilePhotoLabel} <span className="text-muted-foreground text-xs">({t.optional.toLowerCase()})</span></Label>
         <Input
           id="image"
           name="image"
           type="url"
-          placeholder="https://ejemplo.com/foto.jpg"
+          placeholder={t.photoUrlPlaceholder}
         />
       </div>
 
       <Button type="submit" disabled={isPending} className="w-full">
-        {isPending ? "Guardando..." : "Empezar a planificar"}
+        {isPending ? t.savingEllipsis : t.startPlanningBtn}
       </Button>
     </form>
   );

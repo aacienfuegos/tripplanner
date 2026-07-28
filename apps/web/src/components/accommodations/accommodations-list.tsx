@@ -26,13 +26,13 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
 
   async function handleDelete(id: string) {
     const ok = await confirm({
-      title: t.locale === "es" ? "¿Eliminar este alojamiento?" : "Delete this accommodation?",
+      title: t.confirmDeleteAccommodation,
       confirmLabel: t.delete,
       cancelLabel: t.cancel,
       destructive: true,
     });
     if (!ok) return;
-    try { await deleteAccommodation(tripId, id); toast.success(t.locale === "es" ? "Eliminado" : "Deleted"); }
+    try { await deleteAccommodation(tripId, id); toast.success(t.deletedToastAccommodation); }
     catch { toast.error(t.error); }
   }
 
@@ -70,11 +70,11 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
                           {nights !== null && (
                             <>
                               <Moon className="h-3 w-3" />
-                              {nights} {t.locale === "es" ? `noche${nights !== 1 ? "s" : ""}` : `night${nights !== 1 ? "s" : ""}`}
+                              {t.nightsLabel(nights)}
                             </>
                           )}
-                          {a.pricePerNight && ` · ${formatCurrency(a.pricePerNight, currency, t.dateLocale)}/${t.locale === "es" ? "noche" : "night"}`}
-                          {a.price && ` · ${t.locale === "es" ? "Total" : "Total"}: ${formatCurrency(a.price, currency, t.dateLocale)}`}
+                          {a.pricePerNight && ` · ${formatCurrency(a.pricePerNight, currency, t.dateLocale)}/${t.perNightLabel}`}
+                          {a.price && ` · ${t.totalLabel}: ${formatCurrency(a.price, currency, t.dateLocale)}`}
                         </p>
                         {a.address && <p>{a.address}</p>}
                         {a.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{a.bookingRef}</span></p>}
@@ -87,7 +87,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
                           target="_blank"
                           rel="noopener noreferrer"
                           className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-                          title={t.locale === "es" ? "Ver en Google Maps" : "View on Google Maps"}
+                          title={t.viewOnGoogleMaps}
                         >
                           <MapPin className="h-4 w-4 text-blue-500" />
                         </a>

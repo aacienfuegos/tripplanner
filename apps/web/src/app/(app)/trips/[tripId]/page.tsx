@@ -225,7 +225,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         <Card>
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-muted-foreground mb-1">
-              {isOngoing ? t.inProgress : daysUntilTrip > 0 ? t.daysUntil(0).split(" ")[0] : t.locale === "es" ? "Hace" : "Ago"}
+              {isOngoing ? t.inProgress : daysUntilTrip > 0 ? t.daysUntilLabel : t.daysAgoLabel}
             </p>
             {isOngoing ? (
               <p className="text-3xl font-bold leading-none">
@@ -253,7 +253,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             {trip.budget && (
               <>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t.locale === "es" ? "de" : "of"} {formatCurrency(trip.budget, trip.currency, t.dateLocale, { maximumFractionDigits: 0 })}
+                  {t.ofLabel} {formatCurrency(trip.budget, trip.currency, t.dateLocale, { maximumFractionDigits: 0 })}
                 </p>
                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                   <div
@@ -278,7 +278,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               {trip.flights.length}
               {trip.flights.length === 0 && (
                 <span className="text-xs font-normal text-muted-foreground ml-1.5">
-                  {t.locale === "es" ? "sin añadir" : "none added"}
+                  {t.noneAddedLabel}
                 </span>
               )}
             </p>
@@ -298,7 +298,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
               )}
               {confirmedActs > 0 && pendingActs === 0 && (
                 <Badge variant="success" className="text-xs px-1 h-4">
-                  {t.locale === "es" ? "todo reservado" : "all booked"}
+                  {t.allBookedLabel}
                 </Badge>
               )}
             </div>

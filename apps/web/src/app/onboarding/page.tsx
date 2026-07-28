@@ -4,15 +4,19 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingForm } from "@/components/onboarding/onboarding-form";
+import { getT } from "@/lib/locale";
 
 export default async function OnboardingPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { name: true },
-  });
+  const [t, user] = await Promise.all([
+    getT(),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true },
+    }),
+  ]);
 
   if (user?.name) redirect("/dashboard");
 
@@ -25,14 +29,14 @@ export default async function OnboardingPage() {
               <Plane className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold">¡Bienvenido a TripPlanner!</h1>
-          <p className="text-muted-foreground">Antes de empezar, cuéntanos cómo te llamas.</p>
+          <h1 className="text-2xl font-bold">{t.welcomeTitle}</h1>
+          <p className="text-muted-foreground">{t.welcomeSubtitle}</p>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Completa tu perfil</CardTitle>
-            <CardDescription>Solo necesitamos tu nombre para personalizar la experiencia.</CardDescription>
+            <CardTitle className="text-lg">{t.completeProfileTitle}</CardTitle>
+            <CardDescription>{t.completeProfileDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <OnboardingForm />

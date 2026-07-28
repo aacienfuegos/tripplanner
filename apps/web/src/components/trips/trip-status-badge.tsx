@@ -27,6 +27,6 @@ const variants: Record<TripStatus, "default" | "secondary" | "destructive" | "ou
   CANCELLED: "destructive",
 };
 
-export function TripStatusBadge({ status, locale = "es" }: { status: TripStatus; locale?: WebLocale }) {
+export function TripStatusBadge({ status, locale }: { status: TripStatus; locale: WebLocale }) {
   return <Badge variant={variants[status]}>{labels[locale][status]}</Badge>;
 }

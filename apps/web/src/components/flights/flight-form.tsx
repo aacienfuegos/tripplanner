@@ -98,9 +98,9 @@ export function FlightForm({ tripId, flight, tripStartDate, currency, onSuccess 
           <Select name="class" defaultValue={flight?.class ?? "ECONOMY"}>
             <SelectTrigger id="class"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ECONOMY">Economy</SelectItem>
-              <SelectItem value="PREMIUM_ECONOMY">Premium Economy</SelectItem>
-              <SelectItem value="BUSINESS">Business</SelectItem>
+              <SelectItem value="ECONOMY">{t.flightClassEconomy}</SelectItem>
+              <SelectItem value="PREMIUM_ECONOMY">{t.flightClassPremiumEconomy}</SelectItem>
+              <SelectItem value="BUSINESS">{t.flightClassBusiness}</SelectItem>
               <SelectItem value="FIRST">{t.flightClassFirst}</SelectItem>
             </SelectContent>
           </Select>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { buttonVariants } from "@/components/ui/button";
 import { Clock } from "lucide-react";
 import Link from "next/link";
+import { getT } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,13 @@ export default async function PendingPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { status: true },
-  });
+  const [t, user] = await Promise.all([
+    getT(),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { status: true },
+    }),
+  ]);
 
   if (user?.status === "APPROVED") redirect("/dashboard");
   if (user?.status === "DENIED") redirect("/auth/error?error=AccessDenied");
@@ -32,21 +36,21 @@ export default async function PendingPage() {
           <div className="flex justify-center mb-2">
             <Clock className="h-10 w-10 text-muted-foreground" />
           </div>
-          <CardTitle>Acceso pendiente de aprobación</CardTitle>
+          <CardTitle>{t.pendingApprovalTitle}</CardTitle>
           <CardDescription>
-            Tu solicitud ha sido recibida. El administrador la revisará en breve.
+            {t.pendingApprovalDesc}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            Si ya te han aprobado, haz clic en Verificar para comprobarlo.
+            {t.pendingCheckHint}
           </p>
           <Link href="/auth/pending" className={buttonVariants({ variant: "outline" })}>
-            Verificar acceso
+            {t.checkAccessBtn}
           </Link>
           <form action={handleSignOut}>
             <button type="submit" className={buttonVariants({ variant: "ghost", size: "sm" }) + " w-full"}>
-              Cerrar sesión
+              {t.signOut}
             </button>
           </form>
         </CardContent>

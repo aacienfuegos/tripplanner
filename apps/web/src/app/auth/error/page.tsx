@@ -1,31 +1,34 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getT } from "@/lib/locale";
 
-export default function AuthErrorPage({
+export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const [t, { error }] = await Promise.all([getT(), searchParams]);
+
   const messages: Record<string, string> = {
-    Configuration: "Error de configuración del servidor.",
-    AccessDenied: "Acceso denegado.",
-    Verification: "El enlace de verificación ha expirado.",
-    Default: "Se produjo un error al iniciar sesión.",
+    Configuration: t.authErrorConfig,
+    AccessDenied: t.authErrorAccessDenied,
+    Verification: t.authErrorVerification,
+    Default: t.authErrorDefault,
   };
 
-  const message = messages[searchParams.error ?? "Default"] ?? messages.Default;
+  const message = messages[error ?? "Default"] ?? messages.Default;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30">
       <Card className="w-full max-w-sm text-center">
         <CardHeader>
-          <CardTitle>Error de autenticación</CardTitle>
+          <CardTitle>{t.authErrorTitle}</CardTitle>
           <CardDescription>{message}</CardDescription>
         </CardHeader>
         <CardContent>
           <Link href="/auth/signin" className={buttonVariants()}>
-            Volver al inicio de sesión
+            {t.backToSignInBtn}
           </Link>
         </CardContent>
       </Card>

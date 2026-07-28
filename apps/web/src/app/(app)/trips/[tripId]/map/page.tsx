@@ -138,7 +138,7 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
 
   return (
     <div className="space-y-6">
-      <SectionHeader tripId={trip.id} tripName={trip.name} title={t.sectionMap} icon={<MapPin className="h-5 w-5" />} counts={counts} />
+      <SectionHeader tripId={trip.id} tripName={trip.name} title={t.sectionMap} tripsLabel={t.trips} icon={<MapPin className="h-5 w-5" />} counts={counts} />
 
       {points.length === 0 && flightSegments.length === 0 ? (
         <Card className="border-dashed">

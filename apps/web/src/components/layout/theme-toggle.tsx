@@ -11,9 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useT } from "@/contexts/LanguageContext";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const { t } = useT();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -30,17 +32,17 @@ export function ThemeToggle() {
         ) : (
           <SunMoon className="h-4 w-4" />
         )}
-        <span className="sr-only">Theme</span>
+        <span className="sr-only">{t.themeLabel}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")} className="gap-2 cursor-pointer">
-          <Sun className="h-4 w-4" /> Light
+          <Sun className="h-4 w-4" /> {t.themeLight}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")} className="gap-2 cursor-pointer">
-          <Moon className="h-4 w-4" /> Dark
+          <Moon className="h-4 w-4" /> {t.themeDark}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")} className="gap-2 cursor-pointer">
-          <SunMoon className="h-4 w-4" /> System
+          <SunMoon className="h-4 w-4" /> {t.themeSystem}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
