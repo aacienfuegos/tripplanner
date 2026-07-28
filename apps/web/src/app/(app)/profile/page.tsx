@@ -24,6 +24,7 @@ export default async function ProfilePage() {
         image: true,
         createdAt: true,
         isAdmin: true,
+        unitSystem: true,
         _count: { select: { trips: true } },
       },
     }),
@@ -75,8 +76,8 @@ export default async function ProfilePage() {
 
         <div className="md:col-span-3">
           <ProfileForm
-            key={`${user.name ?? ""}-${user.image ?? ""}`}
-            user={{ name: user.name, image: user.image }}
+            key={`${user.name ?? ""}-${user.image ?? ""}-${user.unitSystem}`}
+            user={{ name: user.name, image: user.image, unitSystem: user.unitSystem }}
           />
         </div>
       </div>

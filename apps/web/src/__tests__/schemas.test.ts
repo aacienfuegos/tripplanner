@@ -9,6 +9,7 @@ import {
   packingItemSchema,
   taskSchema,
   profileSchema,
+  unitSystemSchema,
 } from "@/lib/schemas";
 
 // ─── Trip schema ──────────────────────────────────────────────────────────────
@@ -259,5 +260,36 @@ describe("profileSchema", () => {
   it("rejects whitespace-only name", () => {
     const result = profileSchema.safeParse({ ...valid, name: "   " });
     expect(result.success).toBe(false);
+  });
+
+  it("defaults unitSystem to METRIC when omitted", () => {
+    const result = profileSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.unitSystem).toBe("METRIC");
+  });
+
+  it("accepts IMPERIAL as unitSystem", () => {
+    const result = profileSchema.safeParse({ ...valid, unitSystem: "IMPERIAL" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.unitSystem).toBe("IMPERIAL");
+  });
+
+  it("rejects an invalid unitSystem value", () => {
+    const result = profileSchema.safeParse({ ...valid, unitSystem: "KELVIN" });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── unitSystemSchema ─────────────────────────────────────────────────────────
+
+describe("unitSystemSchema", () => {
+  it("accepts METRIC and IMPERIAL", () => {
+    expect(unitSystemSchema.safeParse("METRIC").success).toBe(true);
+    expect(unitSystemSchema.safeParse("IMPERIAL").success).toBe(true);
+  });
+
+  it("rejects any other value", () => {
+    expect(unitSystemSchema.safeParse("metric").success).toBe(false);
+    expect(unitSystemSchema.safeParse("").success).toBe(false);
   });
 });

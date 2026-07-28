@@ -445,6 +445,9 @@ export const en: WebTKeys = {
   fullNamePlaceholder: "Your full name",
   photoUrlLabel: "Photo URL",
   photoUrlPlaceholder: "https://example.com/photo.jpg",
+  unitSystemLabel: "Unit system",
+  unitSystemMetric: "Metric (m, kg, °C)",
+  unitSystemImperial: "Imperial (ft, lb, °F)",
 
   // --- Onboarding ---
   yourNameLabel: "Your name",

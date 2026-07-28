@@ -87,7 +87,10 @@ export const taskSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
 });
 
+export const unitSystemSchema = z.enum(["METRIC", "IMPERIAL"]);
+
 export const profileSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio"),
   image: z.string().url("La URL de la imagen no es válida").optional().or(z.literal("")),
+  unitSystem: unitSystemSchema.default("METRIC"),
 });

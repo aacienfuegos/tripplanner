@@ -443,6 +443,9 @@ export const es = {
   fullNamePlaceholder: "Tu nombre completo",
   photoUrlLabel: "URL de foto",
   photoUrlPlaceholder: "https://ejemplo.com/foto.jpg",
+  unitSystemLabel: "Sistema de unidades",
+  unitSystemMetric: "Métrico (m, kg, °C)",
+  unitSystemImperial: "Imperial (ft, lb, °F)",
 
   // --- Onboarding ---
   yourNameLabel: "Tu nombre",
