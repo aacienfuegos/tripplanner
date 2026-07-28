@@ -12,9 +12,9 @@ import type { Activity } from "@/types";
 import { format } from "date-fns";
 import { useT } from "@/contexts/LanguageContext";
 
-interface Props { tripId: string; activity?: Activity; tripStartDate: Date; onSuccess: () => void; }
+interface Props { tripId: string; activity?: Activity; tripStartDate: Date; currency: string; onSuccess: () => void; }
 
-export function ActivityForm({ tripId, activity: a, tripStartDate, onSuccess }: Props) {
+export function ActivityForm({ tripId, activity: a, tripStartDate, currency, onSuccess }: Props) {
   const { t } = useT();
   const [isPending, startTransition] = useTransition();
 
@@ -76,7 +76,7 @@ export function ActivityForm({ tripId, activity: a, tripStartDate, onSuccess }: 
           <Input id="city" name="city" defaultValue={a?.city ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="price">{t.price} (€)</Label>
+          <Label htmlFor="price">{t.price} ({currency})</Label>
           <Input id="price" name="price" type="number" step="0.01" defaultValue={a?.price ?? ""} />
         </div>
         <div className="space-y-1.5">

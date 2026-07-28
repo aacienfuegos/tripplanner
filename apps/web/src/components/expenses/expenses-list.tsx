@@ -13,6 +13,7 @@ import { ExpenseForm } from "./expense-form";
 import { deleteExpense, toggleExpensePaid } from "@/actions/expenses";
 import type { Expense } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/currency";
 
 interface Props {
   tripId: string;
@@ -71,13 +72,13 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
           <CardHeader className="pb-1 pt-4">
             <CardTitle className="text-sm text-muted-foreground">{t.totalExpenses}</CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{total.toLocaleString()} {currency}</p></CardContent>
+          <CardContent><p className="text-2xl font-bold">{formatCurrency(total, currency, t.dateLocale)}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-1 pt-4">
             <CardTitle className="text-sm text-muted-foreground">{t.paid}</CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold text-green-600">{paid.toLocaleString()} {currency}</p></CardContent>
+          <CardContent><p className="text-2xl font-bold text-green-600">{formatCurrency(paid, currency, t.dateLocale)}</p></CardContent>
         </Card>
         {budget && (
           <Card>
@@ -88,7 +89,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
             </CardHeader>
             <CardContent>
               <p className={`text-2xl font-bold ${budget - total < 0 ? "text-destructive" : ""}`}>
-                {(budget - total).toLocaleString()} {currency}
+                {formatCurrency(budget - total, currency, t.dateLocale)}
               </p>
             </CardContent>
           </Card>
@@ -100,7 +101,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
         <div className="flex flex-wrap gap-2">
           {Object.entries(byCategory).map(([cat, amount]) => (
             <Badge key={cat} variant="secondary">
-              {catLabels[cat] ?? cat}: {amount.toLocaleString()} {currency}
+              {catLabels[cat] ?? cat}: {formatCurrency(amount, currency, t.dateLocale)}
             </Badge>
           ))}
         </div>
@@ -137,10 +138,10 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-semibold">
-                      {e.amount.toLocaleString()} {e.currency}
+                      {formatCurrency(e.amount, e.currency, t.dateLocale)}
                       {e.currency !== currency && e.convertedAmount != null && (
                         <span className="text-muted-foreground font-normal text-xs">
-                          {" "}(≈ {e.convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency})
+                          {" "}(≈ {formatCurrency(e.convertedAmount, currency, t.dateLocale)})
                         </span>
                       )}
                     </span>

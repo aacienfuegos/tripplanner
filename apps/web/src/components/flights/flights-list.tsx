@@ -14,8 +14,9 @@ import { deleteFlight } from "@/actions/flights";
 import type { Flight } from "@/types";
 import { cn } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/currency";
 
-export function FlightsList({ tripId, flights, tripStartDate }: { tripId: string; flights: Flight[]; tripStartDate: Date }) {
+export function FlightsList({ tripId, flights, tripStartDate, currency }: { tripId: string; flights: Flight[]; tripStartDate: Date; currency: string }) {
   const { t } = useT();
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
@@ -62,7 +63,7 @@ export function FlightsList({ tripId, flights, tripStartDate }: { tripId: string
                       {flight.departureAt && <p>{t.flightDeparture}: {format(flight.departureAt, "d MMM yyyy, HH:mm", { locale: dfLocale })}</p>}
                       {flight.arrivalAt && <p>{t.flightArrival}: {format(flight.arrivalAt, "d MMM yyyy, HH:mm", { locale: dfLocale })}</p>}
                       {flight.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{flight.bookingRef}</span></p>}
-                      {flight.price && <p>{t.price}: {flight.price.toLocaleString()} €</p>}
+                      {flight.price && <p>{t.price}: {formatCurrency(flight.price, currency, t.dateLocale)}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -93,7 +94,7 @@ export function FlightsList({ tripId, flights, tripStartDate }: { tripId: string
           <DialogHeader>
             <DialogTitle>{editing ? t.editFlight : t.addFlight}</DialogTitle>
           </DialogHeader>
-          <FlightForm tripId={tripId} flight={editing ?? undefined} tripStartDate={tripStartDate} onSuccess={() => setOpen(false)} />
+          <FlightForm tripId={tripId} flight={editing ?? undefined} tripStartDate={tripStartDate} currency={currency} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>
