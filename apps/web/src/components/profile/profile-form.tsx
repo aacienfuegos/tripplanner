@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateProfile } from "@/actions/profile";
 import { useT } from "@/contexts/LanguageContext";
 
 interface ProfileFormProps {
-  user: { name: string | null; image: string | null };
+  user: { name: string | null; image: string | null; unitSystem: "METRIC" | "IMPERIAL" };
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
@@ -56,6 +57,21 @@ export function ProfileForm({ user }: ProfileFormProps) {
               placeholder={t.photoUrlPlaceholder}
               defaultValue={user.image ?? ""}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="unitSystem">{t.unitSystemLabel}</Label>
+            <Select name="unitSystem" defaultValue={user.unitSystem}>
+              <SelectTrigger id="unitSystem">
+                <SelectValue>
+                  {(value: string) => (value === "IMPERIAL" ? t.unitSystemImperial : t.unitSystemMetric)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="METRIC">{t.unitSystemMetric}</SelectItem>
+                <SelectItem value="IMPERIAL">{t.unitSystemImperial}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Button type="submit" disabled={isPending} className="w-full">

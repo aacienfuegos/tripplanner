@@ -22,6 +22,7 @@ export async function updateProfile(formData: FormData) {
     data: {
       name: data.name,
       image: data.image || null,
+      unitSystem: data.unitSystem,
     },
   });
 

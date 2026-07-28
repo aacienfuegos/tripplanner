@@ -14,6 +14,11 @@ enum UserStatus {
   DENIED
 }
 
+enum UnitSystem {
+  METRIC
+  IMPERIAL
+}
+
 model User {
   id            String     @id @default(cuid())
   name          String?
@@ -22,6 +27,7 @@ model User {
   image         String?
   status        UserStatus @default(PENDING)
   isAdmin       Boolean    @default(false)
+  unitSystem    UnitSystem @default(METRIC)
   createdAt     DateTime   @default(now())
 
   accounts Account[]
