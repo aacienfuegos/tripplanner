@@ -14,8 +14,7 @@ import { createTrip, updateTrip } from "@/actions/trips";
 import type { Trip } from "@/types";
 import { format } from "date-fns";
 import { useT } from "@/contexts/LanguageContext";
-
-const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "MXN", "ARS", "CLP", "COP"];
+import { CURRENCIES } from "@/lib/exchangeRate";
 
 interface TripFormProps {
   trip?: Trip;

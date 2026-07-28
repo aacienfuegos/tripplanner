@@ -306,4 +306,11 @@ export const en: WebTKeys = {
   backToTrips: "Back to my trips",
   editBtn: "Edit",
   deleteBtn: "Delete",
+
+  // --- Map ---
+  noGeolocatedItems: "No geolocated items in this trip yet.",
+  noGeolocatedItemsHint: "Add accommodations or activities with an address or city and they'll appear here on the map.",
+  pendingGeolocation: (n: number) =>
+    `${n} item${n === 1 ? "" : "s"} not located yet. Geolocation completes progressively; reopen the map in a few seconds.`,
+  viewDetail: "View details",
 };
