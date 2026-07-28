@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
+const httpUrl = z.string().refine(isHttpUrl, "La URL debe usar http o https");
+
 export const tripStatusSchema = z.enum(["PLANNING", "BOOKED", "ONGOING", "COMPLETED", "CANCELLED"]);
 
 export const tripSchema = z.object({
@@ -20,7 +23,7 @@ export const flightSchema = z.object({
   departureAt: z.string().min(1),
   arrivalAt: z.string().min(1),
   bookingRef: z.string().optional(),
-  confirmationUrl: z.string().url().optional().or(z.literal("")),
+  confirmationUrl: httpUrl.optional().or(z.literal("")),
   seatNumber: z.string().optional(),
   class: z.enum(["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"]).default("ECONOMY"),
   price: z.string().optional(),
@@ -45,7 +48,7 @@ export const accommodationSchema = z.object({
   checkIn: z.string().min(1),
   checkOut: z.string().min(1),
   bookingRef: z.string().optional(),
-  confirmationUrl: z.string().url().optional().or(z.literal("")),
+  confirmationUrl: httpUrl.optional().or(z.literal("")),
   price: z.string().optional(),
   pricePerNight: z.string().optional(),
   notes: z.string().optional(),
@@ -60,7 +63,7 @@ export const activitySchema = z.object({
   scheduledAt: z.string().optional(),
   duration: z.string().optional(),
   bookingRef: z.string().optional(),
-  confirmationUrl: z.string().url().optional().or(z.literal("")),
+  confirmationUrl: httpUrl.optional().or(z.literal("")),
   price: z.string().optional(),
   status: z.enum(["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"]).default("PENDING"),
   notes: z.string().optional(),
@@ -69,7 +72,7 @@ export const activitySchema = z.object({
 export const documentSchema = z.object({
   type: z.enum(["PASSPORT", "VISA", "INSURANCE", "TICKET", "VOUCHER", "OTHER"]),
   name: z.string().min(1),
-  fileUrl: z.string().url().optional().or(z.literal("")),
+  fileUrl: httpUrl.optional().or(z.literal("")),
   expiresAt: z.string().optional(),
   notes: z.string().optional(),
 });

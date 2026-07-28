@@ -9,7 +9,13 @@ import { z } from "zod";
 //   import-prompt.ts (SCHEMA block), import.ts (bulkImport + checkDuplicates),
 //   ReviewStep.tsx (SECTION_CONFIG + ItemSummary), and the test file.
 
-const optionalUrl = z.string().nullable().optional();
+const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
+
+const optionalUrl = z
+  .string()
+  .refine((url) => url === "" || isHttpUrl(url), "URL must use http or https")
+  .nullable()
+  .optional();
 
 export const importFlightSchema = z.object({
   airline: z.string().nullable().optional(),

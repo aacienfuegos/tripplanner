@@ -13,7 +13,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ActivityForm } from "./activity-form";
 import { deleteActivity, updateActivityStatus } from "@/actions/activities";
 import type { Activity, BookingStatus } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/currency";
 
@@ -126,7 +126,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
                         <MapPin className="h-4 w-4 text-blue-500" />
                       </a>
                     )}
-                    {act.confirmationUrl && (
+                    {act.confirmationUrl && isHttpUrl(act.confirmationUrl) && (
                       <a
                         href={act.confirmationUrl}
                         target="_blank"

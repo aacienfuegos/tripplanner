@@ -77,6 +77,16 @@ describe("flightSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects javascript: URI for confirmationUrl (XSS)", () => {
+    const result = flightSchema.safeParse({ ...valid, confirmationUrl: "javascript:alert(document.cookie)" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects data: URI for confirmationUrl (XSS)", () => {
+    const result = flightSchema.safeParse({ ...valid, confirmationUrl: "data:text/html,<script>alert(1)</script>" });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects invalid flight class", () => {
     const result = flightSchema.safeParse({ ...valid, class: "UNKNOWN" });
     expect(result.success).toBe(false);
@@ -138,6 +148,16 @@ describe("accommodationSchema", () => {
     const result = accommodationSchema.safeParse({ ...valid, city: "" });
     expect(result.success).toBe(false);
   });
+
+  it("accepts a valid https confirmationUrl", () => {
+    const result = accommodationSchema.safeParse({ ...valid, confirmationUrl: "https://booking.com/hotel/123" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects javascript: URI for confirmationUrl (XSS)", () => {
+    const result = accommodationSchema.safeParse({ ...valid, confirmationUrl: "javascript:alert(1)" });
+    expect(result.success).toBe(false);
+  });
 });
 
 // ─── Activity schema ──────────────────────────────────────────────────────────
@@ -156,6 +176,16 @@ describe("activitySchema", () => {
     const result = activitySchema.safeParse({ name: "" });
     expect(result.success).toBe(false);
   });
+
+  it("accepts a valid https confirmationUrl", () => {
+    const result = activitySchema.safeParse({ name: "Tour", confirmationUrl: "https://getyourguide.com/tour/1" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects data: URI for confirmationUrl (XSS)", () => {
+    const result = activitySchema.safeParse({ name: "Tour", confirmationUrl: "data:text/html,<script>alert(1)</script>" });
+    expect(result.success).toBe(false);
+  });
 });
 
 // ─── Document schema ──────────────────────────────────────────────────────────
@@ -170,6 +200,16 @@ describe("documentSchema", () => {
 
   it("rejects invalid document type", () => {
     const result = documentSchema.safeParse({ ...valid, type: "ID_CARD" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a valid https fileUrl", () => {
+    const result = documentSchema.safeParse({ ...valid, fileUrl: "https://drive.google.com/file/1" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects javascript: URI for fileUrl (XSS)", () => {
+    const result = documentSchema.safeParse({ ...valid, fileUrl: "javascript:alert(document.cookie)" });
     expect(result.success).toBe(false);
   });
 });
