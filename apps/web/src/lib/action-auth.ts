@@ -16,6 +16,7 @@ export const requireUser = cache(async function requireUser(): Promise<string> {
     select: { status: true },
   });
   if (!user || user.status === "DENIED") redirect("/auth/error?error=AccessDenied");
+  if (user.status === "PENDING") redirect("/auth/pending");
 
   return session.user.id;
 });

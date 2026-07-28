@@ -7,8 +7,9 @@ import { describe, it, expect } from "vitest";
  * in the DB, so a user marked DENIED after login kept write access (create/update/
  * delete on their trips) until their session token expired — up to 30 days with
  * strategy: "jwt". requireUser()/requireTripOwner() now re-read status on every
- * call so a DENIED user is rejected immediately, without switching session
- * strategy to "database".
+ * call so a DENIED or PENDING user is rejected immediately, without switching
+ * session strategy to "database". PENDING mirrors the existing (app)/layout.tsx
+ * gate, which already redirects PENDING users to /auth/pending for navigation.
  */
 
 type UserStatus = "PENDING" | "APPROVED" | "DENIED";
@@ -17,9 +18,10 @@ type UserStatus = "PENDING" | "APPROVED" | "DENIED";
 function requireUserGate(
   hasSession: boolean,
   dbUser: { status: UserStatus } | null,
-): "ok" | "/auth/signin" | "/auth/error?error=AccessDenied" {
+): "ok" | "/auth/signin" | "/auth/error?error=AccessDenied" | "/auth/pending" {
   if (!hasSession) return "/auth/signin";
   if (!dbUser || dbUser.status === "DENIED") return "/auth/error?error=AccessDenied";
+  if (dbUser.status === "PENDING") return "/auth/pending";
   return "ok";
 }
 
@@ -29,7 +31,7 @@ function requireTripOwnerGate(
   dbUser: { status: UserStatus } | null,
   currentUserId: string | null,
   trip: { userId: string } | null,
-): "ok" | "/auth/signin" | "/auth/error?error=AccessDenied" | "/trips" {
+): "ok" | "/auth/signin" | "/auth/error?error=AccessDenied" | "/auth/pending" | "/trips" {
   const userGate = requireUserGate(hasSession, dbUser);
   if (userGate !== "ok") return userGate;
   if (!trip || trip.userId !== currentUserId) return "/trips";
@@ -53,8 +55,11 @@ describe("requireUser status revalidation", () => {
     expect(requireUserGate(true, { status: "APPROVED" })).toBe("ok");
   });
 
-  it("allows a PENDING user through (layout, not the action, gates PENDING)", () => {
-    expect(requireUserGate(true, { status: "PENDING" })).toBe("ok");
+  it("redirects a PENDING user to the pending page, mirroring the layout gate", () => {
+    // Server Actions previously only decoded the JWT, so a PENDING user could
+    // still invoke mutations directly (create/update/delete) even though page
+    // navigation already redirected them to /auth/pending.
+    expect(requireUserGate(true, { status: "PENDING" })).toBe("/auth/pending");
   });
 });
 
