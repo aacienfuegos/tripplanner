@@ -15,6 +15,12 @@ export type MapPoint = {
   readonly detailHref: string;
 };
 
+export type MapLabels = {
+  readonly accommodation: string;
+  readonly activity: string;
+  readonly viewDetail: string;
+};
+
 // Leaflet toca window/document en import: se carga solo en cliente (ssr: false),
 // lo que sólo es válido dentro de un Client Component en Next.js 16.
 const TripMap = dynamic(() => import("./TripMap").then((m) => m.TripMap), {
@@ -22,16 +28,19 @@ const TripMap = dynamic(() => import("./TripMap").then((m) => m.TripMap), {
   loading: () => <Skeleton className="h-[70vh] w-full rounded-lg" />,
 });
 
-export function TripMapView({ points, pendingCount }: { points: readonly MapPoint[]; pendingCount: number }) {
+export function TripMapView({
+  points,
+  pendingLabel,
+  labels,
+}: {
+  points: readonly MapPoint[];
+  pendingLabel: string | null;
+  labels: MapLabels;
+}) {
   return (
     <div className="space-y-2">
-      <TripMap points={points} />
-      {pendingCount > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {pendingCount} elemento{pendingCount === 1 ? "" : "s"} sin ubicar todavía. La geolocalización se
-          completa de forma progresiva; vuelve a abrir el mapa en unos segundos.
-        </p>
-      )}
+      <TripMap points={points} labels={labels} />
+      {pendingLabel && <p className="text-xs text-muted-foreground">{pendingLabel}</p>}
     </div>
   );
 }

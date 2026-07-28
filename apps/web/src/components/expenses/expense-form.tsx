@@ -11,12 +11,17 @@ import { createExpense, updateExpense } from "@/actions/expenses";
 import type { Expense } from "@/types";
 import { format } from "date-fns";
 import { useT } from "@/contexts/LanguageContext";
+import { CURRENCIES } from "@/lib/exchangeRate";
 
 interface Props { tripId: string; expense?: Expense; currency: string; tripStartDate: Date; onSuccess: () => void; }
 
 export function ExpenseForm({ tripId, expense: e, currency, tripStartDate, onSuccess }: Props) {
   const { t } = useT();
   const [isPending, startTransition] = useTransition();
+  const defaultCurrency = e?.currency ?? currency;
+  const currencyOptions = CURRENCIES.includes(defaultCurrency as (typeof CURRENCIES)[number])
+    ? CURRENCIES
+    : [defaultCurrency, ...CURRENCIES];
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -52,7 +57,14 @@ export function ExpenseForm({ tripId, expense: e, currency, tripStartDate, onSuc
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="currency">{t.tripCurrency}</Label>
-          <Input id="currency" name="currency" defaultValue={e?.currency ?? currency} />
+          <Select name="currency" defaultValue={defaultCurrency}>
+            <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {currencyOptions.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="date">{t.expenseDate} *</Label>

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "MXN", "ARS", "CLP", "COP"] as const;
+
 const EXCHANGE_RATE_API = "https://open.er-api.com/v6/latest";
 const CACHE_TTL_MS = 60 * 60 * 1000;
 

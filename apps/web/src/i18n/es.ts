@@ -304,6 +304,13 @@ export const es = {
   backToTrips: "Volver a mis viajes",
   editBtn: "Editar",
   deleteBtn: "Eliminar",
+
+  // --- Map ---
+  noGeolocatedItems: "Aún no hay elementos geolocalizados en este viaje.",
+  noGeolocatedItemsHint: "Añade alojamientos o actividades con dirección o ciudad y aparecerán aquí en el mapa.",
+  pendingGeolocation: (n: number) =>
+    `${n} elemento${n === 1 ? "" : "s"} sin ubicar todavía. La geolocalización se completa de forma progresiva; vuelve a abrir el mapa en unos segundos.`,
+  viewDetail: "Ver detalle",
 };
 
 export type WebTKeys = typeof es;

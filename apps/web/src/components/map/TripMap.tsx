@@ -1,25 +1,39 @@
 "use client";
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
-import { Icon, type LatLngExpression, type LatLngTuple } from "leaflet";
+import { divIcon, type LatLngExpression, type LatLngTuple } from "leaflet";
 import Link from "next/link";
 import { useMemo } from "react";
-import type { MapPoint } from "./TripMapView";
+import type { MapLabels, MapPoint } from "./TripMapView";
 import "leaflet/dist/leaflet.css";
 
-// Leaflet resuelve los iconos por defecto con rutas relativas al CSS que el
-// bundler rompe; se sirven desde /public para no depender de un CDN externo.
-const markerIconInstance = new Icon({
-  iconUrl: "/leaflet/marker-icon.png",
-  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
-  shadowUrl: "/leaflet/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+// Pines SVG inline (sin depender de un CDN externo) con color distinto por tipo,
+// para poder distinguir alojamiento vs actividad de un vistazo en el mapa.
+const MARKER_COLORS: Record<MapPoint["kind"], string> = {
+  accommodation: "#2563eb",
+  activity: "#f97316",
+};
 
-export function TripMap({ points }: { points: readonly MapPoint[] }) {
+function buildMarkerIcon(kind: MapPoint["kind"]) {
+  const color = MARKER_COLORS[kind];
+  return divIcon({
+    className: "",
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="34" viewBox="0 0 25 34">
+      <path d="M12.5 0C5.6 0 0 5.6 0 12.5c0 9.4 12.5 21.5 12.5 21.5S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0z" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <circle cx="12.5" cy="12.5" r="5" fill="white"/>
+    </svg>`,
+    iconSize: [25, 34],
+    iconAnchor: [12.5, 34],
+    popupAnchor: [0, -30],
+  });
+}
+
+const markerIcons: Record<MapPoint["kind"], ReturnType<typeof divIcon>> = {
+  accommodation: buildMarkerIcon("accommodation"),
+  activity: buildMarkerIcon("activity"),
+};
+
+export function TripMap({ points, labels }: { points: readonly MapPoint[]; labels: MapLabels }) {
   const bounds = useMemo<LatLngTuple[] | null>(() => {
     if (points.length === 0) return null;
     return points.map((p) => [p.lat, p.lng] as LatLngTuple);
@@ -56,17 +70,17 @@ export function TripMap({ points }: { points: readonly MapPoint[] }) {
       )}
 
       {points.map((p) => (
-        <Marker key={`${p.kind}-${p.id}`} position={[p.lat, p.lng]} icon={markerIconInstance}>
+        <Marker key={`${p.kind}-${p.id}`} position={[p.lat, p.lng]} icon={markerIcons[p.kind]}>
           <Popup>
             <div className="space-y-1">
               <p className="font-semibold text-sm">{p.name}</p>
               <p className="text-xs text-neutral-500">
-                {p.kind === "accommodation" ? "Alojamiento" : "Actividad"}
+                {p.kind === "accommodation" ? labels.accommodation : labels.activity}
                 {p.subtitle ? ` · ${p.subtitle}` : ""}
               </p>
               {p.dateLabel && <p className="text-xs text-neutral-500">{p.dateLabel}</p>}
               <Link href={p.detailHref} className="text-xs text-blue-600 underline">
-                Ver detalle
+                {labels.viewDetail}
               </Link>
             </div>
           </Popup>
