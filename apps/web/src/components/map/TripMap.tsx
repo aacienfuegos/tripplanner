@@ -166,13 +166,25 @@ export function TripMap({
     return coords.length > 0 ? coords : null;
   }, [points, flights]);
 
-  const routeCoords = useMemo<LatLngExpression[]>(() => {
-    return points
-      .filter((p) => p.date !== null)
+  // Un segmento por cada par de puntos consecutivos en el tiempo, salvo que
+  // un vuelo haya salido entre medias — ese tramo lo cubren ya la línea del
+  // vuelo y los conectores a los aeropuertos, así que no tiene sentido unir
+  // los dos puntos también en línea recta de tierra.
+  const groundSegments = useMemo<LatLngExpression[][]>(() => {
+    const sorted = points
+      .filter((p): p is MapPoint & { date: string } => p.date !== null)
       .slice()
-      .sort((a, b) => (a.date! < b.date! ? -1 : a.date! > b.date! ? 1 : 0))
-      .map((p) => [p.lat, p.lng] as LatLngExpression);
-  }, [points]);
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    const segments: LatLngExpression[][] = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const flightBetween = flights.some((f) => f.departureAt && f.departureAt > a.date && f.departureAt < b.date);
+      if (!flightBetween) segments.push([[a.lat, a.lng], [b.lat, b.lng]]);
+    }
+    return segments;
+  }, [points, flights]);
 
   // Tramo de tierra entre el último alojamiento/actividad antes de un vuelo y
   // su aeropuerto de salida, y entre el aeropuerto de llegada y el siguiente
@@ -222,15 +234,19 @@ export function TripMap({
     >
       <VectorTileLayer />
 
-      {routeCoords.length >= 2 && (
-        <Polyline positions={routeCoords} pathOptions={{ color: "#2563eb", weight: 3, opacity: 0.7 }} />
-      )}
+      {groundSegments.map((positions, i) => (
+        <Polyline
+          key={`ground-${i}`}
+          positions={positions}
+          pathOptions={{ color: "#2563eb", weight: 3, opacity: 0.7 }}
+        />
+      ))}
 
       {airportConnectors.map((positions, i) => (
         <Polyline
           key={`connector-${i}`}
           positions={positions}
-          pathOptions={{ color: "#2563eb", weight: 2, opacity: 0.5, dashArray: "2 6" }}
+          pathOptions={{ color: "#2563eb", weight: 3, opacity: 0.7 }}
         />
       ))}
 
