@@ -42,6 +42,22 @@ describe("tripSchema", () => {
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.budget).toBe("1500.50");
   });
+
+  it("accepts a supported currency", () => {
+    const result = tripSchema.safeParse({ ...valid, currency: "USD" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.currency).toBe("USD");
+  });
+
+  it("rejects an unsupported currency", () => {
+    const result = tripSchema.safeParse({ ...valid, currency: "XXX" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an arbitrary string as currency", () => {
+    const result = tripSchema.safeParse({ ...valid, currency: "'; DROP TABLE trips;--" });
+    expect(result.success).toBe(false);
+  });
 });
 
 // ─── Flight schema ────────────────────────────────────────────────────────────
@@ -125,6 +141,19 @@ describe("expenseSchema", () => {
       const result = expenseSchema.safeParse({ ...valid, category });
       expect(result.success, `category ${category} should be valid`).toBe(true);
     }
+  });
+
+  it("accepts all supported currencies", () => {
+    const currencies = ["EUR", "USD", "GBP", "JPY", "MXN", "ARS", "CLP", "COP"] as const;
+    for (const currency of currencies) {
+      const result = expenseSchema.safeParse({ ...valid, currency });
+      expect(result.success, `currency ${currency} should be valid`).toBe(true);
+    }
+  });
+
+  it("rejects an unsupported currency", () => {
+    const result = expenseSchema.safeParse({ ...valid, currency: "BTC" });
+    expect(result.success).toBe(false);
   });
 });
 

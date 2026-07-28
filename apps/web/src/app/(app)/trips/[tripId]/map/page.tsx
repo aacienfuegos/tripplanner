@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SectionHeader } from "@/components/layout/section-header";
@@ -13,6 +14,16 @@ import { getT } from "@/lib/locale";
 
 // Límite de items a geocodificar por carga: Nominatim va a ~1 req/s, así que
 // el backfill se reparte entre varias visitas en vez de bloquear el render.
+//
+// El backfill corre en after() (fuera del render, tras enviar la respuesta):
+// esta visita pinta con las coordenadas ya persistidas y una visita
+// posterior recoge las que se rellenen entretanto. Esto evita que el render
+// de ESTE usuario se bloquee esperando la cola de geocoding (#185), pero la
+// cola (`geocoding.ts`) sigue siendo un módulo global compartido por todo el
+// proceso — el backfill de un usuario con muchos items sin geocodificar
+// puede seguir retrasando el geocoding (no el render) de otros usuarios.
+// Pendiente: cola/contexto de trabajo por-trip o por-usuario en vez de la
+// cola FIFO global — ver comentario en el issue #185.
 const BACKFILL_LIMIT = 12;
 
 export default async function TripMapPage({ params }: { params: Promise<{ tripId: string }> }) {
@@ -51,31 +62,28 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
 
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
-  const pending: Promise<void>[] = [];
+  const backfillIds: Array<() => Promise<void>> = [];
   for (const a of trip.accommodations) {
-    if (a.latitude === null && a.longitude === null && pending.length < BACKFILL_LIMIT) {
-      pending.push(geocodeAccommodation(a.id));
+    if (a.latitude === null && a.longitude === null && backfillIds.length < BACKFILL_LIMIT) {
+      backfillIds.push(() => geocodeAccommodation(a.id));
     }
   }
   for (const a of trip.activities) {
-    if (a.latitude === null && a.longitude === null && (a.location || a.city) && pending.length < BACKFILL_LIMIT) {
-      pending.push(geocodeActivity(a.id));
+    if (a.latitude === null && a.longitude === null && (a.location || a.city) && backfillIds.length < BACKFILL_LIMIT) {
+      backfillIds.push(() => geocodeActivity(a.id));
     }
   }
   for (const f of trip.flights) {
-    if ((f.originLat === null || f.destinationLat === null) && pending.length < BACKFILL_LIMIT) {
-      pending.push(geocodeFlight(f.id));
+    if ((f.originLat === null || f.destinationLat === null) && backfillIds.length < BACKFILL_LIMIT) {
+      backfillIds.push(() => geocodeFlight(f.id));
     }
   }
 
-  if (pending.length > 0) {
-    await Promise.all(pending);
-    const refreshed = await prisma.trip.findUnique({ where: { id: tripId }, include: tripInclude });
-    if (refreshed) {
-      trip.accommodations = refreshed.accommodations;
-      trip.activities = refreshed.activities;
-      trip.flights = refreshed.flights;
-    }
+  if (backfillIds.length > 0) {
+    // No await: el render pinta con lo ya persistido y el backfill corre
+    // tras enviar la respuesta, sin bloquear a este usuario ni a otros
+    // requests que compartan el proceso (#185).
+    after(() => Promise.all(backfillIds.map((task) => task())));
   }
 
   const points: MapPoint[] = [];

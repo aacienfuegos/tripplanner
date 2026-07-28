@@ -164,6 +164,17 @@ describe("importExpenseSchema", () => {
       expect(importExpenseSchema.safeParse({ ...valid, category }).success).toBe(true);
     }
   });
+
+  it("accepts all supported currencies", () => {
+    const currencies = ["EUR", "USD", "GBP", "JPY", "MXN", "ARS", "CLP", "COP"] as const;
+    for (const currency of currencies) {
+      expect(importExpenseSchema.safeParse({ ...valid, currency }).success).toBe(true);
+    }
+  });
+
+  it("rejects an unsupported currency", () => {
+    expect(importExpenseSchema.safeParse({ ...valid, currency: "BTC" }).success).toBe(false);
+  });
 });
 
 // ─── importPackingItemSchema ──────────────────────────────────────────────────

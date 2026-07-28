@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CURRENCIES } from "./currencies";
 
 // ─── Per-section import schemas ───────────────────────────────────────────────
 // Intentionally lenient: prices are numbers, dates are ISO 8601 strings,
@@ -65,7 +66,7 @@ export const importExpenseSchema = z.object({
   description: z.string().min(1),
   category: z.enum(["FLIGHT", "ACCOMMODATION", "FOOD", "TRANSPORT", "ACTIVITY", "SHOPPING", "OTHER"]),
   amount: z.number().positive(),
-  currency: z.string().default("EUR"),
+  currency: z.enum(CURRENCIES).default("EUR"),
   date: z.string().min(1),
   paid: z.boolean().default(false),
   notes: z.string().nullable().optional(),
