@@ -1,12 +1,11 @@
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { DiveLogList } from "@/components/dives/dive-log-list";
 import { Waves } from "lucide-react";
 import { getT } from "@/lib/locale";
 
 export default async function DivesPage() {
-  const session = await auth();
-  const userId = session!.user!.id!;
+  const userId = await requireUser();
 
   const [t, dives, sites] = await Promise.all([
     getT(),
