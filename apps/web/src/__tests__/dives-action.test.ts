@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { redirect } from "next/navigation";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
@@ -21,7 +22,9 @@ const diveLogCreate = vi.fn();
 const diveLogUpdate = vi.fn();
 const diveLogDelete = vi.fn();
 const diveLogAggregate = vi.fn();
+const diveLogFindUnique = vi.fn();
 const diveSiteFindUnique = vi.fn();
+const tripFindUnique = vi.fn();
 const userFindUnique = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
@@ -31,9 +34,13 @@ vi.mock("@/lib/prisma", () => ({
       update: (...args: unknown[]) => diveLogUpdate(...args),
       delete: (...args: unknown[]) => diveLogDelete(...args),
       aggregate: (...args: unknown[]) => diveLogAggregate(...args),
+      findUnique: (...args: unknown[]) => diveLogFindUnique(...args),
     },
     diveSite: {
       findUnique: (...args: unknown[]) => diveSiteFindUnique(...args),
+    },
+    trip: {
+      findUnique: (...args: unknown[]) => tripFindUnique(...args),
     },
     user: {
       findUnique: (...args: unknown[]) => userFindUnique(...args),
@@ -113,6 +120,100 @@ describe("dives.ts — userId scoping on update/delete", () => {
     expect(diveLogCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ diveSiteId: "site-123" }) }),
     );
+  });
+
+  it("does not attach a tripId belonging to another user's trip (IDOR defense)", async () => {
+    // A trip owned by "user-2" — the attacker submits its id via the hidden
+    // form field used to pre-link a dive created from a trip page.
+    tripFindUnique.mockResolvedValue({ userId: "user-2" });
+
+    const { createDiveLog } = await import("@/actions/dives");
+    const formData = validDiveFormData();
+    formData.set("tripId", "trip-of-another-user");
+
+    await createDiveLog(formData);
+
+    expect(diveLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ tripId: null }) }),
+    );
+  });
+
+  it("attaches tripId when the trip belongs to the authenticated user", async () => {
+    tripFindUnique.mockResolvedValue({ userId: "user-attacker" });
+
+    const { createDiveLog } = await import("@/actions/dives");
+    const formData = validDiveFormData();
+    formData.set("tripId", "trip-123");
+
+    await createDiveLog(formData);
+
+    expect(diveLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ tripId: "trip-123" }) }),
+    );
+  });
+});
+
+describe("linkDiveToTrip — dive and trip ownership", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userFindUnique.mockResolvedValue({ status: "APPROVED" });
+  });
+
+  it("links a dive the user owns to a trip the user owns", async () => {
+    tripFindUnique.mockResolvedValue({ userId: "user-attacker" });
+
+    const { linkDiveToTrip } = await import("@/actions/dives");
+    await linkDiveToTrip("dive-1", "trip-1");
+
+    expect(diveLogUpdate).toHaveBeenCalledWith({
+      where: { id: "dive-1", userId: "user-attacker" },
+      data: { tripId: "trip-1" },
+    });
+  });
+
+  it("refuses to link to a trip owned by another user and never mutates the dive", async () => {
+    // requireTripOwner redirects (and Next aborts the action) when the trip
+    // isn't the caller's — simulate that abort and assert no mutation ran.
+    tripFindUnique.mockResolvedValue({ userId: "user-2" });
+    vi.mocked(redirect).mockImplementationOnce(() => {
+      throw new Error("NEXT_REDIRECT");
+    });
+
+    const { linkDiveToTrip } = await import("@/actions/dives");
+    await expect(linkDiveToTrip("dive-1", "trip-of-another-user")).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(diveLogUpdate).not.toHaveBeenCalled();
+  });
+
+  it("scopes the diveLog update by id and userId (defense in depth against a foreign dive)", async () => {
+    // Even if diveId belongs to another user, the mutation itself must stay
+    // scoped by userId so Prisma's where clause is the last line of defense.
+    tripFindUnique.mockResolvedValue({ userId: "user-attacker" });
+
+    const { linkDiveToTrip } = await import("@/actions/dives");
+    await linkDiveToTrip("dive-of-another-user", "trip-1");
+
+    const where = diveLogUpdate.mock.calls[0][0].where;
+    expect(where).toEqual({ id: "dive-of-another-user", userId: "user-attacker" });
+  });
+});
+
+describe("unlinkDiveFromTrip — clears tripId without deleting the record", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userFindUnique.mockResolvedValue({ status: "APPROVED" });
+    diveLogFindUnique.mockResolvedValue({ tripId: "trip-1" });
+  });
+
+  it("sets tripId to null, scoped by id and userId, without deleting", async () => {
+    const { unlinkDiveFromTrip } = await import("@/actions/dives");
+    await unlinkDiveFromTrip("dive-1");
+
+    expect(diveLogUpdate).toHaveBeenCalledWith({
+      where: { id: "dive-1", userId: "user-attacker" },
+      data: { tripId: null },
+    });
+    expect(diveLogDelete).not.toHaveBeenCalled();
   });
 });
 
