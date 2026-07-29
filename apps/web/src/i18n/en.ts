@@ -418,6 +418,31 @@ export const en: WebTKeys = {
   linkDive: "Link",
   unlinkDive: "Unlink from trip",
 
+  // --- Dive import (Diving Log SQLite) ---
+  diveImportTrigger: "Import from Diving Log",
+  diveImportTitle: "Import logbook (Diving Log)",
+  diveImportStepUpload: "Upload the .db/.sqlite file exported from Diving Log",
+  diveImportStepReview: "Review the detected data",
+  diveImportIntro:
+    "Upload a Diving Log export (.db or .sqlite file) to import your dives, dive sites, and certifications.",
+  diveImportScopeNote:
+    "Not imported: the dive profile (depth/time graph from your computer), full buddy contact details (only the name), or certification card scans. If a dive used more than one tank, only the primary tank's data is imported — the rest is noted in the dive's notes.",
+  diveImportDropZone: "Drop the .db/.sqlite file here or click to select it",
+  diveImportProcessing: "Processing file…",
+  diveImportSectionSites: "Dive sites",
+  diveImportSectionLogs: "Dives",
+  diveImportSectionCertifications: "Certifications",
+  diveImportResultSites: (n: number) => `${n} dive site${n === 1 ? "" : "s"}`,
+  diveImportResultLogs: (n: number) => `${n} dive${n === 1 ? "" : "s"}`,
+  diveImportResultCertifications: (n: number) => `${n} certification${n === 1 ? "" : "s"}`,
+  diveImportErrorNoFile: "No file was received.",
+  diveImportErrorEmptyFile: "The file is empty.",
+  diveImportErrorFileTooLarge: (mb: number) => `The file exceeds the ${mb} MB limit.`,
+  diveImportErrorUnrecognizedFile:
+    "Unrecognized file: it doesn't match the expected schema of a Diving Log export.",
+  diveImportErrorEmptyPayload: "The file doesn't contain any dives, dive sites, or certifications.",
+  diveImportErrorUnknown: "Couldn't process the file.",
+
   // --- Documents list ---
   documentTypePassport: "Passport",
   documentTypeVisa: "Visa",

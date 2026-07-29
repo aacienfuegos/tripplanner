@@ -36,5 +36,12 @@
     "test:web": "npm run test --workspace=apps/web",
     "typecheck:web": "npm run typecheck --workspace=apps/web",
     "dev:android": "npm run start --workspace=apps/android"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.9.1": true,
+    "better-sqlite3@13.0.1": true,
+    "esbuild@0.28.1": true,
+    "prisma@7.9.1": true,
+    "unrs-resolver@1.12.2": true
   }
 }

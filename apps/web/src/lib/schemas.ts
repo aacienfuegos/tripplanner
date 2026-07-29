@@ -148,3 +148,35 @@ export const diveCertificationSchema = z.object({
   instructorName: z.string().optional(),
   notes: z.string().optional(),
 });
+
+// ─── Diving Log (SQLite) import ─────────────────────────────────────────────
+// Same string-shaped schemas as the manual dive forms above, extended with the
+// provenance fields (externalId, site linkage) the import needs to resolve
+// relations and dedupe on re-import. Reusing diveSiteSchema/diveLogSchema/
+// diveCertificationSchema keeps this external-file boundary validated the
+// same way as manual entry.
+
+export const divingLogSiteSchema = diveSiteSchema.extend({
+  externalId: z.string().min(1),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+});
+
+export const divingLogEntrySchema = diveLogSchema.omit({ diveSiteId: true }).extend({
+  externalId: z.string().min(1),
+  diveSiteExternalId: z.string().nullable(),
+});
+
+export const divingLogCertificationSchema = diveCertificationSchema.extend({
+  externalId: z.string().min(1),
+});
+
+const MAX_DIVING_LOG_IMPORT_ROWS = 5000;
+
+export const divingLogImportPayloadSchema = z.object({
+  sites: z.array(divingLogSiteSchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
+  logs: z.array(divingLogEntrySchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
+  certifications: z.array(divingLogCertificationSchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
+});
+
+export type DivingLogImportPayload = z.infer<typeof divingLogImportPayloadSchema>;

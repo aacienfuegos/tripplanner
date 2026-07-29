@@ -416,6 +416,32 @@ export const es = {
   linkDive: "Vincular",
   unlinkDive: "Desvincular del viaje",
 
+  // --- Dive import (Diving Log SQLite) ---
+  diveImportTrigger: "Importar desde Diving Log",
+  diveImportTitle: "Importar logbook (Diving Log)",
+  diveImportStepUpload: "Sube el fichero .db/.sqlite exportado desde Diving Log",
+  diveImportStepReview: "Revisa los datos detectados",
+  diveImportIntro:
+    "Sube un export de Diving Log (fichero .db o .sqlite) para importar tus inmersiones, puntos de inmersión y certificaciones.",
+  diveImportScopeNote:
+    "No se importan: el perfil de la inmersión (gráfica profundidad/tiempo del ordenador), las fichas completas de compañeros de buceo (solo el nombre) ni los escaneos de las tarjetas de certificación. Si una inmersión tiene más de una botella, solo se importan los datos de la principal — el resto queda anotado en las notas de la inmersión.",
+  diveImportDropZone: "Arrastra el fichero .db/.sqlite o haz clic para seleccionarlo",
+  diveImportProcessing: "Procesando fichero…",
+  diveImportSectionSites: "Puntos de inmersión",
+  diveImportSectionLogs: "Inmersiones",
+  diveImportSectionCertifications: "Certificaciones",
+  diveImportResultSites: (n: number) => `${n} punto${n === 1 ? "" : "s"} de inmersión`,
+  diveImportResultLogs: (n: number) => `${n} inmersi${n === 1 ? "ón" : "ones"}`,
+  diveImportResultCertifications: (n: number) => `${n} certificaci${n === 1 ? "ón" : "ones"}`,
+  diveImportErrorNoFile: "No se ha recibido ningún fichero.",
+  diveImportErrorEmptyFile: "El fichero está vacío.",
+  diveImportErrorFileTooLarge: (mb: number) => `El fichero supera el límite de ${mb} MB.`,
+  diveImportErrorUnrecognizedFile:
+    "Fichero no reconocido: no coincide con el esquema esperado de un export de Diving Log.",
+  diveImportErrorEmptyPayload:
+    "El fichero no contiene inmersiones, puntos de inmersión ni certificaciones.",
+  diveImportErrorUnknown: "No se pudo procesar el fichero.",
+
   // --- Documents list ---
   documentTypePassport: "Pasaporte",
   documentTypeVisa: "Visado",

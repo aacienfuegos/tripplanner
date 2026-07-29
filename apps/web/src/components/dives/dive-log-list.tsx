@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DiveLogForm } from "./dive-log-form";
+import { DiveImportTrigger } from "@/components/dive-import/DiveImportTrigger";
 import { deleteDiveLog } from "@/actions/dives";
 import type { DiveLogWithSite, DiveSite, GasMix } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
@@ -47,14 +48,17 @@ export function DiveLogList({ dives, sites }: { dives: DiveLogWithSite[]; sites:
 
   return (
     <div className="space-y-4">
-      <Button
-        onClick={() => {
-          setEditing(null);
-          setOpen(true);
-        }}
-      >
-        <Plus className="h-4 w-4 mr-2" /> {t.addDive}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" /> {t.addDive}
+        </Button>
+        <DiveImportTrigger />
+      </div>
 
       {dives.length === 0 ? (
         <Card className="border-dashed">
