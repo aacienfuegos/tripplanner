@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/action-auth";
 import { geocodeDiveSite } from "@/lib/geocode-items";
 import { mapDiveLogInput } from "@/lib/dive-log-mapper";
+import { renumberDives } from "@/lib/dive-numbering";
 import { isFuzzyMatch } from "@/lib/fuzzy-match";
 import {
   divingLogImportPayloadSchema,
@@ -171,14 +172,13 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
     }
 
     if (data.logs.length > 0) {
-      const { _max } = await tx.diveLog.aggregate({ where: { userId }, _max: { diveNumber: true } });
-      let nextDiveNumber = (_max.diveNumber ?? 0) + 1;
-
+      // diveNumber es un valor temporal — renumberDives lo recalcula por
+      // fecha justo después de insertar las filas.
       const rows: Prisma.DiveLogCreateManyInput[] = data.logs.map((log) => {
         const diveSiteId = log.diveSiteExternalId ? (siteIdByExternalId.get(log.diveSiteExternalId) ?? null) : null;
         return {
           userId,
-          diveNumber: nextDiveNumber++,
+          diveNumber: 0,
           source: "IMPORTED",
           externalId: log.externalId,
           ...mapDiveLogInput(log, diveSiteId),
@@ -187,6 +187,7 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
 
       const created = await tx.diveLog.createMany({ data: rows, skipDuplicates: true });
       result.logs = created.count;
+      if (created.count > 0) await renumberDives(userId, tx);
     }
 
     if (data.certifications.length > 0) {

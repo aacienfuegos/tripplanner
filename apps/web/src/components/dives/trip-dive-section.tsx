@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Waves, Link2, Link2Off, MapPin, Gauge } from "lucide-react";
+import { Plus, Waves, Link2, Link2Off, MapPin, ArrowDownToLine, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { DiveLogForm } from "./dive-log-form";
 import { linkDiveToTrip, unlinkDiveFromTrip } from "@/actions/dives";
 import type { DiveLogWithSite, DiveSite } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { formatDiveDate } from "@/lib/dive-date";
 
 interface Props {
   tripId: string;
@@ -43,6 +44,10 @@ export function TripDiveSection({ tripId, dives, availableDives, sites }: Props)
     });
   }
 
+  function diveOptionLabel(d: DiveLogWithSite) {
+    return `#${d.diveNumber} · ${format(d.date, "d MMM yyyy", { locale: dfLocale })}${d.diveSite ? ` · ${d.diveSite.name}` : ""}`;
+  }
+
   function handleUnlink(diveId: string) {
     startTransition(async () => {
       try {
@@ -64,14 +69,18 @@ export function TripDiveSection({ tripId, dives, availableDives, sites }: Props)
         {availableDives.length > 0 && (
           <div className="flex items-center gap-2">
             <Select value={selectedDiveId} onValueChange={(v) => v !== null && setSelectedDiveId(v)}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder={t.linkDiveSelectPlaceholder} />
+              <SelectTrigger className="w-96">
+                <SelectValue placeholder={t.linkDiveSelectPlaceholder}>
+                  {(value: string) => {
+                    const selected = availableDives.find((d) => d.id === value);
+                    return selected ? diveOptionLabel(selected) : t.linkDiveSelectPlaceholder;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {availableDives.map((d) => (
                   <SelectItem key={d.id} value={d.id}>
-                    #{d.diveNumber} · {format(d.date, "d MMM yyyy", { locale: dfLocale })}
-                    {d.diveSite ? ` · ${d.diveSite.name}` : ""}
+                    {diveOptionLabel(d)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -102,9 +111,10 @@ export function TripDiveSection({ tripId, dives, availableDives, sites }: Props)
                       <span className="font-semibold">{dive.diveSite?.name ?? t.diveSiteNone}</span>
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">
-                      <p>{format(dive.date, "d MMM yyyy", { locale: dfLocale })}</p>
+                      <p>{formatDiveDate(dive.date, dfLocale)}</p>
                       <p className="flex items-center gap-1">
-                        <Gauge className="h-3.5 w-3.5" /> {dive.depthMax} m · {dive.bottomTime} min
+                        <ArrowDownToLine className="h-3.5 w-3.5" /> {dive.depthMax} m
+                        <Timer className="h-3.5 w-3.5 ml-2" /> {dive.bottomTime} min
                       </p>
                       {(dive.diveSite?.region || dive.diveSite?.country) && (
                         <p className="flex items-center gap-1">
@@ -131,7 +141,7 @@ export function TripDiveSection({ tripId, dives, availableDives, sites }: Props)
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.addDive}</DialogTitle>
           </DialogHeader>

@@ -21,7 +21,7 @@ vi.mock("@/lib/geocode-items", () => ({
 const diveLogCreate = vi.fn();
 const diveLogUpdate = vi.fn();
 const diveLogDelete = vi.fn();
-const diveLogAggregate = vi.fn();
+const diveLogFindMany = vi.fn();
 const diveLogFindUnique = vi.fn();
 const diveSiteFindUnique = vi.fn();
 const tripFindUnique = vi.fn();
@@ -33,7 +33,7 @@ vi.mock("@/lib/prisma", () => ({
       create: (...args: unknown[]) => diveLogCreate(...args),
       update: (...args: unknown[]) => diveLogUpdate(...args),
       delete: (...args: unknown[]) => diveLogDelete(...args),
-      aggregate: (...args: unknown[]) => diveLogAggregate(...args),
+      findMany: (...args: unknown[]) => diveLogFindMany(...args),
       findUnique: (...args: unknown[]) => diveLogFindUnique(...args),
     },
     diveSite: {
@@ -60,7 +60,7 @@ describe("dives.ts — userId scoping on update/delete", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     userFindUnique.mockResolvedValue({ status: "APPROVED" });
-    diveLogAggregate.mockResolvedValue({ _max: { diveNumber: null } });
+    diveLogFindMany.mockResolvedValue([]);
   });
 
   it("updateDiveLog scopes prisma.diveLog.update by id and userId", async () => {
@@ -217,47 +217,58 @@ describe("unlinkDiveFromTrip — clears tripId without deleting the record", () 
   });
 });
 
-describe("createDiveLog — diveNumber correlative per user", () => {
+describe("createDiveLog — diveNumber renumbered chronologically per user", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     userFindUnique.mockResolvedValue({ status: "APPROVED" });
   });
 
-  it("assigns diveNumber 1 for a user's first dive", async () => {
-    diveLogAggregate.mockResolvedValue({ _max: { diveNumber: null } });
-
-    const { createDiveLog } = await import("@/actions/dives");
-    await createDiveLog(validDiveFormData());
-
-    expect(diveLogAggregate).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-attacker" } }),
-    );
-    expect(diveLogCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ diveNumber: 1 }) }),
-    );
-  });
-
-  it("assigns the next diveNumber after the user's current max", async () => {
-    diveLogAggregate.mockResolvedValue({ _max: { diveNumber: 7 } });
+  it("assigns diveNumber 1 for a user's first (and only) dive", async () => {
+    // renumberDives re-fetches after the insert — this is what the DB would
+    // contain with just the one dive just created.
+    diveLogFindMany.mockResolvedValue([{ id: "new-dive", diveNumber: 0 }]);
 
     const { createDiveLog } = await import("@/actions/dives");
     await createDiveLog(validDiveFormData());
 
     expect(diveLogCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ diveNumber: 8 }) }),
+      expect.objectContaining({ data: expect.objectContaining({ diveNumber: 0 }) }),
     );
+    expect(diveLogUpdate).toHaveBeenCalledWith({
+      where: { id: "new-dive" },
+      data: { diveNumber: 1 },
+    });
   });
 
-  it("scopes the diveNumber aggregate to the authenticated user, not global", async () => {
-    // A malicious/careless implementation could aggregate across all users'
+  it("renumbers by chronological position (date asc), not insertion order", async () => {
+    // findMany is queried orderBy date asc — two pre-existing dives already
+    // correctly numbered, plus the new one inserted between them by date.
+    diveLogFindMany.mockResolvedValue([
+      { id: "d1", diveNumber: 1 },
+      { id: "new-dive", diveNumber: 0 },
+      { id: "d2", diveNumber: 2 },
+    ]);
+
+    const { createDiveLog } = await import("@/actions/dives");
+    await createDiveLog(validDiveFormData());
+
+    // d1 keeps #1 (unchanged, no update issued); the new dive becomes #2 and
+    // d2 shifts to #3.
+    expect(diveLogUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: "d1" } }));
+    expect(diveLogUpdate).toHaveBeenCalledWith({ where: { id: "new-dive" }, data: { diveNumber: 2 } });
+    expect(diveLogUpdate).toHaveBeenCalledWith({ where: { id: "d2" }, data: { diveNumber: 3 } });
+  });
+
+  it("scopes the renumbering query to the authenticated user, not global", async () => {
+    // A malicious/careless implementation could renumber across all users'
     // dives; assert the where clause is userId-scoped so counts never leak
     // or collide across accounts.
-    diveLogAggregate.mockResolvedValue({ _max: { diveNumber: 3 } });
+    diveLogFindMany.mockResolvedValue([{ id: "new-dive", diveNumber: 0 }]);
 
     const { createDiveLog } = await import("@/actions/dives");
     await createDiveLog(validDiveFormData());
 
-    const where = diveLogAggregate.mock.calls[0][0].where;
+    const where = diveLogFindMany.mock.calls[0][0].where;
     expect(where).toEqual({ userId: "user-attacker" });
   });
 });

@@ -65,7 +65,7 @@ export function DiveImportUploadStep({ onNext }: { onNext: (payload: DivingLogIm
       <input
         ref={fileRef}
         type="file"
-        accept=".db,.sqlite,.sqlite3,.backup"
+        accept=".db,.sqlite,.sqlite3,.backup,.sql"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

@@ -65,8 +65,8 @@ export function CertificationList({ certifications }: { certifications: DiveCert
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold">{cert.agency}</span>
-                      <Badge variant="outline">{cert.level}</Badge>
+                      <span className="font-semibold">{cert.level}</span>
+                      <Badge variant="outline">{cert.agency}</Badge>
                       {cert.certNumber && <Badge variant="secondary">#{cert.certNumber}</Badge>}
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">

@@ -67,9 +67,10 @@ describe("parseDivingLogDatabase", () => {
     expect(dive1?.surfaceInterval).toBe("60");
   });
 
-  it("combines Divedate + Entrytime into a single ISO-ish date string", () => {
+  it("keeps Divedate and Entrytime as separate date/time fields", () => {
     const dive1 = result.entries.find((e) => e.depthMax === "18");
-    expect(dive1?.date).toBe("2024-06-01T10:00:00");
+    expect(dive1?.date).toBe("2024-06-01");
+    expect(dive1?.time).toBe("10:00");
   });
 
   it("treats PlaceID 0 as no site (not an orphaned reference)", () => {

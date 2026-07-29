@@ -178,6 +178,9 @@ export const es = {
   importStep3Title: "Revisar e importar",
   importSuccess: (n: number) => `${n} elemento${n === 1 ? "" : "s"} importado${n === 1 ? "" : "s"}`,
   duplicate: "Posible duplicado",
+  showDuplicates: "Mostrar duplicados",
+  hideDuplicates: "Ocultar duplicados",
+  hiddenDuplicates: (n: number) => `${n} duplicado${n === 1 ? "" : "s"} oculto${n === 1 ? "" : "s"}`,
 
   // --- Import wizard (extended) ---
   importStepAuto1: "Paso 1 de 2 — Introduce el contenido del viaje",
@@ -365,6 +368,7 @@ export const es = {
   diveGroupConditions: "Condiciones",
   diveGroupNotes: "Compañero y notas",
   diveDate: "Fecha",
+  diveTime: "Hora",
   diveType: "Tipo de inmersión",
   diveSite: "Punto de inmersión",
   diveSiteNone: "Ninguno",
@@ -398,6 +402,12 @@ export const es = {
   diveTypeDeep: "Profunda",
   diveTypeCave: "Cueva",
   diveTypeFreedive: "Apnea",
+  diveTypeNone: "Sin especificar",
+  diveTypeOtherPlaceholder: "Especifica el tipo de inmersión",
+  filtersLabel: "Filtros",
+  filterAllLabel: "Todos",
+  noDivesFiltered: "Ningún registro coincide con los filtros",
+  clearFiltersLabel: "Limpiar filtros",
   diveLogsTab: "Registro",
   diveCertificationsTab: "Certificaciones",
   noCertifications: "Sin certificaciones",
@@ -419,13 +429,13 @@ export const es = {
   // --- Dive import (Diving Log SQLite) ---
   diveImportTrigger: "Importar desde Diving Log",
   diveImportTitle: "Importar logbook (Diving Log)",
-  diveImportStepUpload: "Sube el fichero .db/.sqlite exportado desde Diving Log",
+  diveImportStepUpload: "Sube el fichero .db/.sqlite/.sql exportado desde Diving Log",
   diveImportStepReview: "Revisa los datos detectados",
   diveImportIntro:
-    "Sube un export de Diving Log (fichero .db o .sqlite) para importar tus inmersiones, puntos de inmersión y certificaciones.",
+    "Sube un export de Diving Log (fichero .db, .sqlite o .sql) para importar tus inmersiones, puntos de inmersión y certificaciones.",
   diveImportScopeNote:
     "No se importan: el perfil de la inmersión (gráfica profundidad/tiempo del ordenador), las fichas completas de compañeros de buceo (solo el nombre) ni los escaneos de las tarjetas de certificación. Si una inmersión tiene más de una botella, solo se importan los datos de la principal — el resto queda anotado en las notas de la inmersión.",
-  diveImportDropZone: "Arrastra el fichero .db/.sqlite o haz clic para seleccionarlo",
+  diveImportDropZone: "Arrastra el fichero .db/.sqlite/.sql o haz clic para seleccionarlo",
   diveImportProcessing: "Procesando fichero…",
   diveImportSectionSites: "Puntos de inmersión",
   diveImportSectionLogs: "Inmersiones",
