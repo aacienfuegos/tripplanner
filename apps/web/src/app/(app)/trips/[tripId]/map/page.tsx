@@ -56,6 +56,15 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
       },
       orderBy: { departureAt: "asc" },
     },
+    diveLogs: {
+      select: {
+        id: true,
+        date: true,
+        diveNumber: true,
+        diveSite: { select: { name: true, region: true, country: true, latitude: true, longitude: true } },
+      },
+      orderBy: { date: "asc" },
+    },
   } as const;
 
   const trip = await prisma.trip.findUnique({ where: { id: tripId }, include: tripInclude });
@@ -118,6 +127,21 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
     });
   }
 
+  for (const d of trip.diveLogs) {
+    if (!d.diveSite || d.diveSite.latitude === null || d.diveSite.longitude === null) continue;
+    points.push({
+      id: d.id,
+      kind: "dive",
+      name: d.diveSite.name,
+      lat: d.diveSite.latitude,
+      lng: d.diveSite.longitude,
+      subtitle: [d.diveSite.region, d.diveSite.country].filter(Boolean).join(", ") || null,
+      date: d.date.toISOString(),
+      dateLabel: `#${d.diveNumber} · ${format(d.date, "d MMM", { locale: dateFnsLocale })}`,
+      detailHref: `/dives#${d.id}`,
+    });
+  }
+
   const flightSegments: FlightSegment[] = [];
   for (const f of trip.flights) {
     if (f.originLat === null || f.originLng === null || f.destinationLat === null || f.destinationLng === null) continue;
@@ -161,7 +185,7 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
           points={points}
           flights={flightSegments}
           pendingLabel={missing > 0 ? t.pendingGeolocation(missing) : null}
-          labels={{ accommodation: t.accommodations, activity: t.activities, flight: t.flights, viewDetail: t.viewDetail }}
+          labels={{ accommodation: t.accommodations, activity: t.activities, dive: t.dives, flight: t.flights, viewDetail: t.viewDetail }}
         />
       )}
     </div>

@@ -56,17 +56,20 @@ function VectorTileLayer() {
 }
 
 // Pines SVG inline (sin depender de un CDN externo), color + glifo Lucide
-// distintos por tipo (mismos iconos que trip-nav.tsx: Hotel y Star), para
-// poder distinguir alojamiento vs actividad de un vistazo en el mapa.
+// distintos por tipo (mismos iconos que trip-nav.tsx: Hotel, Star y Waves),
+// para poder distinguir alojamiento vs actividad vs inmersión de un vistazo
+// en el mapa.
 const MARKER_COLORS: Record<MapPoint["kind"], string> = {
   accommodation: "#2563eb",
   activity: "#f97316",
+  dive: "#06b6d4",
 };
 
-// Path data de lucide-react v1.27.0 (icons/hotel.mjs, icons/star.mjs)
+// Path data de lucide-react v1.27.0 (icons/hotel.mjs, icons/star.mjs, icons/waves.mjs)
 const MARKER_GLYPHS: Record<MapPoint["kind"], string> = {
   accommodation: `<path d="M10 22v-6.57"/><path d="M12 11h.01"/><path d="M12 7h.01"/><path d="M14 15.43V22"/><path d="M15 16a5 5 0 0 0-6 0"/><path d="M16 11h.01"/><path d="M16 7h.01"/><path d="M8 11h.01"/><path d="M8 7h.01"/><rect x="4" y="2" width="16" height="20" rx="2"/>`,
   activity: `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>`,
+  dive: `<path d="M2 12q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0"/>`,
 };
 
 function buildMarkerIcon(kind: MapPoint["kind"]) {
@@ -89,6 +92,7 @@ function buildMarkerIcon(kind: MapPoint["kind"]) {
 const markerIcons: Record<MapPoint["kind"], ReturnType<typeof divIcon>> = {
   accommodation: buildMarkerIcon("accommodation"),
   activity: buildMarkerIcon("activity"),
+  dive: buildMarkerIcon("dive"),
 };
 
 // Círculo neutro (gris oscuro, mismo idioma visual que los pines) en vez del
@@ -291,7 +295,7 @@ export function TripMap({
               <div className="space-y-1">
                 <p className="font-semibold text-sm">{p.name}</p>
                 <p className="text-xs text-neutral-500">
-                  {p.kind === "accommodation" ? labels.accommodation : labels.activity}
+                  {p.kind === "accommodation" ? labels.accommodation : p.kind === "activity" ? labels.activity : labels.dive}
                   {p.subtitle ? ` · ${p.subtitle}` : ""}
                 </p>
                 {p.dateLabel && <p className="text-xs text-neutral-500">{p.dateLabel}</p>}

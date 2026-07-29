@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export type MapPoint = {
   readonly id: string;
-  readonly kind: "accommodation" | "activity";
+  readonly kind: "accommodation" | "activity" | "dive";
   readonly name: string;
   readonly lat: number;
   readonly lng: number;
@@ -33,6 +33,7 @@ export type FlightSegment = {
 export type MapLabels = {
   readonly accommodation: string;
   readonly activity: string;
+  readonly dive: string;
   readonly flight: string;
   readonly viewDetail: string;
 };
