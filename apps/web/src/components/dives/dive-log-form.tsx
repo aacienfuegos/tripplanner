@@ -11,9 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDiveLog, updateDiveLog, createDiveSite } from "@/actions/dives";
 import type { DiveLog, DiveSite } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { DIVE_TYPE_KEYS, diveTypeKeyLabels, isDiveTypeKey } from "@/lib/dive-type";
 
 const NEW_SITE_VALUE = "__new__";
 const NONE_SITE_VALUE = "__none__";
+const NONE_DIVE_TYPE_VALUE = "__none__";
+const OTHER_DIVE_TYPE_VALUE = "__other__";
 
 interface Props {
   dive?: DiveLog;
@@ -29,17 +32,22 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
   const [newSiteName, setNewSiteName] = useState("");
   const [newSiteAddress, setNewSiteAddress] = useState("");
 
-  const diveTypeOptions = [
-    t.diveTypeRecreational,
-    t.diveTypeTraining,
-    t.diveTypeNight,
-    t.diveTypeWreck,
-    t.diveTypeDrift,
-    t.diveTypeDeep,
-    t.diveTypeCave,
-    t.diveTypeFreedive,
-    t.otherLabel,
-  ];
+  const initialDiveTypeChoice = isDiveTypeKey(d?.diveType)
+    ? d.diveType
+    : d?.diveType
+      ? OTHER_DIVE_TYPE_VALUE
+      : NONE_DIVE_TYPE_VALUE;
+  const [diveTypeChoice, setDiveTypeChoice] = useState<string>(initialDiveTypeChoice);
+  const [customDiveType, setCustomDiveType] = useState(
+    !isDiveTypeKey(d?.diveType) ? (d?.diveType ?? "") : "",
+  );
+  const diveTypeLabels = diveTypeKeyLabels(t);
+  const gasMixLabels: Record<string, string> = {
+    AIR: t.gasMixAir,
+    NITROX: t.gasMixNitrox,
+    TRIMIX: t.gasMixTrimix,
+    OXYGEN: t.gasMixOxygen,
+  };
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -57,6 +65,14 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
           resolvedSiteId = siteId;
         }
         formData.set("diveSiteId", resolvedSiteId);
+
+        const resolvedDiveType =
+          diveTypeChoice === OTHER_DIVE_TYPE_VALUE
+            ? customDiveType.trim()
+            : diveTypeChoice === NONE_DIVE_TYPE_VALUE
+              ? ""
+              : diveTypeChoice;
+        formData.set("diveType", resolvedDiveType);
 
         if (d) {
           await updateDiveLog(d.id, formData);
@@ -77,31 +93,18 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
       {tripId && !d && <input type="hidden" name="tripId" value={tripId} />}
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupBasic}</h4>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="date">{t.diveDate} *</Label>
-            <Input
-              id="date"
-              name="date"
-              type="date"
-              required
-              defaultValue={d?.date ? format(d.date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="diveType">{t.diveType}</Label>
-            <Input id="diveType" name="diveType" list="dive-type-options" defaultValue={d?.diveType ?? ""} />
-            <datalist id="dive-type-options">
-              {diveTypeOptions.map((opt) => (
-                <option key={opt} value={opt} />
-              ))}
-            </datalist>
-          </div>
-          <div className="space-y-1.5 col-span-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="space-y-1.5 col-span-2 md:col-span-3">
             <Label htmlFor="diveSite">{t.diveSite}</Label>
             <Select value={siteId} onValueChange={(v) => v !== null && setSiteId(v)}>
-              <SelectTrigger id="diveSite">
-                <SelectValue />
+              <SelectTrigger id="diveSite" className="w-full">
+                <SelectValue>
+                  {(value: string) =>
+                    value === NEW_SITE_VALUE
+                      ? t.diveSiteCreateNew
+                      : (sites.find((s) => s.id === value)?.name ?? t.diveSiteNone)
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE_SITE_VALUE}>{t.diveSiteNone}</SelectItem>
@@ -114,8 +117,65 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label htmlFor="date">{t.diveDate} *</Label>
+            <div className="flex gap-1.5">
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                required
+                className="w-[160px] shrink-0"
+                defaultValue={d?.date ? format(d.date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")}
+              />
+              <Input
+                id="time"
+                name="time"
+                type="time"
+                aria-label={t.diveTime}
+                className="w-[130px] shrink-0"
+                defaultValue={d?.date && format(d.date, "HH:mm") !== "00:00" ? format(d.date, "HH:mm") : ""}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="diveType">{t.diveType}</Label>
+            <Select value={diveTypeChoice} onValueChange={(v) => v !== null && setDiveTypeChoice(v)}>
+              <SelectTrigger id="diveType">
+                <SelectValue>
+                  {(value: string) =>
+                    value === OTHER_DIVE_TYPE_VALUE
+                      ? t.otherLabel
+                      : isDiveTypeKey(value)
+                        ? diveTypeLabels[value]
+                        : t.diveTypeNone
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_DIVE_TYPE_VALUE}>{t.diveTypeNone}</SelectItem>
+                {DIVE_TYPE_KEYS.map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {diveTypeLabels[key]}
+                  </SelectItem>
+                ))}
+                <SelectItem value={OTHER_DIVE_TYPE_VALUE}>{t.otherLabel}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {diveTypeChoice === OTHER_DIVE_TYPE_VALUE && (
+            <div className="space-y-1.5">
+              <Label htmlFor="customDiveType">{t.otherLabel}</Label>
+              <Input
+                id="customDiveType"
+                value={customDiveType}
+                onChange={(e) => setCustomDiveType(e.target.value)}
+                placeholder={t.diveTypeOtherPlaceholder}
+              />
+            </div>
+          )}
           {siteId === NEW_SITE_VALUE && (
-            <div className="col-span-2 grid grid-cols-2 gap-3 p-3 rounded-md border border-dashed">
+            <div className="col-span-2 md:col-span-3 grid grid-cols-2 gap-3 p-3 rounded-md border border-dashed">
               <div className="space-y-1.5 col-span-2">
                 <Label htmlFor="newSiteName">{t.diveSiteName} *</Label>
                 <Input id="newSiteName" value={newSiteName} onChange={(e) => setNewSiteName(e.target.value)} />
@@ -131,7 +191,7 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
 
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupProfile}</h4>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="depthMax">{t.diveDepthMax} *</Label>
             <Input id="depthMax" name="depthMax" type="number" step="0.1" min="0" required defaultValue={d?.depthMax ?? ""} />
@@ -148,7 +208,7 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
             <Label htmlFor="gasMix">{t.diveGasMix}</Label>
             <Select name="gasMix" defaultValue={d?.gasMix ?? "AIR"}>
               <SelectTrigger id="gasMix">
-                <SelectValue />
+                <SelectValue>{(value: string) => gasMixLabels[value] ?? value}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="AIR">{t.gasMixAir}</SelectItem>
@@ -179,7 +239,7 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
 
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupConditions}</h4>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="waterTemp">{t.diveWaterTemp}</Label>
             <Input id="waterTemp" name="waterTemp" type="number" step="0.1" defaultValue={d?.waterTemp ?? ""} />
@@ -205,7 +265,7 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
 
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupNotes}</h4>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="buddyName">{t.diveBuddyName}</Label>
             <Input id="buddyName" name="buddyName" defaultValue={d?.buddyName ?? ""} />

@@ -46,7 +46,7 @@ export function DiveImportTrigger() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-1">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {step === "upload" && (
               <DiveImportUploadStep
                 onNext={(p) => {

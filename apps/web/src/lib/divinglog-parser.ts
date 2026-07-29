@@ -25,6 +25,7 @@ export interface DivingLogParsedSite {
 export interface DivingLogParsedEntry {
   externalId: string;
   date: string;
+  time: string;
   depthMax: string;
   bottomTime: string;
   surfaceInterval: string | undefined;
@@ -163,6 +164,15 @@ function toNumberOrNull(value: string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// Diving Log guarda internamente en imperial y convierte a métrico al
+// exportar — esa conversión dentro de su propio export arrastra ruido de
+// coma flotante (25.420320000000004 en vez de 25.4). Redondea a la misma
+// precisión (1 decimal) que usa el resto de la app para estos campos
+// (step="0.1" en el formulario manual).
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
 // No column in this dataset spells out "Nitrox"/"Trimix" as free text — Diving
 // Log's own Gas text field is empty in real exports (verified against #169's
 // sample file). O2%/He% on the primary tank are the only reliable signal, so
@@ -260,7 +270,8 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       const externalId = nonEmpty(row.UUID);
       if (!externalId || !row.Divedate) continue;
 
-      const date = `${row.Divedate}T${normalizeEntryTime(row.Entrytime)}:00`;
+      const date = row.Divedate;
+      const time = normalizeEntryTime(row.Entrytime);
 
       const rowTanks = (tanksByLogId.get(row.ID) ?? []).slice().sort(
         (a, b) => (a.SortOrd ?? 0) - (b.SortOrd ?? 0),
@@ -284,7 +295,8 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       entries.push({
         externalId,
         date,
-        depthMax: String(row.Depth ?? 0),
+        time,
+        depthMax: String(round1(row.Depth ?? 0)),
         bottomTime: String(Math.round(row.Divetime ?? 0)),
         surfaceInterval: hmsToMinutes(row.Surfint)?.toString(),
         gasMix: classifyGasMix(o2, he),
@@ -292,13 +304,13 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         heliumPercentage: he !== null ? String(Math.round(he)) : undefined,
         pressureStart: primaryTank?.PresS != null ? String(Math.round(primaryTank.PresS)) : undefined,
         pressureEnd: primaryTank?.PresE != null ? String(Math.round(primaryTank.PresE)) : undefined,
-        waterTemp: row.Watertemp != null ? String(row.Watertemp) : undefined,
-        airTemp: row.Airtemp != null ? String(row.Airtemp) : undefined,
-        visibility: row.Visibility != null ? String(row.Visibility) : undefined,
+        waterTemp: row.Watertemp != null ? String(round1(row.Watertemp)) : undefined,
+        airTemp: row.Airtemp != null ? String(round1(row.Airtemp)) : undefined,
+        visibility: row.Visibility != null ? String(round1(row.Visibility)) : undefined,
         diveType: nonEmpty(row.Divetype),
         buddyName: nonEmpty(row.Buddy),
         suitType: nonEmpty(row.Divesuit),
-        weight: row.Weight != null ? String(row.Weight) : undefined,
+        weight: row.Weight != null ? String(round1(row.Weight)) : undefined,
         notes,
         rating,
         diveSiteExternalId: row.PlaceID ? (placeExternalIdById.get(row.PlaceID) ?? null) : null,
@@ -322,6 +334,11 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         instructorName: nonEmpty(brevet.Instructor),
       });
     }
+
+    // La query SQL no garantiza orden — se ordena aquí por fecha+hora
+    // descendente para que el import se revise en el mismo orden que el
+    // resto de la app (dive-log-list.tsx: más reciente primero).
+    entries.sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`));
 
     return { sites, entries, certifications };
   } finally {

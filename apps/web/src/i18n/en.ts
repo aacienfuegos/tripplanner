@@ -180,6 +180,9 @@ export const en: WebTKeys = {
   importStep3Title: "Review & import",
   importSuccess: (n: number) => `${n} item${n === 1 ? "" : "s"} imported`,
   duplicate: "Possible duplicate",
+  showDuplicates: "Show duplicates",
+  hideDuplicates: "Hide duplicates",
+  hiddenDuplicates: (n: number) => `${n} duplicate${n === 1 ? "" : "s"} hidden`,
 
   // --- Import wizard (extended) ---
   importStepAuto1: "Step 1 of 2 — Enter your trip content",
@@ -367,6 +370,7 @@ export const en: WebTKeys = {
   diveGroupConditions: "Conditions",
   diveGroupNotes: "Buddy & notes",
   diveDate: "Date",
+  diveTime: "Time",
   diveType: "Dive type",
   diveSite: "Dive site",
   diveSiteNone: "None",
@@ -400,6 +404,12 @@ export const en: WebTKeys = {
   diveTypeDeep: "Deep",
   diveTypeCave: "Cave",
   diveTypeFreedive: "Freedive",
+  diveTypeNone: "Not specified",
+  diveTypeOtherPlaceholder: "Specify the dive type",
+  filtersLabel: "Filters",
+  filterAllLabel: "All",
+  noDivesFiltered: "No dives match these filters",
+  clearFiltersLabel: "Clear filters",
   diveLogsTab: "Dive log",
   diveCertificationsTab: "Certifications",
   noCertifications: "No certifications yet",
@@ -421,13 +431,13 @@ export const en: WebTKeys = {
   // --- Dive import (Diving Log SQLite) ---
   diveImportTrigger: "Import from Diving Log",
   diveImportTitle: "Import logbook (Diving Log)",
-  diveImportStepUpload: "Upload the .db/.sqlite file exported from Diving Log",
+  diveImportStepUpload: "Upload the .db/.sqlite/.sql file exported from Diving Log",
   diveImportStepReview: "Review the detected data",
   diveImportIntro:
-    "Upload a Diving Log export (.db or .sqlite file) to import your dives, dive sites, and certifications.",
+    "Upload a Diving Log export (.db, .sqlite, or .sql file) to import your dives, dive sites, and certifications.",
   diveImportScopeNote:
     "Not imported: the dive profile (depth/time graph from your computer), full buddy contact details (only the name), or certification card scans. If a dive used more than one tank, only the primary tank's data is imported — the rest is noted in the dive's notes.",
-  diveImportDropZone: "Drop the .db/.sqlite file here or click to select it",
+  diveImportDropZone: "Drop the .db/.sqlite/.sql file here or click to select it",
   diveImportProcessing: "Processing file…",
   diveImportSectionSites: "Dive sites",
   diveImportSectionLogs: "Dives",

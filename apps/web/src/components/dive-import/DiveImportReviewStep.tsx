@@ -21,8 +21,8 @@ type SectionKey = "sites" | "logs" | "certifications";
 
 function sectionConfig(t: WebTKeys): Record<SectionKey, { label: string; icon: React.ElementType }> {
   return {
-    sites: { label: t.diveImportSectionSites, icon: MapPin },
     logs: { label: t.diveImportSectionLogs, icon: Waves },
+    sites: { label: t.diveImportSectionSites, icon: MapPin },
     certifications: { label: t.diveImportSectionCertifications, icon: Award },
   };
 }
@@ -60,6 +60,7 @@ export function DiveImportReviewStep({
   const [dupFlags, setDupFlags] = useState<DivingLogDuplicateFlags | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const [showDuplicates, setShowDuplicates] = useState(false);
 
   useEffect(() => {
     checkDivingLogDuplicates(payload)
@@ -94,10 +95,11 @@ export function DiveImportReviewStep({
     }));
   };
 
-  const toggleAll = (section: SectionKey, value: boolean) => {
+  const toggleAll = (section: SectionKey, value: boolean, indices: number[]) => {
+    const indexSet = new Set(indices);
     setSelection((prev) => ({
       ...prev,
-      [section]: prev[section].map(() => value),
+      [section]: prev[section].map((v, i) => (indexSet.has(i) ? value : v)),
     }));
   };
 
@@ -105,6 +107,8 @@ export function DiveImportReviewStep({
     (sum, k) => sum + selection[k].filter(Boolean).length,
     0,
   );
+
+  const siteNameByExternalId = new Map(payload.sites.map((s) => [s.externalId, s.name]));
 
   const handleImport = () => {
     const filtered: DivingLogImportPayload = {
@@ -130,25 +134,36 @@ export function DiveImportReviewStep({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-sm text-muted-foreground">{t.reviewIntro}</p>
-        {isChecking && (
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            {t.checkingDuplicates}
-          </span>
-        )}
+    <div className="flex flex-col h-full min-h-0 gap-3">
+      <div className="shrink-0 space-y-1.5">
+        <div className="flex items-start justify-between gap-4">
+          <p className="text-sm text-muted-foreground">{t.reviewIntro}</p>
+          {isChecking && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {t.checkingDuplicates}
+            </span>
+          )}
+        </div>
         {!isChecking && totalDuplicates > 0 && (
-          <Badge variant="warning" className="text-xs shrink-0">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            {t.possibleDuplicates(totalDuplicates)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="warning" className="text-xs">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {t.possibleDuplicates(totalDuplicates)}
+            </Badge>
+            <button
+              type="button"
+              onClick={() => setShowDuplicates((v) => !v)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              {showDuplicates ? t.hideDuplicates : t.showDuplicates}
+            </button>
+          </div>
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="h-auto flex flex-wrap gap-1 bg-transparent p-0 justify-start">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
+        <TabsList className="shrink-0 h-auto flex flex-wrap gap-1 bg-transparent p-0 justify-start">
           {activeSections.map((key) => {
             const { label, icon: Icon } = SECTION_CONFIG[key];
             const selected = selection[key].filter(Boolean).length;
@@ -165,57 +180,69 @@ export function DiveImportReviewStep({
           })}
         </TabsList>
 
-        {activeSections.map((key) => {
-          const allSelected = selection[key].every(Boolean);
-          const items = payload[key] as unknown[];
-          const sectionDups = dupFlags?.[key] ?? items.map(() => false);
+        <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-1 space-y-3">
+          {activeSections.map((key) => {
+            const items = payload[key] as unknown[];
+            const sectionDups = dupFlags?.[key] ?? items.map(() => false);
+            const visibleIndices = items
+              .map((_, i) => i)
+              .filter((i) => showDuplicates || !sectionDups[i]);
+            const hiddenCount = items.length - visibleIndices.length;
+            const allVisibleSelected = visibleIndices.length > 0 && visibleIndices.every((i) => selection[key][i]);
 
-          return (
-            <TabsContent key={key} value={key} className="mt-3 space-y-1">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">
-                  {t.selectedOfTotal(selection[key].filter(Boolean).length, items.length)}
-                </span>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => toggleAll(key, !allSelected)}
-                >
-                  {allSelected ? t.deselectAll : t.selectAll}
-                </button>
-              </div>
-
-              {items.map((item, idx) => (
-                <label
-                  key={idx}
-                  className="flex items-start gap-2.5 p-2 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors has-[input:checked]:border-primary/40 has-[input:checked]:bg-primary/5"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selection[key][idx]}
-                    onChange={() => toggleItem(key, idx)}
-                    className="mt-0.5 accent-primary"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <ItemSummary section={key} item={item} t={t} />
-                  </div>
-                  {sectionDups[idx] && (
-                    <Badge
-                      variant="warning"
-                      className="text-xs px-1 h-4 shrink-0 self-start mt-0.5"
+            return (
+              <TabsContent key={key} value={key} className="mt-0 space-y-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">
+                    {t.selectedOfTotal(selection[key].filter(Boolean).length, items.length)}
+                    {hiddenCount > 0 && ` · ${t.hiddenDuplicates(hiddenCount)}`}
+                  </span>
+                  {visibleIndices.length > 0 && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => toggleAll(key, !allVisibleSelected, visibleIndices)}
                     >
-                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
-                      {t.duplicate}
-                    </Badge>
+                      {allVisibleSelected ? t.deselectAll : t.selectAll}
+                    </button>
                   )}
-                </label>
-              ))}
-            </TabsContent>
-          );
-        })}
+                </div>
+
+                {visibleIndices.map((idx) => {
+                  const item = items[idx];
+                  return (
+                    <label
+                      key={idx}
+                      className="flex items-start gap-2.5 p-2 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors has-[input:checked]:border-primary/40 has-[input:checked]:bg-primary/5"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selection[key][idx]}
+                        onChange={() => toggleItem(key, idx)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <ItemSummary section={key} item={item} t={t} siteNameByExternalId={siteNameByExternalId} />
+                      </div>
+                      {sectionDups[idx] && (
+                        <Badge
+                          variant="warning"
+                          className="text-xs px-1 h-4 shrink-0 self-start mt-0.5"
+                        >
+                          <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                          {t.duplicate}
+                        </Badge>
+                      )}
+                    </label>
+                  );
+                })}
+              </TabsContent>
+            );
+          })}
+        </div>
       </Tabs>
 
-      <div className="flex justify-between items-center pt-2 border-t">
+      <div className="shrink-0 flex justify-between items-center pt-2 border-t">
         <Button variant="ghost" size="sm" onClick={onBack} disabled={isPending}>
           {t.backArrow}
         </Button>
@@ -247,7 +274,17 @@ const gasMixLabelKey: Record<string, keyof WebTKeys> = {
   OXYGEN: "gasMixOxygen",
 };
 
-function ItemSummary({ section, item, t }: { section: SectionKey; item: unknown; t: WebTKeys }) {
+function ItemSummary({
+  section,
+  item,
+  t,
+  siteNameByExternalId,
+}: {
+  section: SectionKey;
+  item: unknown;
+  t: WebTKeys;
+  siteNameByExternalId: Map<string, string>;
+}) {
   switch (section) {
     case "sites": {
       const s = item as DivingLogImportPayload["sites"][number];
@@ -261,9 +298,14 @@ function ItemSummary({ section, item, t }: { section: SectionKey; item: unknown;
     case "logs": {
       const l = item as DivingLogImportPayload["logs"][number];
       const gasLabel = t[gasMixLabelKey[l.gasMix]] as string;
+      const siteName = l.diveSiteExternalId ? siteNameByExternalId.get(l.diveSiteExternalId) : undefined;
+      const timeSuffix = l.time && l.time !== "00:00" ? `, ${l.time}` : "";
       return (
         <div className="text-xs space-y-0.5">
-          <p className="font-medium">{safeDate(l.date, "d MMM yyyy · HH:mm", t)}</p>
+          <p className="font-medium">
+            {siteName ?? t.diveSiteNone} · {safeDate(l.date, "d MMM yyyy", t)}
+            {timeSuffix}
+          </p>
           <p className="text-muted-foreground">
             {l.depthMax} m · {l.bottomTime} min · {gasLabel}
           </p>

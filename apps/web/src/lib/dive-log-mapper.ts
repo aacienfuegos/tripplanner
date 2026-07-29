@@ -6,7 +6,7 @@ import { diveLogSchema } from "@/lib/schemas";
 export function mapDiveLogInput(data: ReturnType<typeof diveLogSchema.parse>, diveSiteId: string | null) {
   return {
     diveSiteId,
-    date: new Date(data.date),
+    date: new Date(`${data.date}T${data.time || "00:00"}:00`),
     depthMax: parseFloat(data.depthMax),
     bottomTime: parseInt(data.bottomTime, 10),
     surfaceInterval: data.surfaceInterval ? parseInt(data.surfaceInterval, 10) : null,

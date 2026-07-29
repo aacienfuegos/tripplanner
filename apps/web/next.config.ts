@@ -23,6 +23,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Por defecto Next.js limita el body de una Server Action a 1MB. El import
+  // de Diving Log (dive-import.ts) ya valida hasta 50MB a nivel de aplicación
+  // (MAX_FILE_SIZE_BYTES) — sin esto, ese límite nunca se alcanza porque el
+  // framework corta la petición antes de que la action llegue a ejecutarse.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
 };
 
 export default nextConfig;

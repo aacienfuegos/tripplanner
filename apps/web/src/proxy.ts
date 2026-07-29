@@ -9,11 +9,16 @@ const { auth } = NextAuth(authConfig);
 // lee el nonce del propio header CSP de la request (getScriptNonceFromHeader)
 // para aplicarlo automáticamente a sus scripts de hidratación/RSC. maplibre-gl
 // 5.x no usa new Function()/eval() para expresiones de estilo (trae su propio
-// bundle "-csp-worker"), así que no hace falta 'unsafe-eval'.
+// bundle "-csp-worker"), así que no hace falta 'unsafe-eval' en producción.
+// En dev, Turbopack y el overlay de errores de React sí lo necesitan (HMR,
+// reconstrucción de stack traces) — sin esto, cualquier error de cliente en
+// desarrollo queda enmascarado por "eval() is not supported" en vez de
+// mostrar el error real.
 function buildCsp(nonce: string) {
+  const isDev = process.env.NODE_ENV !== "production";
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self'",

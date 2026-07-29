@@ -115,6 +115,7 @@ export const diveLogSchema = z.object({
   tripId: z.string().optional(),
   diveSiteId: z.string().optional(),
   date: z.string().min(1, "La fecha es obligatoria"),
+  time: z.string().optional(),
   depthMax: z.string().min(1, "La profundidad máxima es obligatoria"),
   bottomTime: z.string().min(1, "El tiempo de fondo es obligatorio"),
   surfaceInterval: z.string().optional(),

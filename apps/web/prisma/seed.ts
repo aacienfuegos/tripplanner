@@ -21,6 +21,10 @@ async function main() {
   });
 
   // Limpia datos anteriores del usuario dev
+  // Orden: diveLog antes que trip/diveSite (FKs con onDelete: SetNull, no cascade)
+  await prisma.diveLog.deleteMany({ where: { userId: DEV_USER_ID } });
+  await prisma.diveCertification.deleteMany({ where: { userId: DEV_USER_ID } });
+  await prisma.diveSite.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.trip.deleteMany({ where: { userId: DEV_USER_ID } });
 
   // ─── VIAJE 1: Japón (futuro, en 3 semanas) ────────────────────────────────
@@ -509,10 +513,348 @@ async function main() {
     },
   });
 
+  // ─── BUCEO: sitios ──────────────────────────────────────────────────────
+  const calaMontgo = await prisma.diveSite.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Cala Montgó",
+      country: "España",
+      region: "L'Escala, Girona",
+      latitude: 42.1207,
+      longitude: 3.1583,
+      notes: "Cala resguardada, punto habitual para bautismos y salidas cortas de fin de semana.",
+    },
+  });
+
+  const islasMedas = await prisma.diveSite.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Islas Medas",
+      country: "España",
+      region: "L'Estartit, Girona",
+      latitude: 42.0486,
+      longitude: 3.2189,
+      notes: "Reserva marina. Hay que reservar boya con antelación en temporada alta.",
+    },
+  });
+
+  const canteraAlcazar = await prisma.diveSite.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Cantera de Alcázar de San Juan",
+      country: "España",
+      region: "Ciudad Real",
+      notes: "Cantera inundada de agua dulce, entrenamiento en frío. Sin coordenadas registradas todavía.",
+    },
+  });
+
+  const rasMohammed = await prisma.diveSite.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Ras Mohammed - Shark & Yolanda Reef",
+      country: "Egipto",
+      region: "Sinaí, Mar Rojo",
+      latitude: 27.7167,
+      longitude: 34.25,
+      notes: "Pared vertical con corriente fuerte. Bajada rápida recomendada por el guía.",
+    },
+  });
+
+  const thistlegorm = await prisma.diveSite.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Pecio SS Thistlegorm",
+      country: "Egipto",
+      region: "Mar Rojo",
+      latitude: 27.8135,
+      longitude: 33.92,
+      notes: "Carguero británico hundido en 1941. Hacen falta dos inmersiones para verlo bien.",
+    },
+  });
+
+  // ─── BUCEO: certificaciones (progresión real, previa a empezar a registrar log) ─
+  await prisma.diveCertification.createMany({
+    data: [
+      {
+        userId: DEV_USER_ID,
+        agency: "PADI",
+        level: "Open Water Diver",
+        certNumber: "OW-88213445",
+        issueDate: new Date("2019-07-15"),
+        instructorName: "Marc Solà",
+      },
+      {
+        userId: DEV_USER_ID,
+        agency: "PADI",
+        level: "Advanced Open Water",
+        certNumber: "AOW-77321098",
+        issueDate: new Date("2021-03-22"),
+        instructorName: "Laura Prats",
+      },
+      {
+        userId: DEV_USER_ID,
+        agency: "SSI",
+        level: "Nitrox Specialty",
+        issueDate: new Date("2022-08-10"),
+      },
+      {
+        userId: DEV_USER_ID,
+        agency: "CMAS",
+        level: "2 estrellas",
+        certNumber: "CMAS2-4471",
+        issueDate: new Date("2023-05-01"),
+        instructorName: "Diego Ferreira",
+        notes: "Convalidada tras curso presencial en Chipiona.",
+      },
+    ],
+  });
+
+  // ─── VIAJE 4: Egipto (buceo, completado) — inmersiones vinculadas al viaje ─
+  const egipto = await prisma.trip.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Egipto - Liveaboard Mar Rojo",
+      description: "Semana en barco recorriendo el estrecho de Tirán y los pecios del norte del Mar Rojo.",
+      startDate: new Date("2026-05-04"),
+      endDate: new Date("2026-05-11"),
+      status: "COMPLETED",
+      currency: "EUR",
+      budget: 1400,
+      destinations: {
+        create: [
+          { city: "Sharm el Sheikh", country: "Egipto", arrivalDate: new Date("2026-05-04"), departureDate: new Date("2026-05-11"), order: 1 },
+        ],
+      },
+      flights: {
+        create: [
+          {
+            airline: "EgyptAir",
+            flightNumber: "MS789",
+            origin: "MAD",
+            destination: "SSH",
+            departureAt: new Date("2026-05-04T09:15:00"),
+            arrivalAt: new Date("2026-05-04T15:40:00"),
+            bookingRef: "EGY-4471X",
+            class: "ECONOMY",
+            price: 410,
+            notes: "Escala en El Cairo de 1h45.",
+          },
+          {
+            airline: "EgyptAir",
+            flightNumber: "MS790",
+            origin: "SSH",
+            destination: "MAD",
+            departureAt: new Date("2026-05-11T17:20:00"),
+            arrivalAt: new Date("2026-05-11T23:55:00"),
+            bookingRef: "EGY-4471Y",
+            class: "ECONOMY",
+            price: 430,
+          },
+        ],
+      },
+      accommodations: {
+        create: [
+          {
+            name: "M/Y Blue Melody (liveaboard)",
+            type: "OTHER",
+            city: "Sharm el Sheikh",
+            checkIn: new Date("2026-05-04"),
+            checkOut: new Date("2026-05-11"),
+            bookingRef: "LIVE-BM-0504",
+            pricePerNight: 130,
+            price: 910,
+            notes: "Pensión completa + hasta 3 inmersiones diarias incluidas.",
+          },
+        ],
+      },
+      expenses: {
+        create: [
+          { category: "FLIGHT", description: "Vuelos MAD-SSH-MAD", amount: 840, currency: "EUR", date: new Date("2026-03-01"), paid: true },
+          { category: "ACCOMMODATION", description: "Liveaboard Blue Melody (7 noches, pensión completa)", amount: 910, currency: "EUR", date: new Date("2026-03-01"), paid: true },
+          { category: "OTHER", description: "Alquiler ordenador de buceo", amount: 60, currency: "EUR", date: new Date("2026-05-04"), paid: true },
+          { category: "OTHER", description: "Tasas del parque marino Ras Mohammed", amount: 25, currency: "EUR", date: new Date("2026-05-04"), paid: true },
+        ],
+      },
+    },
+  });
+
+  // ─── BUCEO: bitácora (orden cronológico real, diveNumber 1..10) ─────────
+  // #1 deliberadamente mínima: solo los campos obligatorios en el schema,
+  // sin sitio/buddy/notas — para probar cómo se renderiza un registro "pelado".
+  const diveLogs = [
+    {
+      diveNumber: 1,
+      date: new Date("2024-08-12T11:00:00"),
+      depthMax: 6,
+      bottomTime: 25,
+      gasMix: "AIR" as const,
+    },
+    {
+      diveNumber: 2,
+      date: new Date("2024-08-13T10:30:00"),
+      diveSiteId: calaMontgo.id,
+      depthMax: 18,
+      bottomTime: 42,
+      gasMix: "AIR" as const,
+      pressureStart: 200,
+      pressureEnd: 60,
+      waterTemp: 22,
+      airTemp: 27,
+      visibility: 15,
+      weight: 6,
+      suitType: "Neopreno 5mm",
+      buddyName: "Marc Solà",
+      diveType: "RECREATIONAL",
+      rating: 4,
+      notes: "Primera inmersión guiada tras el curso Open Water. Pulpo y nudibranquios.",
+    },
+    {
+      diveNumber: 3,
+      date: new Date("2024-11-02T09:45:00"),
+      diveSiteId: islasMedas.id,
+      depthMax: 24,
+      bottomTime: 48,
+      gasMix: "NITROX" as const,
+      o2Percentage: 32,
+      pressureStart: 210,
+      pressureEnd: 70,
+      waterTemp: 19,
+      airTemp: 18,
+      visibility: 12,
+      weight: 7,
+      suitType: "Neopreno 7mm",
+      buddyName: "Marc Solà",
+      diveType: "DRIFT",
+      rating: 5,
+      notes: "Reserva marina. Mero enorme junto a la pared.",
+    },
+    {
+      diveNumber: 4,
+      date: new Date("2025-02-15T10:00:00"),
+      diveSiteId: canteraAlcazar.id,
+      depthMax: 12,
+      bottomTime: 35,
+      gasMix: "AIR" as const,
+      waterTemp: 9,
+      airTemp: 6,
+      visibility: 8,
+      weight: 4,
+      suitType: "Seco (drysuit)",
+      buddyName: "Laura Prats",
+      diveType: "TRAINING",
+      rating: 3,
+      notes: "Entrenamiento en frío para preparar el curso de traje seco.",
+    },
+    {
+      diveNumber: 5,
+      date: new Date("2025-06-20T09:00:00"),
+      diveSiteId: islasMedas.id,
+      depthMax: 45,
+      bottomTime: 30,
+      gasMix: "TRIMIX" as const,
+      o2Percentage: 21,
+      heliumPercentage: 35,
+      pressureStart: 220,
+      pressureEnd: 90,
+      waterTemp: 16,
+      airTemp: 24,
+      visibility: 20,
+      weight: 8,
+      suitType: "Seco (drysuit)",
+      buddyName: "Diego Ferreira",
+      diveType: "DEEP",
+      rating: 5,
+      notes: "Inmersión técnica a la pared norte. Parada de descompresión de 6 min a 5m.",
+    },
+    {
+      diveNumber: 6,
+      date: new Date("2025-06-20T11:15:00"),
+      diveSiteId: islasMedas.id,
+      depthMax: 5,
+      bottomTime: 15,
+      gasMix: "OXYGEN" as const,
+      o2Percentage: 100,
+      buddyName: "Diego Ferreira",
+      notes: "Botella de descompresión de oxígeno puro tras la inmersión técnica de la mañana.",
+    },
+    {
+      diveNumber: 7,
+      date: new Date("2026-05-04T15:00:00"),
+      tripId: egipto.id,
+      diveSiteId: rasMohammed.id,
+      depthMax: 28,
+      bottomTime: 55,
+      gasMix: "NITROX" as const,
+      o2Percentage: 32,
+      pressureStart: 200,
+      pressureEnd: 50,
+      waterTemp: 27,
+      airTemp: 32,
+      visibility: 25,
+      weight: 3,
+      suitType: "Neopreno 3mm",
+      buddyName: "Guía local - Ahmed",
+      diveType: "DRIFT",
+      rating: 5,
+      notes: "Tiburones punta blanca y bancos de barracudas en la pared de Shark Reef.",
+    },
+    {
+      diveNumber: 8,
+      date: new Date("2026-05-05T09:30:00"),
+      tripId: egipto.id,
+      diveSiteId: thistlegorm.id,
+      depthMax: 30,
+      bottomTime: 50,
+      gasMix: "NITROX" as const,
+      o2Percentage: 32,
+      pressureStart: 200,
+      pressureEnd: 60,
+      waterTemp: 26,
+      visibility: 18,
+      weight: 3,
+      suitType: "Neopreno 3mm",
+      buddyName: "Guía local - Ahmed",
+      diveType: "WRECK",
+      rating: 5,
+      notes: "Pecio de la Segunda Guerra Mundial. Motos y camiones todavía visibles en las bodegas.",
+    },
+    {
+      diveNumber: 9,
+      date: new Date("2026-05-06T09:30:00"),
+      tripId: egipto.id,
+      diveSiteId: thistlegorm.id,
+      depthMax: 18,
+      bottomTime: 45,
+      gasMix: "AIR" as const,
+      buddyName: "Guía local - Ahmed",
+      diveType: "WRECK",
+      rating: 4,
+      notes: "Segunda inmersión al pecio, esta vez explorando la cubierta superior.",
+    },
+    {
+      diveNumber: 10,
+      date: new Date("2026-06-08T10:00:00"),
+      diveSiteId: calaMontgo.id,
+      depthMax: 15,
+      bottomTime: 40,
+      gasMix: "AIR" as const,
+      buddyName: "Marc Solà",
+      diveType: "RECREATIONAL",
+      rating: 4,
+      notes: "Vuelta a la rutina tras el viaje a Egipto.",
+    },
+  ];
+
+  for (const dive of diveLogs) {
+    await prisma.diveLog.create({ data: { userId: DEV_USER_ID, ...dive } });
+  }
+
   console.log(`✅ Seed completado:`);
   console.log(`   • ${japon.name} (${japon.status})`);
   console.log(`   • ${lisboa.name} (${lisboa.status})`);
   console.log(`   • ${marruecos.name} (${marruecos.status})`);
+  console.log(`   • ${egipto.name} (${egipto.status})`);
+  console.log(`   • Buceo: ${diveLogs.length} inmersiones, 5 sitios, 4 certificaciones`);
 }
 
 main()

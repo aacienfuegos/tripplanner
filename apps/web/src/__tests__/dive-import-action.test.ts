@@ -25,7 +25,8 @@ const userFindUnique = vi.fn();
 const diveSiteFindMany = vi.fn();
 const diveSiteCreate = vi.fn();
 const diveLogFindMany = vi.fn();
-const diveLogAggregate = vi.fn();
+const diveLogFindManyTx = vi.fn();
+const diveLogUpdateTx = vi.fn();
 const diveLogCreateMany = vi.fn();
 const diveCertificationFindMany = vi.fn();
 const diveCertificationCreateMany = vi.fn();
@@ -33,7 +34,7 @@ const diveCertificationCreateMany = vi.fn();
 function makeTx() {
   return {
     diveSite: { findMany: diveSiteFindMany, create: diveSiteCreate },
-    diveLog: { aggregate: diveLogAggregate, createMany: diveLogCreateMany },
+    diveLog: { createMany: diveLogCreateMany, findMany: diveLogFindManyTx, update: diveLogUpdateTx },
     diveCertification: { createMany: diveCertificationCreateMany },
   };
 }
@@ -65,7 +66,7 @@ beforeEach(() => {
   diveSiteCreate.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
     Promise.resolve({ id: `site-${data.externalId}`, latitude: data.latitude, longitude: data.longitude }),
   );
-  diveLogAggregate.mockResolvedValue({ _max: { diveNumber: null } });
+  diveLogFindManyTx.mockResolvedValue([]);
   diveLogCreateMany.mockResolvedValue({ count: 0 });
   diveCertificationCreateMany.mockResolvedValue({ count: 0 });
   diveSiteFindMany.mockResolvedValue([]);
@@ -172,9 +173,16 @@ describe("bulkImportDivingLog", () => {
     expect(result).toEqual({ sites: 1, logs: 0, certifications: 0 });
   });
 
-  it("assigns incrementing diveNumbers starting after the user's current max", async () => {
-    diveLogAggregate.mockResolvedValue({ _max: { diveNumber: 10 } });
+  it("creates rows with a placeholder diveNumber and renumbers by date afterward", async () => {
     diveLogCreateMany.mockResolvedValue({ count: 2 });
+    // Simulates the post-insert state renumberDives reads back, already
+    // ordered by date asc: one pre-existing dive (correctly #1, so it's left
+    // untouched) followed by the two newly imported ones.
+    diveLogFindManyTx.mockResolvedValue([
+      { id: "existing-dive", diveNumber: 1 },
+      { id: "new-log-1", diveNumber: 0 },
+      { id: "new-log-2", diveNumber: 0 },
+    ]);
 
     const { bulkImportDivingLog } = await import("@/actions/dive-import");
     await bulkImportDivingLog({
@@ -187,7 +195,10 @@ describe("bulkImportDivingLog", () => {
     });
 
     const rows = diveLogCreateMany.mock.calls[0][0].data;
-    expect(rows.map((r: { diveNumber: number }) => r.diveNumber)).toEqual([11, 12]);
+    expect(rows.map((r: { diveNumber: number }) => r.diveNumber)).toEqual([0, 0]);
+    expect(diveLogUpdateTx).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: "existing-dive" } }));
+    expect(diveLogUpdateTx).toHaveBeenCalledWith({ where: { id: "new-log-1" }, data: { diveNumber: 2 } });
+    expect(diveLogUpdateTx).toHaveBeenCalledWith({ where: { id: "new-log-2" }, data: { diveNumber: 3 } });
   });
 
   it("skips creating a site that already exists for the user (matched by externalId)", async () => {

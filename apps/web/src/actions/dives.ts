@@ -6,6 +6,7 @@ import { diveLogSchema, diveSiteSchema } from "@/lib/schemas";
 import { requireUser, requireTripOwner } from "@/lib/action-auth";
 import { geocodeDiveSite } from "@/lib/geocode-items";
 import { mapDiveLogInput } from "@/lib/dive-log-mapper";
+import { renumberDives } from "@/lib/dive-numbering";
 
 // El diveSiteId llega desde un <Select> controlado en el cliente — puede ser
 // el id de un site ajeno si alguien manipula el valor. Se revalida contra
@@ -51,19 +52,17 @@ export async function createDiveLog(formData: FormData) {
   const diveSiteId = await resolveDiveSiteId(userId, data.diveSiteId);
   const tripId = await resolveTripId(userId, data.tripId);
 
-  const { _max } = await prisma.diveLog.aggregate({
-    where: { userId },
-    _max: { diveNumber: true },
-  });
-
+  // diveNumber es un valor temporal — renumberDives lo recalcula por fecha
+  // justo después de insertar la fila.
   await prisma.diveLog.create({
     data: {
       userId,
       tripId,
-      diveNumber: (_max.diveNumber ?? 0) + 1,
+      diveNumber: 0,
       ...mapDiveLogInput(data, diveSiteId),
     },
   });
+  await renumberDives(userId);
 
   revalidatePath("/dives");
   if (tripId) revalidatePath(`/trips/${tripId}/dives`);
@@ -78,6 +77,9 @@ export async function updateDiveLog(id: string, formData: FormData) {
     where: { id, userId },
     data: mapDiveLogInput(data, diveSiteId),
   });
+  // La edición puede haber cambiado la fecha, así que reordena por si afecta
+  // a la posición cronológica de esta u otras inmersiones.
+  await renumberDives(userId);
 
   revalidatePath("/dives");
 }
@@ -85,6 +87,7 @@ export async function updateDiveLog(id: string, formData: FormData) {
 export async function deleteDiveLog(id: string) {
   const userId = await requireUser();
   await prisma.diveLog.delete({ where: { id, userId } });
+  await renumberDives(userId);
   revalidatePath("/dives");
 }
 
