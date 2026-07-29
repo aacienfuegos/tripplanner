@@ -143,6 +143,15 @@ function hmsToMinutes(value: string | null): number | undefined {
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
 }
 
+// "H:MM"/"HH:MM" -> zero-padded "HH:MM", same tolerance for a missing
+// leading zero as hmsToMinutes() below. Falls back to midnight for anything
+// that doesn't match (missing/malformed Entrytime), never throws.
+function normalizeEntryTime(value: string | null): string {
+  const match = value ? /^(\d{1,2}):(\d{2})$/.exec(value.trim()) : null;
+  if (!match) return "00:00";
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
 function nonEmpty(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -251,8 +260,7 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       const externalId = nonEmpty(row.UUID);
       if (!externalId || !row.Divedate) continue;
 
-      const time = nonEmpty(row.Entrytime) ?? "00:00";
-      const date = `${row.Divedate}T${time.length === 5 ? time : "00:00"}:00`;
+      const date = `${row.Divedate}T${normalizeEntryTime(row.Entrytime)}:00`;
 
       const rowTanks = (tanksByLogId.get(row.ID) ?? []).slice().sort(
         (a, b) => (a.SortOrd ?? 0) - (b.SortOrd ?? 0),

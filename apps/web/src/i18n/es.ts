@@ -423,6 +423,8 @@ export const es = {
   diveImportStepReview: "Revisa los datos detectados",
   diveImportIntro:
     "Sube un export de Diving Log (fichero .db o .sqlite) para importar tus inmersiones, puntos de inmersión y certificaciones.",
+  diveImportScopeNote:
+    "No se importan: el perfil de la inmersión (gráfica profundidad/tiempo del ordenador), las fichas completas de compañeros de buceo (solo el nombre) ni los escaneos de las tarjetas de certificación. Si una inmersión tiene más de una botella, solo se importan los datos de la principal — el resto queda anotado en las notas de la inmersión.",
   diveImportDropZone: "Arrastra el fichero .db/.sqlite o haz clic para seleccionarlo",
   diveImportProcessing: "Procesando fichero…",
   diveImportSectionSites: "Puntos de inmersión",

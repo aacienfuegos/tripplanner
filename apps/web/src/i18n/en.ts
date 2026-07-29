@@ -425,6 +425,8 @@ export const en: WebTKeys = {
   diveImportStepReview: "Review the detected data",
   diveImportIntro:
     "Upload a Diving Log export (.db or .sqlite file) to import your dives, dive sites, and certifications.",
+  diveImportScopeNote:
+    "Not imported: the dive profile (depth/time graph from your computer), full buddy contact details (only the name), or certification card scans. If a dive used more than one tank, only the primary tank's data is imported — the rest is noted in the dive's notes.",
   diveImportDropZone: "Drop the .db/.sqlite file here or click to select it",
   diveImportProcessing: "Processing file…",
   diveImportSectionSites: "Dive sites",

@@ -47,6 +47,7 @@ export function DiveImportUploadStep({ onNext }: { onNext: (payload: DivingLogIm
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t.diveImportIntro}</p>
+      <p className="text-xs text-muted-foreground">{t.diveImportScopeNote}</p>
 
       <button
         type="button"
