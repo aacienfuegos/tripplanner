@@ -18,6 +18,7 @@ import type {
   TaskPriority,
   DiveLog,
   DiveSite,
+  DiveArea,
   DiveCertification,
   GasMix,
   DiveSource,
@@ -43,12 +44,15 @@ export type {
   TaskPriority,
   DiveLog,
   DiveSite,
+  DiveArea,
   DiveCertification,
   GasMix,
   DiveSource,
 };
 
 export type DiveLogWithSite = DiveLog & { diveSite: DiveSite | null };
+export type DiveSiteWithArea = DiveSite & { diveArea: DiveArea | null };
+export type DiveAreaWithSites = DiveArea & { diveSites: DiveSite[] };
 
 export type TripWithDetails = Trip & {
   destinations: Destination[];

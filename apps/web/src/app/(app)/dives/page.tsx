@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { DiveLogList } from "@/components/dives/dive-log-list";
 import { CertificationList } from "@/components/dives/certification-list";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Waves, Award } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { Waves, Award, MapPin } from "lucide-react";
 import { getT } from "@/lib/locale";
 
 export default async function DivesPage() {
@@ -28,9 +30,14 @@ export default async function DivesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Waves className="h-5 w-5 text-primary" />
-        <h1 className="text-2xl font-bold">{t.dives}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Waves className="h-5 w-5 text-primary" />
+          <h1 className="text-2xl font-bold">{t.dives}</h1>
+        </div>
+        <Link href="/dives/sites" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <MapPin className="h-4 w-4 mr-1.5" /> {t.diveSitesTab}
+        </Link>
       </div>
       <Tabs defaultValue="log">
         <TabsList>

@@ -103,8 +103,15 @@ export const diveSourceSchema = z.enum(["MANUAL", "IMPORTED"]);
 
 export const gasMixSchema = z.enum(["AIR", "NITROX", "TRIMIX", "OXYGEN"]);
 
+export const diveAreaSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio"),
+  country: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const diveSiteSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
+  diveAreaId: z.string().optional(),
   address: z.string().optional(),
   country: z.string().optional(),
   region: z.string().optional(),

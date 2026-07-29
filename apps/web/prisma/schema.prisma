@@ -36,6 +36,7 @@ model User {
 
   diveLogs           DiveLog[]
   diveSites          DiveSite[]
+  diveAreas          DiveArea[]
   diveCertifications DiveCertification[]
 }
 
@@ -332,9 +333,23 @@ enum GasMix {
   OXYGEN
 }
 
+model DiveArea {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  country   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diveSites DiveSite[]
+}
+
 model DiveSite {
   id         String     @id @default(cuid())
   userId     String
+  diveAreaId String?
   name       String
   address    String?
   country    String?
@@ -348,6 +363,7 @@ model DiveSite {
   updatedAt  DateTime   @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diveArea DiveArea? @relation(fields: [diveAreaId], references: [id], onDelete: SetNull)
   diveLogs DiveLog[]
 
   @@unique([userId, externalId])
