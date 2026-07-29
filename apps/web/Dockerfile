@@ -1,5 +1,8 @@
 FROM node:26-alpine AS base
-RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
+# python3/make/g++: better-sqlite3 (import de Diving Log, #169) trae binarios
+# precompilados pero npm igualmente invoca node-gyp en el install de este
+# paquete concreto — sin esto, npm ci falla en las stages builder/prod-deps.
+RUN apk upgrade --no-cache && apk add --no-cache libc6-compat python3 make g++
 
 # ── Build stage ──────────────────────────────────────────────────────────────
 # Build context is the monorepo root (context: . in docker-compose / CI)
