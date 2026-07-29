@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Plane, Map, LogOut, User, ShieldCheck } from "lucide-react";
+import { Plane, Map, Waves, LogOut, User, ShieldCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { LanguageToggle } from "./language-toggle";
@@ -29,6 +29,7 @@ export function Navbar({ user }: NavbarProps) {
   const navLinks = [
     { href: "/dashboard", label: t.navHome, icon: Map },
     { href: "/trips", label: t.navTrips, icon: Plane },
+    { href: "/dives", label: t.navDives, icon: Waves },
   ];
 
   const initials = user.name

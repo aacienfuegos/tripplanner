@@ -16,6 +16,11 @@ import type {
   DocumentType,
   ExpenseCategory,
   TaskPriority,
+  DiveLog,
+  DiveSite,
+  DiveCertification,
+  GasMix,
+  DiveSource,
 } from "@prisma/client";
 
 export type {
@@ -36,7 +41,14 @@ export type {
   DocumentType,
   ExpenseCategory,
   TaskPriority,
+  DiveLog,
+  DiveSite,
+  DiveCertification,
+  GasMix,
+  DiveSource,
 };
+
+export type DiveLogWithSite = DiveLog & { diveSite: DiveSite | null };
 
 export type TripWithDetails = Trip & {
   destinations: Destination[];
