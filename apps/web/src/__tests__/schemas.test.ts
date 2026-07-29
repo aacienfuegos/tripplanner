@@ -10,6 +10,11 @@ import {
   taskSchema,
   profileSchema,
   unitSystemSchema,
+  diveSiteSchema,
+  diveLogSchema,
+  diveCertificationSchema,
+  diveSourceSchema,
+  gasMixSchema,
 } from "@/lib/schemas";
 
 // ─── Trip schema ──────────────────────────────────────────────────────────────
@@ -360,5 +365,175 @@ describe("unitSystemSchema", () => {
   it("rejects any other value", () => {
     expect(unitSystemSchema.safeParse("metric").success).toBe(false);
     expect(unitSystemSchema.safeParse("").success).toBe(false);
+  });
+});
+
+// ─── DiveSite schema ──────────────────────────────────────────────────────────
+
+describe("diveSiteSchema", () => {
+  it("accepts a minimal valid dive site", () => {
+    const result = diveSiteSchema.safeParse({ name: "Cueva del Diablo" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty name", () => {
+    const result = diveSiteSchema.safeParse({ name: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional address, country and region", () => {
+    const result = diveSiteSchema.safeParse({
+      name: "Cueva del Diablo",
+      address: "Cala del Diablo s/n",
+      country: "España",
+      region: "Murcia",
+      notes: "Corriente fuerte en marea baja",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ─── DiveLog schema ───────────────────────────────────────────────────────────
+
+describe("diveLogSchema", () => {
+  const valid = {
+    date: "2026-06-10",
+    depthMax: "28.5",
+    bottomTime: "45",
+    gasMix: "AIR" as const,
+  };
+
+  it("accepts a minimal valid dive log", () => {
+    const result = diveLogSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.gasMix).toBe("AIR");
+  });
+
+  it("defaults gasMix to AIR when omitted", () => {
+    const { gasMix: _gasMix, ...withoutGasMix } = valid;
+    const result = diveLogSchema.safeParse(withoutGasMix);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.gasMix).toBe("AIR");
+  });
+
+  it("rejects missing date", () => {
+    const result = diveLogSchema.safeParse({ ...valid, date: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects missing depthMax", () => {
+    const result = diveLogSchema.safeParse({ ...valid, depthMax: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects missing bottomTime", () => {
+    const result = diveLogSchema.safeParse({ ...valid, bottomTime: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts all valid gas mixes", () => {
+    for (const gasMix of ["AIR", "NITROX", "TRIMIX", "OXYGEN"] as const) {
+      const result = diveLogSchema.safeParse({ ...valid, gasMix });
+      expect(result.success, `gasMix ${gasMix} should be valid`).toBe(true);
+    }
+  });
+
+  it("rejects an invalid gas mix", () => {
+    const result = diveLogSchema.safeParse({ ...valid, gasMix: "HELIOX" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional nitrox/trimix fields", () => {
+    const result = diveLogSchema.safeParse({
+      ...valid,
+      gasMix: "TRIMIX",
+      o2Percentage: "21",
+      heliumPercentage: "35",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts optional tripId and diveSiteId", () => {
+    const result = diveLogSchema.safeParse({ ...valid, tripId: "trip123", diveSiteId: "site123" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts diveType as free text, not restricted to a fixed catalog", () => {
+    const result = diveLogSchema.safeParse({ ...valid, diveType: "Mountain Lake" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a rating between 1 and 5", () => {
+    for (const rating of ["1", "2", "3", "4", "5"]) {
+      const result = diveLogSchema.safeParse({ ...valid, rating });
+      expect(result.success, `rating ${rating} should be valid`).toBe(true);
+    }
+  });
+
+  it("rejects a rating outside 1-5", () => {
+    expect(diveLogSchema.safeParse({ ...valid, rating: "0" }).success).toBe(false);
+    expect(diveLogSchema.safeParse({ ...valid, rating: "6" }).success).toBe(false);
+  });
+
+  it("rejects a non-integer rating", () => {
+    const result = diveLogSchema.safeParse({ ...valid, rating: "3.5" });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── DiveCertification schema ─────────────────────────────────────────────────
+
+describe("diveCertificationSchema", () => {
+  const valid = { agency: "PADI", level: "Open Water Diver" };
+
+  it("accepts a minimal valid certification", () => {
+    const result = diveCertificationSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty agency", () => {
+    const result = diveCertificationSchema.safeParse({ ...valid, agency: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty level", () => {
+    const result = diveCertificationSchema.safeParse({ ...valid, level: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional certNumber, issueDate, instructorName and notes", () => {
+    const result = diveCertificationSchema.safeParse({
+      ...valid,
+      certNumber: "ABC123",
+      issueDate: "2020-05-01",
+      instructorName: "Jane Doe",
+      notes: "Curso en Tenerife",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ─── diveSourceSchema / gasMixSchema ──────────────────────────────────────────
+
+describe("diveSourceSchema", () => {
+  it("accepts MANUAL and IMPORTED", () => {
+    expect(diveSourceSchema.safeParse("MANUAL").success).toBe(true);
+    expect(diveSourceSchema.safeParse("IMPORTED").success).toBe(true);
+  });
+
+  it("rejects any other value", () => {
+    expect(diveSourceSchema.safeParse("AUTO").success).toBe(false);
+  });
+});
+
+describe("gasMixSchema", () => {
+  it("accepts AIR, NITROX, TRIMIX and OXYGEN", () => {
+    for (const mix of ["AIR", "NITROX", "TRIMIX", "OXYGEN"]) {
+      expect(gasMixSchema.safeParse(mix).success).toBe(true);
+    }
+  });
+
+  it("rejects an unsupported gas mix", () => {
+    expect(gasMixSchema.safeParse("HELIOX").success).toBe(false);
   });
 });

@@ -33,6 +33,10 @@ model User {
   accounts Account[]
   sessions Session[]
   trips    Trip[]
+
+  diveLogs           DiveLog[]
+  diveSites          DiveSite[]
+  diveCertifications DiveCertification[]
 }
 
 model Settings {
@@ -101,6 +105,7 @@ model Trip {
   expenses    Expense[]
   packingItems PackingItem[]
   tasks       Task[]
+  diveLogs    DiveLog[]
 }
 
 enum TripStatus {
@@ -311,4 +316,94 @@ model PackingItem {
   quantity Int     @default(1)
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// ─── Dive Log ────────────────────────────────────────────────────────────────
+
+enum DiveSource {
+  MANUAL
+  IMPORTED
+}
+
+enum GasMix {
+  AIR
+  NITROX
+  TRIMIX
+  OXYGEN
+}
+
+model DiveSite {
+  id         String     @id @default(cuid())
+  userId     String
+  name       String
+  address    String?
+  country    String?
+  region     String?
+  latitude   Float?
+  longitude  Float?
+  notes      String?
+  source     DiveSource @default(MANUAL)
+  externalId String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diveLogs DiveLog[]
+
+  @@unique([userId, externalId])
+}
+
+model DiveLog {
+  id               String     @id @default(cuid())
+  userId           String
+  tripId           String?
+  diveSiteId       String?
+  date             DateTime
+  diveNumber       Int
+  depthMax         Float
+  bottomTime       Int
+  surfaceInterval  Int?
+  gasMix           GasMix
+  o2Percentage     Int?
+  heliumPercentage Int?
+  pressureStart    Int?
+  pressureEnd      Int?
+  waterTemp        Float?
+  airTemp          Float?
+  visibility       Float?
+  diveType         String?
+  buddyName        String?
+  suitType         String?
+  weight           Float?
+  notes            String?
+  rating           Int?
+  source           DiveSource @default(MANUAL)
+  externalId       String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip     Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  diveSite DiveSite? @relation(fields: [diveSiteId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, externalId])
+}
+
+model DiveCertification {
+  id             String     @id @default(cuid())
+  userId         String
+  agency         String
+  level          String
+  certNumber     String?
+  issueDate      DateTime?
+  instructorName String?
+  notes          String?
+  source         DiveSource @default(MANUAL)
+  externalId     String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, externalId])
 }

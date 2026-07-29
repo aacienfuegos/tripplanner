@@ -98,3 +98,53 @@ export const profileSchema = z.object({
   image: z.string().url("La URL de la imagen no es válida").optional().or(z.literal("")),
   unitSystem: unitSystemSchema.default("METRIC"),
 });
+
+export const diveSourceSchema = z.enum(["MANUAL", "IMPORTED"]);
+
+export const gasMixSchema = z.enum(["AIR", "NITROX", "TRIMIX", "OXYGEN"]);
+
+export const diveSiteSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio"),
+  address: z.string().optional(),
+  country: z.string().optional(),
+  region: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const diveLogSchema = z.object({
+  tripId: z.string().optional(),
+  diveSiteId: z.string().optional(),
+  date: z.string().min(1, "La fecha es obligatoria"),
+  depthMax: z.string().min(1, "La profundidad máxima es obligatoria"),
+  bottomTime: z.string().min(1, "El tiempo de fondo es obligatorio"),
+  surfaceInterval: z.string().optional(),
+  gasMix: gasMixSchema.default("AIR"),
+  o2Percentage: z.string().optional(),
+  heliumPercentage: z.string().optional(),
+  pressureStart: z.string().optional(),
+  pressureEnd: z.string().optional(),
+  waterTemp: z.string().optional(),
+  airTemp: z.string().optional(),
+  visibility: z.string().optional(),
+  diveType: z.string().optional(),
+  buddyName: z.string().optional(),
+  suitType: z.string().optional(),
+  weight: z.string().optional(),
+  notes: z.string().optional(),
+  rating: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || (Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 5),
+      "La valoración debe estar entre 1 y 5",
+    ),
+});
+
+export const diveCertificationSchema = z.object({
+  agency: z.string().min(1, "La entidad certificadora es obligatoria"),
+  level: z.string().min(1, "El nivel es obligatorio"),
+  certNumber: z.string().optional(),
+  issueDate: z.string().optional(),
+  instructorName: z.string().optional(),
+  notes: z.string().optional(),
+});

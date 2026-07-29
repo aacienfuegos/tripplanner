@@ -35,6 +35,16 @@ function activityQuery(a: {
   return [location || a.name, a.city].filter(Boolean).join(", ");
 }
 
+function diveSiteQuery(s: {
+  name: string;
+  address: string | null;
+  region: string | null;
+  country: string | null;
+}): string {
+  const anchor = s.address?.trim() || s.name;
+  return [anchor, s.region, s.country].filter(Boolean).join(", ");
+}
+
 export async function geocodeAccommodation(id: string): Promise<void> {
   try {
     const a = await prisma.accommodation.findUnique({
@@ -65,6 +75,24 @@ export async function geocodeActivity(id: string): Promise<void> {
     const result = await geocode(query);
     if (!result) return;
     await prisma.activity.update({
+      where: { id },
+      data: { latitude: result.lat, longitude: result.lng },
+    });
+  } catch {
+    // El geocoding es un boundary externo best-effort: nunca debe romper el flujo.
+  }
+}
+
+export async function geocodeDiveSite(id: string): Promise<void> {
+  try {
+    const s = await prisma.diveSite.findUnique({
+      where: { id },
+      select: { name: true, address: true, region: true, country: true },
+    });
+    if (!s) return;
+    const result = await geocode(diveSiteQuery(s));
+    if (!result) return;
+    await prisma.diveSite.update({
       where: { id },
       data: { latitude: result.lat, longitude: result.lng },
     });
