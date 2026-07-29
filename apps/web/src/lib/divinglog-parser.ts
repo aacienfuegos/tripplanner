@@ -116,9 +116,16 @@ interface LogbookRow {
   UUID: string | null;
 }
 
+// Caps every table read at the SQL level (not just post-parse Zod validation)
+// so a maliciously oversized file can't block the event loop by forcing
+// better-sqlite3's synchronous .all() to load millions of rows into memory.
+// No real dive logbook comes close to this — even a lifetime of daily diving
+// stays in the low thousands of dives.
+const MAX_ROWS_PER_TABLE = 5000;
+
 function runQuery<T>(db: Database.Database, sql: string): T[] {
   try {
-    return db.prepare(sql).all() as T[];
+    return db.prepare(`${sql} LIMIT ${MAX_ROWS_PER_TABLE}`).all() as T[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new DivingLogFileError(

@@ -171,10 +171,12 @@ export const divingLogCertificationSchema = diveCertificationSchema.extend({
   externalId: z.string().min(1),
 });
 
+const MAX_DIVING_LOG_IMPORT_ROWS = 5000;
+
 export const divingLogImportPayloadSchema = z.object({
-  sites: z.array(divingLogSiteSchema),
-  logs: z.array(divingLogEntrySchema),
-  certifications: z.array(divingLogCertificationSchema),
+  sites: z.array(divingLogSiteSchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
+  logs: z.array(divingLogEntrySchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
+  certifications: z.array(divingLogCertificationSchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
 });
 
 export type DivingLogImportPayload = z.infer<typeof divingLogImportPayloadSchema>;
