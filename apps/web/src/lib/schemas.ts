@@ -148,6 +148,37 @@ export const diveLogSchema = z.object({
     ),
 });
 
+export const equipmentCategorySchema = z.enum([
+  "WETSUIT",
+  "BCD",
+  "REGULATOR",
+  "COMPUTER",
+  "FINS",
+  "MASK",
+  "TANK",
+  "WEIGHT",
+  "TORCH",
+  "CAMERA",
+  "OTHER",
+]);
+
+export const equipmentStatusSchema = z.enum(["OWNED", "WISHLIST", "RETIRED", "SOLD"]);
+
+export const diveEquipmentSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio"),
+  category: equipmentCategorySchema,
+  status: equipmentStatusSchema.default("OWNED"),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  size: z.string().optional(),
+  serialNumber: z.string().optional(),
+  purchaseDate: z.string().optional(),
+  purchasePrice: z.string().optional(),
+  lastServiceDate: z.string().optional(),
+  serviceIntervalMonths: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const diveCertificationSchema = z.object({
   agency: z.string().min(1, "La entidad certificadora es obligatoria"),
   level: z.string().min(1, "El nivel es obligatorio"),

@@ -15,14 +15,22 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DiveLogForm } from "./dive-log-form";
 import { DiveImportTrigger } from "@/components/dive-import/DiveImportTrigger";
 import { deleteDiveLog } from "@/actions/dives";
-import type { DiveLogWithSite, DiveSite, GasMix } from "@/types";
+import type { DiveLogWithSite, DiveSite, DiveEquipment, GasMix } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 import { DIVE_TYPE_KEYS, diveTypeKeyLabels, diveTypeLabel } from "@/lib/dive-type";
 import { formatDiveDate } from "@/lib/dive-date";
 
 const FILTER_ALL = "ALL";
 
-export function DiveLogList({ dives, sites }: { dives: DiveLogWithSite[]; sites: DiveSite[] }) {
+export function DiveLogList({
+  dives,
+  sites,
+  equipment,
+}: {
+  dives: DiveLogWithSite[];
+  sites: DiveSite[];
+  equipment: DiveEquipment[];
+}) {
   const { t } = useT();
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
@@ -234,7 +242,7 @@ export function DiveLogList({ dives, sites }: { dives: DiveLogWithSite[]; sites:
           <DialogHeader>
             <DialogTitle>{editing ? `${t.editDive} #${editing.diveNumber}` : t.addDive}</DialogTitle>
           </DialogHeader>
-          <DiveLogForm dive={editing ?? undefined} sites={sites} onSuccess={() => setOpen(false)} />
+          <DiveLogForm dive={editing ?? undefined} sites={sites} equipment={equipment} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
       {confirmDialog}

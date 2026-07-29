@@ -13,21 +13,22 @@ export default async function TripDivesPage({ params }: { params: Promise<{ trip
   const [trip, t] = await Promise.all([
     prisma.trip.findUnique({
       where: { id: tripId },
-      include: { diveLogs: { include: { diveSite: true }, orderBy: { date: "desc" } } },
+      include: { diveLogs: { include: { diveSite: true, equipment: true }, orderBy: { date: "desc" } } },
     }),
     getT(),
   ]);
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
   const userId = session!.user!.id;
-  const [counts, availableDives, sites] = await Promise.all([
+  const [counts, availableDives, sites, equipment] = await Promise.all([
     getTripNavCounts(tripId),
     prisma.diveLog.findMany({
       where: { userId, OR: [{ tripId: null }, { tripId: { not: tripId } }] },
-      include: { diveSite: true },
+      include: { diveSite: true, equipment: true },
       orderBy: { date: "desc" },
     }),
     prisma.diveSite.findMany({ where: { userId }, orderBy: { name: "asc" } }),
+    prisma.diveEquipment.findMany({ where: { userId, status: "OWNED" }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -40,7 +41,13 @@ export default async function TripDivesPage({ params }: { params: Promise<{ trip
         icon={<Waves className="h-5 w-5" />}
         counts={counts}
       />
-      <TripDiveSection tripId={trip.id} dives={trip.diveLogs} availableDives={availableDives} sites={sites} />
+      <TripDiveSection
+        tripId={trip.id}
+        dives={trip.diveLogs}
+        availableDives={availableDives}
+        sites={sites}
+        equipment={equipment}
+      />
     </div>
   );
 }

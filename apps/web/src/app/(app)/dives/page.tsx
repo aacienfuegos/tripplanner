@@ -5,17 +5,17 @@ import { DiveLogList } from "@/components/dives/dive-log-list";
 import { CertificationList } from "@/components/dives/certification-list";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { buttonVariants } from "@/components/ui/button";
-import { Waves, Award, MapPin } from "lucide-react";
+import { Waves, Award, MapPin, Anchor } from "lucide-react";
 import { getT } from "@/lib/locale";
 
 export default async function DivesPage() {
   const userId = await requireUser();
 
-  const [t, dives, sites, certifications] = await Promise.all([
+  const [t, dives, sites, certifications, equipment] = await Promise.all([
     getT(),
     prisma.diveLog.findMany({
       where: { userId },
-      include: { diveSite: true },
+      include: { diveSite: true, equipment: true },
       orderBy: { date: "desc" },
     }),
     prisma.diveSite.findMany({
@@ -26,6 +26,10 @@ export default async function DivesPage() {
       where: { userId },
       orderBy: { issueDate: "desc" },
     }),
+    prisma.diveEquipment.findMany({
+      where: { userId, status: "OWNED" },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return (
@@ -35,9 +39,14 @@ export default async function DivesPage() {
           <Waves className="h-5 w-5 text-primary" />
           <h1 className="text-2xl font-bold">{t.dives}</h1>
         </div>
-        <Link href="/dives/sites" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          <MapPin className="h-4 w-4 mr-1.5" /> {t.diveSitesTab}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/dives/sites" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <MapPin className="h-4 w-4 mr-1.5" /> {t.diveSitesTab}
+          </Link>
+          <Link href="/dives/equipment" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Anchor className="h-4 w-4 mr-1.5" /> {t.diveEquipmentTab}
+          </Link>
+        </div>
       </div>
       <Tabs defaultValue="log">
         <TabsList>
@@ -49,7 +58,7 @@ export default async function DivesPage() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="log" className="mt-4">
-          <DiveLogList dives={dives} sites={sites} />
+          <DiveLogList dives={dives} sites={sites} equipment={equipment} />
         </TabsContent>
         <TabsContent value="certifications" className="mt-4">
           <CertificationList certifications={certifications} />
