@@ -38,6 +38,7 @@ model User {
   diveSites          DiveSite[]
   diveAreas          DiveArea[]
   diveCertifications DiveCertification[]
+  diveEquipment      DiveEquipment[]
 }
 
 model Settings {
@@ -84,7 +85,7 @@ model VerificationToken {
 // ─── Core ───────────────────────────────────────────────────────────────────
 
 model Trip {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   userId      String
   name        String
   description String?
@@ -94,19 +95,19 @@ model Trip {
   status      TripStatus @default(PLANNING)
   currency    String     @default("EUR")
   budget      Float?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  destinations Destination[]
-  flights     Flight[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destinations   Destination[]
+  flights        Flight[]
   accommodations Accommodation[]
-  activities  Activity[]
-  documents   Document[]
-  expenses    Expense[]
-  packingItems PackingItem[]
-  tasks       Task[]
-  diveLogs    DiveLog[]
+  activities     Activity[]
+  documents      Document[]
+  expenses       Expense[]
+  packingItems   PackingItem[]
+  tasks          Task[]
+  diveLogs       DiveLog[]
 }
 
 enum TripStatus {
@@ -118,14 +119,14 @@ enum TripStatus {
 }
 
 model Destination {
-  id        String   @id @default(cuid())
-  tripId    String
-  city      String
-  country   String
-  arrivalDate  DateTime
+  id            String   @id @default(cuid())
+  tripId        String
+  city          String
+  country       String
+  arrivalDate   DateTime
   departureDate DateTime
-  notes     String?
-  order     Int      @default(0)
+  notes         String?
+  order         Int      @default(0)
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -133,24 +134,24 @@ model Destination {
 // ─── Flights ────────────────────────────────────────────────────────────────
 
 model Flight {
-  id             String   @id @default(cuid())
-  tripId         String
-  airline        String?
-  flightNumber   String?
-  origin         String
-  destination    String
-  originLat      Float?
-  originLng      Float?
-  destinationLat Float?
-  destinationLng Float?
-  departureAt    DateTime?
-  arrivalAt      DateTime?
-  bookingRef     String?
+  id              String      @id @default(cuid())
+  tripId          String
+  airline         String?
+  flightNumber    String?
+  origin          String
+  destination     String
+  originLat       Float?
+  originLng       Float?
+  destinationLat  Float?
+  destinationLng  Float?
+  departureAt     DateTime?
+  arrivalAt       DateTime?
+  bookingRef      String?
   confirmationUrl String?
-  seatNumber     String?
-  class          FlightClass @default(ECONOMY)
-  price          Float?
-  notes          String?
+  seatNumber      String?
+  class           FlightClass @default(ECONOMY)
+  price           Float?
+  notes           String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -165,7 +166,7 @@ enum FlightClass {
 // ─── Accommodations ─────────────────────────────────────────────────────────
 
 model Accommodation {
-  id              String   @id @default(cuid())
+  id              String            @id @default(cuid())
   tripId          String
   name            String
   type            AccommodationType @default(HOTEL)
@@ -196,15 +197,15 @@ enum AccommodationType {
 // ─── Activities ─────────────────────────────────────────────────────────────
 
 model Activity {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   tripId          String
   name            String
-  type            ActivityType @default(ACTIVITY)
+  type            ActivityType  @default(ACTIVITY)
   description     String?
   location        String?
   city            String?
   scheduledAt     DateTime?
-  duration        Int?     // minutes
+  duration        Int? // minutes
   bookingRef      String?
   confirmationUrl String?
   price           Float?
@@ -236,14 +237,14 @@ enum BookingStatus {
 // ─── Documents ──────────────────────────────────────────────────────────────
 
 model Document {
-  id         String       @id @default(cuid())
-  tripId     String
-  type       DocumentType
-  name       String
-  fileUrl    String?
-  expiresAt  DateTime?
-  notes      String?
-  createdAt  DateTime     @default(now())
+  id        String       @id @default(cuid())
+  tripId    String
+  type      DocumentType
+  name      String
+  fileUrl   String?
+  expiresAt DateTime?
+  notes     String?
+  createdAt DateTime     @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -260,17 +261,17 @@ enum DocumentType {
 // ─── Expenses ────────────────────────────────────────────────────────────────
 
 model Expense {
-  id               String          @id @default(cuid())
-  tripId           String
-  category         ExpenseCategory
-  description      String
-  amount           Float
-  currency         String          @default("EUR")
-  exchangeRate     Float?
-  convertedAmount  Float?
-  date             DateTime
-  paid             Boolean         @default(false)
-  notes            String?
+  id              String          @id @default(cuid())
+  tripId          String
+  category        ExpenseCategory
+  description     String
+  amount          Float
+  currency        String          @default("EUR")
+  exchangeRate    Float?
+  convertedAmount Float?
+  date            DateTime
+  paid            Boolean         @default(false)
+  notes           String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -398,11 +399,55 @@ model DiveLog {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trip     Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  diveSite DiveSite? @relation(fields: [diveSiteId], references: [id], onDelete: SetNull)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip      Trip?           @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  diveSite  DiveSite?       @relation(fields: [diveSiteId], references: [id], onDelete: SetNull)
+  equipment DiveEquipment[]
 
   @@unique([userId, externalId])
+}
+
+enum EquipmentCategory {
+  WETSUIT
+  BCD
+  REGULATOR
+  COMPUTER
+  FINS
+  MASK
+  TANK
+  WEIGHT
+  TORCH
+  CAMERA
+  OTHER
+}
+
+enum EquipmentStatus {
+  OWNED
+  WISHLIST
+  RETIRED
+  SOLD
+}
+
+model DiveEquipment {
+  id                    String            @id @default(cuid())
+  userId                String
+  name                  String
+  category              EquipmentCategory
+  brand                 String?
+  model                 String?
+  size                  String?
+  serialNumber          String?
+  purchaseDate          DateTime?
+  purchasePrice         Float?
+  status                EquipmentStatus   @default(OWNED)
+  lastServiceDate       DateTime?
+  serviceIntervalMonths Int?
+  notes                 String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diveLogs DiveLog[]
 }
 
 model DiveCertification {

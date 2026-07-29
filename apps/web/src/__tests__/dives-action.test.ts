@@ -26,6 +26,7 @@ const diveLogFindUnique = vi.fn();
 const diveSiteFindUnique = vi.fn();
 const tripFindUnique = vi.fn();
 const userFindUnique = vi.fn();
+const diveEquipmentFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -45,6 +46,9 @@ vi.mock("@/lib/prisma", () => ({
     user: {
       findUnique: (...args: unknown[]) => userFindUnique(...args),
     },
+    diveEquipment: {
+      findMany: (...args: unknown[]) => diveEquipmentFindMany(...args),
+    },
   },
 }));
 
@@ -61,6 +65,7 @@ describe("dives.ts — userId scoping on update/delete", () => {
     vi.clearAllMocks();
     userFindUnique.mockResolvedValue({ status: "APPROVED" });
     diveLogFindMany.mockResolvedValue([]);
+    diveEquipmentFindMany.mockResolvedValue([]);
   });
 
   it("updateDiveLog scopes prisma.diveLog.update by id and userId", async () => {
@@ -151,6 +156,45 @@ describe("dives.ts — userId scoping on update/delete", () => {
       expect.objectContaining({ data: expect.objectContaining({ tripId: "trip-123" }) }),
     );
   });
+
+  it("only connects equipment ids owned by the authenticated user (IDOR defense)", async () => {
+    // The client submitted 3 equipment ids, but the userId-scoped lookup only
+    // resolves 2 of them as actually belonging to this user.
+    diveEquipmentFindMany.mockResolvedValue([{ id: "eq-1" }, { id: "eq-2" }]);
+
+    const { createDiveLog } = await import("@/actions/dives");
+    const formData = validDiveFormData();
+    formData.append("equipmentIds", "eq-1");
+    formData.append("equipmentIds", "eq-2");
+    formData.append("equipmentIds", "eq-of-another-user");
+
+    await createDiveLog(formData);
+
+    expect(diveEquipmentFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ["eq-1", "eq-2", "eq-of-another-user"] }, userId: "user-attacker" },
+      }),
+    );
+    expect(diveLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ equipment: { connect: [{ id: "eq-1" }, { id: "eq-2" }] } }),
+      }),
+    );
+  });
+
+  it("updateDiveLog replaces the equipment set (not additive) via connect: set", async () => {
+    diveEquipmentFindMany.mockResolvedValue([{ id: "eq-1" }]);
+
+    const { updateDiveLog } = await import("@/actions/dives");
+    const formData = validDiveFormData();
+    formData.append("equipmentIds", "eq-1");
+
+    await updateDiveLog("dive-123", formData);
+
+    expect(diveLogUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ equipment: { set: [{ id: "eq-1" }] } }) }),
+    );
+  });
 });
 
 describe("linkDiveToTrip — dive and trip ownership", () => {
@@ -221,6 +265,7 @@ describe("createDiveLog — diveNumber renumbered chronologically per user", () 
   beforeEach(() => {
     vi.clearAllMocks();
     userFindUnique.mockResolvedValue({ status: "APPROVED" });
+    diveEquipmentFindMany.mockResolvedValue([]);
   });
 
   it("assigns diveNumber 1 for a user's first (and only) dive", async () => {

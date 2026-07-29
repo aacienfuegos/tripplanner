@@ -26,6 +26,18 @@ async function resolveTripId(userId: string, tripId: string | undefined): Promis
   return trip && trip.userId === userId ? tripId : null;
 }
 
+// Los ids de equipo llegan como checkboxes del cliente — se revalidan contra
+// userId igual que diveSiteId/tripId antes de conectarlos a la inmersión.
+async function resolveEquipmentIds(userId: string, formData: FormData): Promise<string[]> {
+  const ids = formData.getAll("equipmentIds").map(String).filter(Boolean);
+  if (ids.length === 0) return [];
+  const owned = await prisma.diveEquipment.findMany({
+    where: { id: { in: ids }, userId },
+    select: { id: true },
+  });
+  return owned.map((e) => e.id);
+}
+
 export async function createDiveSite(formData: FormData) {
   const userId = await requireUser();
   const data = diveSiteSchema.parse(Object.fromEntries(formData));
@@ -51,6 +63,7 @@ export async function createDiveLog(formData: FormData) {
   const data = diveLogSchema.parse(Object.fromEntries(formData));
   const diveSiteId = await resolveDiveSiteId(userId, data.diveSiteId);
   const tripId = await resolveTripId(userId, data.tripId);
+  const equipmentIds = await resolveEquipmentIds(userId, formData);
 
   // diveNumber es un valor temporal — renumberDives lo recalcula por fecha
   // justo después de insertar la fila.
@@ -60,6 +73,7 @@ export async function createDiveLog(formData: FormData) {
       tripId,
       diveNumber: 0,
       ...mapDiveLogInput(data, diveSiteId),
+      equipment: { connect: equipmentIds.map((id) => ({ id })) },
     },
   });
   await renumberDives(userId);
@@ -72,10 +86,14 @@ export async function updateDiveLog(id: string, formData: FormData) {
   const userId = await requireUser();
   const data = diveLogSchema.parse(Object.fromEntries(formData));
   const diveSiteId = await resolveDiveSiteId(userId, data.diveSiteId);
+  const equipmentIds = await resolveEquipmentIds(userId, formData);
 
   await prisma.diveLog.update({
     where: { id, userId },
-    data: mapDiveLogInput(data, diveSiteId),
+    data: {
+      ...mapDiveLogInput(data, diveSiteId),
+      equipment: { set: equipmentIds.map((eid) => ({ id: eid })) },
+    },
   });
   // La edición puede haber cambiado la fecha, así que reordena por si afecta
   // a la posición cronológica de esta u otras inmersiones.

@@ -20,8 +20,11 @@ import type {
   DiveSite,
   DiveArea,
   DiveCertification,
+  DiveEquipment,
   GasMix,
   DiveSource,
+  EquipmentCategory,
+  EquipmentStatus,
 } from "@prisma/client";
 
 export type {
@@ -46,13 +49,17 @@ export type {
   DiveSite,
   DiveArea,
   DiveCertification,
+  DiveEquipment,
   GasMix,
   DiveSource,
+  EquipmentCategory,
+  EquipmentStatus,
 };
 
-export type DiveLogWithSite = DiveLog & { diveSite: DiveSite | null };
+export type DiveLogWithSite = DiveLog & { diveSite: DiveSite | null; equipment: DiveEquipment[] };
 export type DiveSiteWithArea = DiveSite & { diveArea: DiveArea | null };
 export type DiveAreaWithSites = DiveArea & { diveSites: DiveSite[] };
+export type DiveEquipmentWithCount = DiveEquipment & { _count: { diveLogs: number } };
 
 export type TripWithDetails = Trip & {
   destinations: Destination[];

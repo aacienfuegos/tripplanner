@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DiveLogForm } from "./dive-log-form";
 import { linkDiveToTrip, unlinkDiveFromTrip } from "@/actions/dives";
-import type { DiveLogWithSite, DiveSite } from "@/types";
+import type { DiveLogWithSite, DiveSite, DiveEquipment } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 import { formatDiveDate } from "@/lib/dive-date";
 
@@ -22,9 +22,10 @@ interface Props {
   dives: DiveLogWithSite[];
   availableDives: DiveLogWithSite[];
   sites: DiveSite[];
+  equipment: DiveEquipment[];
 }
 
-export function TripDiveSection({ tripId, dives, availableDives, sites }: Props) {
+export function TripDiveSection({ tripId, dives, availableDives, sites, equipment }: Props) {
   const { t } = useT();
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
@@ -145,7 +146,7 @@ export function TripDiveSection({ tripId, dives, availableDives, sites }: Props)
           <DialogHeader>
             <DialogTitle>{t.addDive}</DialogTitle>
           </DialogHeader>
-          <DiveLogForm sites={sites} tripId={tripId} onSuccess={() => setOpen(false)} />
+          <DiveLogForm sites={sites} equipment={equipment} tripId={tripId} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

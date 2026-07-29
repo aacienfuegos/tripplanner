@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createDiveLog, updateDiveLog, createDiveSite } from "@/actions/dives";
-import type { DiveLog, DiveSite } from "@/types";
+import type { DiveLogWithSite, DiveSite, DiveEquipment } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 import { DIVE_TYPE_KEYS, diveTypeKeyLabels, isDiveTypeKey } from "@/lib/dive-type";
 
@@ -19,18 +19,20 @@ const NONE_DIVE_TYPE_VALUE = "__none__";
 const OTHER_DIVE_TYPE_VALUE = "__other__";
 
 interface Props {
-  dive?: DiveLog;
+  dive?: DiveLogWithSite;
   sites: DiveSite[];
+  equipment: DiveEquipment[];
   tripId?: string;
   onSuccess: () => void;
 }
 
-export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
+export function DiveLogForm({ dive: d, sites, equipment, tripId, onSuccess }: Props) {
   const { t } = useT();
   const [isPending, startTransition] = useTransition();
   const [siteId, setSiteId] = useState<string>(d?.diveSiteId ?? NONE_SITE_VALUE);
   const [newSiteName, setNewSiteName] = useState("");
   const [newSiteAddress, setNewSiteAddress] = useState("");
+  const [equipmentIds, setEquipmentIds] = useState<string[]>(d?.equipment.map((e) => e.id) ?? []);
 
   const initialDiveTypeChoice = isDiveTypeKey(d?.diveType)
     ? d.diveType
@@ -280,6 +282,31 @@ export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
           <Textarea id="notes" name="notes" rows={2} defaultValue={d?.notes ?? ""} />
         </div>
       </div>
+
+      {equipment.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-muted-foreground">{t.diveEquipmentUsed}</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {equipment.map((eq) => (
+              <label key={eq.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="equipmentIds"
+                  value={eq.id}
+                  checked={equipmentIds.includes(eq.id)}
+                  onChange={(e) =>
+                    setEquipmentIds((prev) =>
+                      e.target.checked ? [...prev, eq.id] : prev.filter((id) => id !== eq.id),
+                    )
+                  }
+                  className="accent-primary"
+                />
+                {eq.name}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Button type="submit" disabled={isPending}>
         {isPending ? t.savingEllipsis : d ? t.saveChanges : t.addDive}
