@@ -18,10 +18,11 @@ const NONE_SITE_VALUE = "__none__";
 interface Props {
   dive?: DiveLog;
   sites: DiveSite[];
+  tripId?: string;
   onSuccess: () => void;
 }
 
-export function DiveLogForm({ dive: d, sites, onSuccess }: Props) {
+export function DiveLogForm({ dive: d, sites, tripId, onSuccess }: Props) {
   const { t } = useT();
   const [isPending, startTransition] = useTransition();
   const [siteId, setSiteId] = useState<string>(d?.diveSiteId ?? NONE_SITE_VALUE);
@@ -73,6 +74,7 @@ export function DiveLogForm({ dive: d, sites, onSuccess }: Props) {
 
   return (
     <form action={handleSubmit} className="space-y-5">
+      {tripId && !d && <input type="hidden" name="tripId" value={tripId} />}
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupBasic}</h4>
         <div className="grid grid-cols-2 gap-3">

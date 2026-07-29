@@ -299,6 +299,7 @@ export const en: WebTKeys = {
   sectionExpenses: "Expenses",
   sectionPacking: "Packing",
   sectionMap: "Map",
+  sectionDives: "Diving",
   moreSections: "More",
 
   // --- Misc ---
@@ -412,6 +413,10 @@ export const en: WebTKeys = {
   certNumber: "Certification number",
   certIssueDate: "Issue date",
   certInstructorName: "Instructor",
+  noTripDives: "No dives linked to this trip yet",
+  linkDiveSelectPlaceholder: "Link an existing dive…",
+  linkDive: "Link",
+  unlinkDive: "Unlink from trip",
 
   // --- Documents list ---
   documentTypePassport: "Passport",

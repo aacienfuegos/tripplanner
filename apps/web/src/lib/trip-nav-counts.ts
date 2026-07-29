@@ -8,6 +8,7 @@ export interface TripNavCounts {
   packingItems: number;
   documents: number;
   tasks: number;
+  dives: number;
 }
 
 const EMPTY_COUNTS: TripNavCounts = {
@@ -18,6 +19,7 @@ const EMPTY_COUNTS: TripNavCounts = {
   packingItems: 0,
   documents: 0,
   tasks: 0,
+  dives: 0,
 };
 
 export async function getTripNavCounts(tripId: string): Promise<TripNavCounts> {
@@ -33,6 +35,7 @@ export async function getTripNavCounts(tripId: string): Promise<TripNavCounts> {
           packingItems: true,
           documents: true,
           tasks: true,
+          diveLogs: true,
         },
       },
     },
@@ -48,5 +51,6 @@ export async function getTripNavCounts(tripId: string): Promise<TripNavCounts> {
     packingItems: trip._count.packingItems,
     documents: trip._count.documents,
     tasks: trip._count.tasks,
+    dives: trip._count.diveLogs,
   };
 }

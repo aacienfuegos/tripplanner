@@ -297,6 +297,7 @@ export const es = {
   sectionExpenses: "Gastos",
   sectionPacking: "Equipaje",
   sectionMap: "Mapa",
+  sectionDives: "Buceo",
   moreSections: "Más",
 
   // --- Misc ---
@@ -410,6 +411,10 @@ export const es = {
   certNumber: "Número de certificación",
   certIssueDate: "Fecha de emisión",
   certInstructorName: "Instructor/a",
+  noTripDives: "Sin inmersiones vinculadas a este viaje",
+  linkDiveSelectPlaceholder: "Vincular una inmersión existente…",
+  linkDive: "Vincular",
+  unlinkDive: "Desvincular del viaje",
 
   // --- Documents list ---
   documentTypePassport: "Pasaporte",

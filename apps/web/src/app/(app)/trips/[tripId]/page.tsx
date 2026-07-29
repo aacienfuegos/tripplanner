@@ -67,7 +67,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
         activities:     { orderBy: { scheduledAt: "asc" } },
         expenses:       { select: { amount: true, currency: true, convertedAmount: true } },
         packingItems:   { select: { packed: true } },
-        _count:         { select: { documents: true, tasks: true } },
+        _count:         { select: { documents: true, tasks: true, diveLogs: true } },
       },
     }),
     getT(),
@@ -138,6 +138,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
     packingItems: totalPackItems,
     documents: trip._count.documents,
     tasks: trip._count.tasks,
+    dives: trip._count.diveLogs,
   };
 
   const hasQuickStatus =
