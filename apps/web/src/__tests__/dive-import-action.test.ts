@@ -1,8 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
-import { readdirSync, rmSync, readFileSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { buildDivingLogFixture } from "./helpers/divinglog-fixture";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
@@ -49,17 +45,6 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-const fixturePath = buildDivingLogFixture();
-
-afterAll(() => {
-  rmSync(path.dirname(fixturePath), { recursive: true, force: true });
-});
-
-async function fixtureAsFile(): Promise<File> {
-  const bytes = readFileSync(fixturePath);
-  return new File([bytes], "logbook.sqlite");
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   userFindUnique.mockResolvedValue({ status: "APPROVED" });
@@ -70,60 +55,6 @@ beforeEach(() => {
   diveLogCreateMany.mockResolvedValue({ count: 0 });
   diveCertificationCreateMany.mockResolvedValue({ count: 0 });
   diveSiteFindMany.mockResolvedValue([]);
-});
-
-describe("parseDivingLogFile", () => {
-  it("rejects a non-file value", async () => {
-    const { parseDivingLogFile } = await import("@/actions/dive-import");
-    const fd = new FormData();
-    fd.set("file", "not-a-file");
-    const result = await parseDivingLogFile(fd);
-    expect(result.ok).toBe(false);
-  });
-
-  it("rejects a file over the size limit", async () => {
-    const { parseDivingLogFile } = await import("@/actions/dive-import");
-    const huge = new File([new Uint8Array(50 * 1024 * 1024 + 1)], "huge.sqlite");
-    const fd = new FormData();
-    fd.set("file", huge);
-    const result = await parseDivingLogFile(fd);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.errorCode).toBe("FILE_TOO_LARGE");
-  }, 15000);
-
-  it("parses a valid Diving Log SQLite file into a payload", async () => {
-    const { parseDivingLogFile } = await import("@/actions/dive-import");
-    const fd = new FormData();
-    fd.set("file", await fixtureAsFile());
-    const result = await parseDivingLogFile(fd);
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.payload.sites).toHaveLength(3);
-      expect(result.payload.logs).toHaveLength(4);
-      expect(result.payload.certifications).toHaveLength(1);
-    }
-  });
-
-  it("returns a clear error, not a throw, for a corrupt file", async () => {
-    const { parseDivingLogFile } = await import("@/actions/dive-import");
-    const fd = new FormData();
-    fd.set("file", new File(["not a sqlite file at all"], "corrupt.sqlite"));
-    const result = await parseDivingLogFile(fd);
-    expect(result.ok).toBe(false);
-  });
-
-  it("always deletes the temp file, even after a parse failure", async () => {
-    const { parseDivingLogFile } = await import("@/actions/dive-import");
-    const before = readdirSync(os.tmpdir()).filter((f) => f.startsWith("divinglog-import-"));
-    expect(before).toHaveLength(0);
-
-    const fd = new FormData();
-    fd.set("file", new File(["not a sqlite file at all"], "corrupt.sqlite"));
-    await parseDivingLogFile(fd);
-
-    const after = readdirSync(os.tmpdir()).filter((f) => f.startsWith("divinglog-import-"));
-    expect(after).toHaveLength(0);
-  });
 });
 
 describe("checkDivingLogDuplicates", () => {

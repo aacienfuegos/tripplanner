@@ -1,10 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -17,16 +12,11 @@ import {
   divingLogImportPayloadSchema,
   DivingLogImportPayload,
 } from "@/lib/schemas";
-import { parseDivingLogDatabase, DivingLogFileError } from "@/lib/divinglog-parser";
 
-// Generous but real: the sample export used to spec issue #169 (photos/blobs
-// included) is ~4.3MB — 50MB comfortably covers larger libraries without
-// being unbounded.
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-
-// Returned as a code rather than a message: server action errors aren't
-// locale-aware, and the client (DiveImportUploadStep) maps each code to a
-// translated string via the same t object the rest of the UI uses.
+// Returned as a code rather than a message: the parsing endpoint (route.ts,
+// not a Server Action) isn't locale-aware, and the client
+// (DiveImportUploadStep) maps each code to a translated string via the same
+// t object the rest of the UI uses.
 export type DivingLogParseErrorCode =
   | "NO_FILE"
   | "EMPTY_FILE"
@@ -38,56 +28,6 @@ export type DivingLogParseErrorCode =
 export type DivingLogParseResponse =
   | { ok: true; payload: DivingLogImportPayload }
   | { ok: false; errorCode: DivingLogParseErrorCode; maxSizeMb?: number };
-
-export async function parseDivingLogFile(formData: FormData): Promise<DivingLogParseResponse> {
-  await requireUser();
-
-  const file = formData.get("file");
-  if (!(file instanceof File)) {
-    return { ok: false, errorCode: "NO_FILE" };
-  }
-  if (file.size === 0) {
-    return { ok: false, errorCode: "EMPTY_FILE" };
-  }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return { ok: false, errorCode: "FILE_TOO_LARGE", maxSizeMb: MAX_FILE_SIZE_BYTES / (1024 * 1024) };
-  }
-
-  // Written under a random name in the OS temp dir and opened readonly by the
-  // parser — never executed, never written back to. Removed in `finally` even
-  // if parsing throws partway through (issue #169's explicit security requirement).
-  const tmpPath = path.join(os.tmpdir(), `divinglog-import-${randomUUID()}.sqlite`);
-  try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(tmpPath, buffer);
-
-    const raw = parseDivingLogDatabase(tmpPath);
-    const payload = divingLogImportPayloadSchema.parse({
-      sites: raw.sites,
-      logs: raw.entries,
-      certifications: raw.certifications,
-    });
-
-    if (payload.sites.length === 0 && payload.logs.length === 0 && payload.certifications.length === 0) {
-      return { ok: false, errorCode: "EMPTY_PAYLOAD" };
-    }
-
-    return { ok: true, payload };
-  } catch (error) {
-    // DivingLogFileError.message carries raw SQLite internals (table/column
-    // names) — useful while debugging locally, not something to surface to
-    // the end user, so only the generic code crosses the action boundary.
-    if (error instanceof DivingLogFileError) {
-      return { ok: false, errorCode: "UNRECOGNIZED_FILE" };
-    }
-    if (error instanceof z.ZodError) {
-      return { ok: false, errorCode: "UNRECOGNIZED_FILE" };
-    }
-    return { ok: false, errorCode: "UNKNOWN" };
-  } finally {
-    await fs.rm(tmpPath, { force: true });
-  }
-}
 
 export type DivingLogDuplicateFlags = {
   sites: boolean[];
