@@ -24,7 +24,9 @@ async function main() {
   // Orden: diveLog antes que trip/diveSite (FKs con onDelete: SetNull, no cascade)
   await prisma.diveLog.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveCertification.deleteMany({ where: { userId: DEV_USER_ID } });
+  await prisma.diveEquipment.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveSite.deleteMany({ where: { userId: DEV_USER_ID } });
+  await prisma.diveArea.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.trip.deleteMany({ where: { userId: DEV_USER_ID } });
 
   // ─── VIAJE 1: Japón (futuro, en 3 semanas) ────────────────────────────────
@@ -513,10 +515,30 @@ async function main() {
     },
   });
 
+  // ─── BUCEO: áreas ───────────────────────────────────────────────────────
+  const costaBrava = await prisma.diveArea.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Costa Brava",
+      country: "España",
+      notes: "Zona habitual de fin de semana, a un par de horas de Madrid en coche.",
+    },
+  });
+
+  const marRojoSinai = await prisma.diveArea.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Mar Rojo - Sinaí",
+      country: "Egipto",
+      notes: "Liveaboard de una semana, mayo 2026.",
+    },
+  });
+
   // ─── BUCEO: sitios ──────────────────────────────────────────────────────
   const calaMontgo = await prisma.diveSite.create({
     data: {
       userId: DEV_USER_ID,
+      diveAreaId: costaBrava.id,
       name: "Cala Montgó",
       country: "España",
       region: "L'Escala, Girona",
@@ -529,6 +551,7 @@ async function main() {
   const islasMedas = await prisma.diveSite.create({
     data: {
       userId: DEV_USER_ID,
+      diveAreaId: costaBrava.id,
       name: "Islas Medas",
       country: "España",
       region: "L'Estartit, Girona",
@@ -538,6 +561,7 @@ async function main() {
     },
   });
 
+  // Sin diveAreaId: demuestra el caso de un site suelto, sin agrupar.
   const canteraAlcazar = await prisma.diveSite.create({
     data: {
       userId: DEV_USER_ID,
@@ -551,6 +575,7 @@ async function main() {
   const rasMohammed = await prisma.diveSite.create({
     data: {
       userId: DEV_USER_ID,
+      diveAreaId: marRojoSinai.id,
       name: "Ras Mohammed - Shark & Yolanda Reef",
       country: "Egipto",
       region: "Sinaí, Mar Rojo",
@@ -563,6 +588,7 @@ async function main() {
   const thistlegorm = await prisma.diveSite.create({
     data: {
       userId: DEV_USER_ID,
+      diveAreaId: marRojoSinai.id,
       name: "Pecio SS Thistlegorm",
       country: "Egipto",
       region: "Mar Rojo",
@@ -845,16 +871,144 @@ async function main() {
     },
   ];
 
+  const createdDives = new Map<number, { id: string }>();
   for (const dive of diveLogs) {
-    await prisma.diveLog.create({ data: { userId: DEV_USER_ID, ...dive } });
+    const created = await prisma.diveLog.create({ data: { userId: DEV_USER_ID, ...dive } });
+    createdDives.set(dive.diveNumber, created);
   }
+
+  // ─── BUCEO: equipo (inventario + wishlist) ─────────────────────────────
+  const regulator = await prisma.diveEquipment.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Regulador MK25 EVO / S620Ti",
+      category: "REGULATOR",
+      brand: "Scubapro",
+      model: "MK25 EVO / S620Ti",
+      purchaseDate: new Date("2022-04-10"),
+      purchasePrice: 780,
+      status: "OWNED",
+      lastServiceDate: new Date("2024-11-02"),
+      serviceIntervalMonths: 12,
+      diveLogs: {
+        connect: [7, 8, 9, 10].map((n) => ({ id: createdDives.get(n)!.id })),
+      },
+    },
+  });
+
+  await prisma.diveEquipmentService.create({
+    data: {
+      userId: DEV_USER_ID,
+      equipmentId: regulator.id,
+      date: new Date("2024-11-02"),
+      description: "Revisión anual: cambio de juntas tóricas y calibración de primera etapa.",
+      cost: 65,
+    },
+  });
+
+  await prisma.diveEquipment.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "BCD Hydros Pro",
+      category: "BCD",
+      brand: "Scubapro",
+      model: "Hydros Pro",
+      size: "M",
+      purchaseDate: new Date("2022-04-10"),
+      purchasePrice: 650,
+      status: "OWNED",
+      diveLogs: {
+        connect: [7, 8, 9, 10].map((n) => ({ id: createdDives.get(n)!.id })),
+      },
+    },
+  });
+
+  await prisma.diveEquipment.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Neopreno 5mm",
+      category: "WETSUIT",
+      brand: "Cressi",
+      model: "Fast",
+      size: "M/L",
+      purchaseDate: new Date("2020-06-01"),
+      purchasePrice: 220,
+      status: "OWNED",
+      // service vencido a propósito, para ver el badge de "revisión pendiente"
+      lastServiceDate: new Date("2022-01-15"),
+      serviceIntervalMonths: 18,
+      notes: "Empieza a marcar por las costuras de las rodillas — valorar sustituir.",
+    },
+  });
+
+  await prisma.diveEquipment.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Ordenador Perdix 2",
+      category: "COMPUTER",
+      brand: "Shearwater",
+      model: "Perdix 2",
+      purchaseDate: new Date("2023-02-20"),
+      purchasePrice: 650,
+      status: "OWNED",
+      diveLogs: {
+        connect: [7, 8, 9, 10].map((n) => ({ id: createdDives.get(n)!.id })),
+      },
+    },
+  });
+
+  await prisma.diveEquipment.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Aletas Twin Jet Max",
+      category: "FINS",
+      brand: "Scubapro",
+      model: "Twin Jet Max",
+      size: "42-43",
+      purchaseDate: new Date("2021-05-12"),
+      purchasePrice: 140,
+      status: "OWNED",
+    },
+  });
+
+  await prisma.diveEquipment.create({
+    data: {
+      userId: DEV_USER_ID,
+      name: "Neopreno viejo 3mm",
+      category: "WETSUIT",
+      brand: "Decathlon",
+      status: "RETIRED",
+      notes: "Sustituido por el Cressi Fast. Se queda como repuesto para invitados.",
+    },
+  });
+
+  await prisma.diveEquipment.createMany({
+    data: [
+      {
+        userId: DEV_USER_ID,
+        name: "Ordenador Garmin Descent Mk3i",
+        category: "COMPUTER",
+        brand: "Garmin",
+        model: "Descent Mk3i",
+        status: "WISHLIST",
+        notes: "Para sustituir el Perdix 2 cuando toque — GPS integrado interesa para barco.",
+      },
+      {
+        userId: DEV_USER_ID,
+        name: "Cámara submarina",
+        category: "CAMERA",
+        status: "WISHLIST",
+        notes: "Pendiente de decidir entre una compacta con carcasa o una acción cam.",
+      },
+    ],
+  });
 
   console.log(`✅ Seed completado:`);
   console.log(`   • ${japon.name} (${japon.status})`);
   console.log(`   • ${lisboa.name} (${lisboa.status})`);
   console.log(`   • ${marruecos.name} (${marruecos.status})`);
   console.log(`   • ${egipto.name} (${egipto.status})`);
-  console.log(`   • Buceo: ${diveLogs.length} inmersiones, 5 sitios, 4 certificaciones`);
+  console.log(`   • Buceo: ${diveLogs.length} inmersiones, 5 sitios (2 áreas), 4 certificaciones, 7 piezas de equipo (2 wishlist)`);
 }
 
 main()

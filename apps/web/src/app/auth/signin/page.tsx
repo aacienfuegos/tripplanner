@@ -51,7 +51,8 @@ export default async function SignInPage() {
   const hasGoogle = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   const hasGitHub = !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
   const hasResend = !!process.env.RESEND_API_KEY;
-  const hasDev = process.env.NODE_ENV !== "production" && !!(process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD);
+  const devLoginAllowed = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEV_LOGIN === "true";
+  const hasDev = devLoginAllowed && !!(process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD);
   const hasOAuth = hasGoogle || hasGitHub;
 
   return (

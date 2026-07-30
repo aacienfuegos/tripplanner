@@ -98,6 +98,34 @@ describe("dev credentials authorize", () => {
   });
 });
 
+// ─── Dev Login staging gate ───────────────────────────────────────────────────
+// Staging and production share the same Docker image (next start forces
+// NODE_ENV=production in both) — ALLOW_DEV_LOGIN is the only thing that tells
+// them apart, and must never be satisfiable by NODE_ENV alone outside dev.
+
+function devLoginAllowed(nodeEnv: string | undefined, allowDevLoginFlag: string | undefined): boolean {
+  return nodeEnv !== "production" || allowDevLoginFlag === "true";
+}
+
+describe("dev login staging gate", () => {
+  it("is allowed in development regardless of the flag", () => {
+    expect(devLoginAllowed("development", undefined)).toBe(true);
+  });
+
+  it("is blocked in production without the explicit flag", () => {
+    expect(devLoginAllowed("production", undefined)).toBe(false);
+  });
+
+  it('is allowed in production only with the flag explicitly set to "true"', () => {
+    expect(devLoginAllowed("production", "true")).toBe(true);
+  });
+
+  it("is blocked in production for any other flag value (typo-safe)", () => {
+    expect(devLoginAllowed("production", "1")).toBe(false);
+    expect(devLoginAllowed("production", "yes")).toBe(false);
+  });
+});
+
 // ─── OAuth account linking (issue #176) ──────────────────────────────────────
 // allowDangerousEmailAccountLinking must stay off: it auto-links a new OAuth
 // sign-in to an existing account purely by matching email, with no confirmation

@@ -36,7 +36,12 @@ const providers: NextAuthConfig["providers"] = [
   ...authConfig.providers,
 ];
 
-if (process.env.NODE_ENV !== "production" && process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD) {
+// Staging comparte la misma imagen Docker que producción (next start fuerza
+// NODE_ENV=production en ambas) — ALLOW_DEV_LOGIN es el único flag que las
+// distingue, y solo debe existir en el .env de staging, nunca en el de prod.
+const devLoginAllowed = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEV_LOGIN === "true";
+
+if (devLoginAllowed && process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD) {
   providers.push(
     Credentials({
       id: "dev-credentials",
