@@ -179,6 +179,14 @@ export const diveEquipmentSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const diveEquipmentServiceSchema = z.object({
+  equipmentId: z.string().min(1),
+  date: z.string().min(1, "La fecha es obligatoria"),
+  description: z.string().min(1, "La descripción es obligatoria"),
+  cost: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const diveCertificationSchema = z.object({
   agency: z.string().min(1, "La entidad certificadora es obligatoria"),
   level: z.string().min(1, "El nivel es obligatorio"),

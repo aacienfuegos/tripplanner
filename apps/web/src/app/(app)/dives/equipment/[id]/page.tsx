@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EquipmentDetailActions } from "@/components/dives/equipment-detail-actions";
+import { EquipmentServiceList } from "@/components/dives/equipment-service-list";
 import { equipmentCategoryLabel } from "@/lib/equipment-category";
 import { isServiceDue } from "@/lib/equipment-service";
 import { formatDiveDate } from "@/lib/dive-date";
@@ -18,10 +19,11 @@ export default async function DiveEquipmentDetailPage({ params }: { params: Prom
   const { id } = await params;
   const userId = await requireUser();
 
-  const [t, equipment, dives] = await Promise.all([
+  const [t, equipment, dives, services] = await Promise.all([
     getT(),
     prisma.diveEquipment.findUnique({ where: { id, userId } }),
     prisma.diveLog.findMany({ where: { userId, equipment: { some: { id } } }, orderBy: { date: "desc" } }),
+    prisma.diveEquipmentService.findMany({ where: { userId, equipmentId: id }, orderBy: { date: "desc" } }),
   ]);
   if (!equipment) notFound();
 
@@ -71,6 +73,8 @@ export default async function DiveEquipmentDetailPage({ params }: { params: Prom
         </div>
         <EquipmentDetailActions equipment={equipment} />
       </div>
+
+      <EquipmentServiceList equipmentId={equipment.id} services={services} />
 
       {dives.length === 0 ? (
         <Card className="border-dashed">

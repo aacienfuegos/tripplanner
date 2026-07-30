@@ -496,6 +496,14 @@ export const es = {
   equipmentWishlistTotal: (amount: string) => `Wishlist: ${amount}`,
   backToEquipment: "← Volver a equipo",
   noEquipmentDives: "No se ha usado en ninguna inmersión",
+  equipmentServiceHistory: "Historial de mantenimiento",
+  equipmentAddService: "Añadir revisión",
+  equipmentServiceDate: "Fecha",
+  equipmentServiceDescription: "Descripción",
+  equipmentServiceCost: "Coste (€)",
+  noEquipmentService: "Sin revisiones registradas",
+  confirmDeleteEquipmentService: "¿Eliminar esta revisión del historial?",
+  deletedToastEquipmentService: "Eliminado",
 
   // --- Dive import (Diving Log SQLite) ---
   diveImportTrigger: "Importar desde Diving Log",

@@ -497,6 +497,14 @@ export const en: WebTKeys = {
   equipmentTotalInvestment: (amount: string) => `Total invested: ${amount}`,
   equipmentWishlistTotal: (amount: string) => `Wishlist: ${amount}`,
   backToEquipment: "← Back to equipment",
+  equipmentServiceHistory: "Maintenance history",
+  equipmentAddService: "Add service",
+  equipmentServiceDate: "Date",
+  equipmentServiceDescription: "Description",
+  equipmentServiceCost: "Cost (€)",
+  noEquipmentService: "No service history yet",
+  confirmDeleteEquipmentService: "Delete this service entry?",
+  deletedToastEquipmentService: "Deleted",
   noEquipmentDives: "Not used on any dive yet",
 
   // --- Dive import (Diving Log SQLite) ---
