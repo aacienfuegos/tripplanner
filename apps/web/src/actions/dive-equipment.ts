@@ -33,7 +33,7 @@ export async function createDiveEquipment(formData: FormData) {
     },
   });
 
-  revalidatePath("/dives/equipment");
+  revalidatePath("/dives");
 }
 
 export async function updateDiveEquipment(id: string, formData: FormData) {
@@ -45,12 +45,12 @@ export async function updateDiveEquipment(id: string, formData: FormData) {
     data: parseDiveEquipmentData(data),
   });
 
-  revalidatePath("/dives/equipment");
+  revalidatePath("/dives");
   revalidatePath(`/dives/equipment/${id}`);
 }
 
 export async function deleteDiveEquipment(id: string) {
   const userId = await requireUser();
   await prisma.diveEquipment.delete({ where: { id, userId } });
-  revalidatePath("/dives/equipment");
+  revalidatePath("/dives");
 }

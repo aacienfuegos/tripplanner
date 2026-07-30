@@ -34,7 +34,7 @@ export default async function DiveSiteDetailPage({ params }: { params: Promise<{
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
-        <Link href="/dives/sites" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        <Link href="/dives?tab=sites" className={buttonVariants({ variant: "ghost", size: "sm" })}>
           <ArrowLeft className="h-4 w-4 mr-1.5" /> {t.diveSitesTab}
         </Link>
       </div>
