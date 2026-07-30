@@ -373,6 +373,14 @@ async function main() {
           { type: "TICKET", name: "Vuelos Vueling (PDF)", notes: "Localizador: VUELING-7X4M / 7X4N" },
         ],
       },
+      packingItems: {
+        create: [
+          { category: "Documentos", name: "DNI", packed: true },
+          { category: "Ropa", name: "Zapato cómodo para adoquines", packed: true },
+          { category: "Ropa", name: "Chubasquero ligero", packed: false },
+          { category: "Electrónica", name: "Cargador del móvil", packed: true },
+        ],
+      },
     },
   });
 
@@ -510,6 +518,16 @@ async function main() {
           { category: "Aseo", name: "Repelente de mosquitos", packed: false },
           { category: "Varios", name: "Efectivo en dirhams", packed: false },
           { category: "Varios", name: "Pañuelo grande (para la arena)", packed: false },
+        ],
+      },
+      tasks: {
+        create: [
+          { title: "Contratar seguro de viaje", priority: "HIGH", dueDate: new Date("2026-08-15"), done: false },
+          { title: "Sacar dirhams o comprobar cajeros en Marrakech", priority: "MEDIUM", dueDate: new Date("2026-09-25"), done: false },
+          { title: "Reservar tour privado Marrakech-Merzouga-Fez", priority: "HIGH", dueDate: new Date("2026-08-01"), done: true },
+          { title: "Comprobar validez del pasaporte (mín. 6 meses)", priority: "MEDIUM", dueDate: new Date("2026-09-01"), done: true },
+          { title: "Descargar mapas offline de Marrakech y Fez", priority: "LOW", done: false },
+          { title: "Avisar al banco del viaje (tarjeta)", priority: "LOW", dueDate: new Date("2026-09-30"), done: false },
         ],
       },
     },
@@ -693,12 +711,38 @@ async function main() {
           },
         ],
       },
+      activities: {
+        create: [
+          { name: "City tour por Sharm el Sheikh", type: "TOUR", city: "Sharm el Sheikh", scheduledAt: new Date("2026-05-04T17:00:00"), duration: 120, status: "CONFIRMED", notes: "Antes de embarcar en el liveaboard." },
+          { name: "Cena de despedida en el barco", type: "RESTAURANT", city: "Sharm el Sheikh", scheduledAt: new Date("2026-05-10T20:00:00"), duration: 90, status: "CONFIRMED" },
+          { name: "Traslado aeropuerto-puerto", type: "TRANSPORT", city: "Sharm el Sheikh", scheduledAt: new Date("2026-05-04T16:00:00"), duration: 45, status: "CONFIRMED", notes: "Incluido en la reserva del liveaboard." },
+        ],
+      },
       expenses: {
         create: [
           { category: "FLIGHT", description: "Vuelos MAD-SSH-MAD", amount: 840, currency: "EUR", date: new Date("2026-03-01"), paid: true },
           { category: "ACCOMMODATION", description: "Liveaboard Blue Melody (7 noches, pensión completa)", amount: 910, currency: "EUR", date: new Date("2026-03-01"), paid: true },
           { category: "OTHER", description: "Alquiler ordenador de buceo", amount: 60, currency: "EUR", date: new Date("2026-05-04"), paid: true },
           { category: "OTHER", description: "Tasas del parque marino Ras Mohammed", amount: 25, currency: "EUR", date: new Date("2026-05-04"), paid: true },
+        ],
+      },
+      documents: {
+        create: [
+          { type: "PASSPORT", name: "Pasaporte español", expiresAt: new Date("2029-08-14"), notes: "Válido hasta 2029. Visado a la llegada (25 USD)." },
+          { type: "INSURANCE", name: "Seguro de buceo DAN Europe", expiresAt: new Date("2026-12-31"), notes: "Cobertura de accidentes de descompresión. Número de póliza: DAN-2026-55210." },
+          { type: "VOUCHER", name: "Confirmación liveaboard Blue Melody", notes: "Presentar al hacer check-in en el puerto." },
+        ],
+      },
+      packingItems: {
+        create: [
+          { category: "Documentos", name: "Pasaporte", packed: true },
+          { category: "Documentos", name: "Seguro de buceo (DAN)", packed: true },
+          { category: "Documentos", name: "Tarjeta de certificación PADI/SSI", packed: false },
+          { category: "Ropa", name: "Bañador (x2)", packed: false, quantity: 2 },
+          { category: "Ropa", name: "Ropa ligera de barco", packed: false },
+          { category: "Aseo", name: "Protector solar biodegradable (reef-safe)", packed: false },
+          { category: "Electrónica", name: "Cargador USB-C para el ordenador de buceo", packed: true },
+          { category: "Electrónica", name: "Powerbank", packed: false },
         ],
       },
     },
@@ -1008,7 +1052,8 @@ async function main() {
   console.log(`   • ${lisboa.name} (${lisboa.status})`);
   console.log(`   • ${marruecos.name} (${marruecos.status})`);
   console.log(`   • ${egipto.name} (${egipto.status})`);
-  console.log(`   • Buceo: ${diveLogs.length} inmersiones, 5 sitios (2 áreas), 4 certificaciones, 7 piezas de equipo (2 wishlist)`);
+  console.log(`   • Buceo: ${diveLogs.length} inmersiones, 5 sitios (2 áreas), 4 certificaciones, 8 piezas de equipo (2 wishlist)`);
+  console.log(`   • Tareas: 6 (Marruecos)`);
 }
 
 main()
