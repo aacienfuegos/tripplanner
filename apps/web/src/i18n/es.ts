@@ -452,6 +452,23 @@ export const es = {
   viewOnMap: "Ver en Google Maps",
   backToDiveSites: "← Volver a puntos de inmersión",
   diveAreaDiveSiteCount: (n: number) => `${n} punto${n === 1 ? "" : "s"}`,
+  diveSitesMapEmpty: "Ningún punto de inmersión con coordenadas todavía.",
+  diveSiteMapDiveCount: (n: number) => `${n} inmersión${n === 1 ? "" : "es"}`,
+
+  // --- Dive stats ---
+  diveStatsTab: "Estadísticas",
+  diveStatsEmpty: "Todavía no hay inmersiones registradas.",
+  diveStatsTotalDives: "Inmersiones",
+  diveStatsTotalTime: "Tiempo total",
+  diveStatsMaxDepth: "Profundidad máx.",
+  diveStatsAvgDepth: "Profundidad media",
+  diveStatsSitesVisited: "Sitios visitados",
+  diveStatsCountriesVisited: "Países visitados",
+  diveStatsAvgWaterTemp: "Temp. media del agua",
+  diveStatsDivingSince: "Buceando desde",
+  diveStatsLastDive: "Última inmersión",
+  diveStatsDeepestDive: "Inmersión más profunda",
+  diveStatsLongestDive: "Inmersión más larga",
 
   // --- Dive equipment ---
   diveEquipmentTab: "Equipo",

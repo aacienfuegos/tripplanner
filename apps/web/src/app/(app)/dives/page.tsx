@@ -4,11 +4,14 @@ import { DiveLogList } from "@/components/dives/dive-log-list";
 import { CertificationList } from "@/components/dives/certification-list";
 import { DiveSiteList } from "@/components/dives/dive-site-list";
 import { EquipmentList } from "@/components/dives/equipment-list";
+import { DiveStatsView } from "@/components/dives/dive-stats";
+import { DiveSitesMapView, type DiveSitePoint } from "@/components/dives/DiveSitesMapView";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Waves, Award, MapPin, Anchor } from "lucide-react";
+import { Waves, Award, MapPin, Anchor, BarChart3 } from "lucide-react";
 import { getT } from "@/lib/locale";
+import { computeDiveStats } from "@/lib/dive-stats";
 
-const TAB_VALUES = ["log", "certifications", "sites", "equipment"] as const;
+const TAB_VALUES = ["log", "certifications", "sites", "equipment", "stats"] as const;
 
 export default async function DivesPage({
   searchParams,
@@ -51,6 +54,28 @@ export default async function DivesPage({
     }),
   ]);
 
+  const diveStats = computeDiveStats(
+    dives.map((d) => ({
+      depthMax: d.depthMax,
+      bottomTime: d.bottomTime,
+      waterTemp: d.waterTemp,
+      date: d.date,
+      diveSite: d.diveSite ? { id: d.diveSite.id, name: d.diveSite.name, country: d.diveSite.country } : null,
+    })),
+  );
+
+  const sitePoints: DiveSitePoint[] = sitesWithCount
+    .filter((s) => s.latitude !== null && s.longitude !== null)
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      lat: s.latitude!,
+      lng: s.longitude!,
+      subtitle: [s.diveArea?.name, s.region, s.country].filter(Boolean).join(", ") || null,
+      diveCountLabel: t.diveSiteMapDiveCount(s._count.diveLogs),
+      detailHref: `/dives/sites/${s.id}`,
+    }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -71,6 +96,9 @@ export default async function DivesPage({
           <TabsTrigger value="equipment" className="gap-1.5">
             <Anchor className="h-3.5 w-3.5" /> {t.diveEquipmentTab}
           </TabsTrigger>
+          <TabsTrigger value="stats" className="gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" /> {t.diveStatsTab}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="log" className="mt-4">
           <DiveLogList dives={dives} sites={sites} equipment={equipment} />
@@ -78,11 +106,19 @@ export default async function DivesPage({
         <TabsContent value="certifications" className="mt-4">
           <CertificationList certifications={certifications} />
         </TabsContent>
-        <TabsContent value="sites" className="mt-4">
+        <TabsContent value="sites" className="mt-4 space-y-4">
+          {sitePoints.length > 0 ? (
+            <DiveSitesMapView points={sitePoints} labels={{ viewDetail: t.viewDetail }} />
+          ) : (
+            <p className="text-sm text-muted-foreground">{t.diveSitesMapEmpty}</p>
+          )}
           <DiveSiteList areas={areas} sites={sitesWithCount} />
         </TabsContent>
         <TabsContent value="equipment" className="mt-4">
           <EquipmentList equipment={allEquipment} />
+        </TabsContent>
+        <TabsContent value="stats" className="mt-4">
+          <DiveStatsView stats={diveStats} t={t} />
         </TabsContent>
       </Tabs>
     </div>

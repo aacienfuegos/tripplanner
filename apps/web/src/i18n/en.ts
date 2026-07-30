@@ -454,6 +454,23 @@ export const en: WebTKeys = {
   viewOnMap: "View on Google Maps",
   backToDiveSites: "← Back to dive sites",
   diveAreaDiveSiteCount: (n: number) => `${n} site${n === 1 ? "" : "s"}`,
+  diveSitesMapEmpty: "No dive sites with coordinates yet.",
+  diveSiteMapDiveCount: (n: number) => `${n} dive${n === 1 ? "" : "s"}`,
+
+  // --- Dive stats ---
+  diveStatsTab: "Stats",
+  diveStatsEmpty: "No dives logged yet.",
+  diveStatsTotalDives: "Dives",
+  diveStatsTotalTime: "Total time",
+  diveStatsMaxDepth: "Max depth",
+  diveStatsAvgDepth: "Avg depth",
+  diveStatsSitesVisited: "Sites visited",
+  diveStatsCountriesVisited: "Countries visited",
+  diveStatsAvgWaterTemp: "Avg water temp.",
+  diveStatsDivingSince: "Diving since",
+  diveStatsLastDive: "Last dive",
+  diveStatsDeepestDive: "Deepest dive",
+  diveStatsLongestDive: "Longest dive",
 
   // --- Dive equipment ---
   diveEquipmentTab: "Equipment",
