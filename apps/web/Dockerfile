@@ -74,6 +74,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages /app/packages
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next ./.next
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/package.json ./package.json
+# `next start` (no output: "standalone") re-reads next.config.ts from disk on
+# every container boot — without this copy, Server Actions silently falls
+# back to its default 1MB body limit, ignoring bodySizeLimit: "50mb" below.
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/next.config.ts ./next.config.ts
 
 # Prisma: schema + migrations + config needed by `prisma migrate deploy`
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/prisma ./prisma
