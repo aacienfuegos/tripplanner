@@ -33,7 +33,7 @@ export default async function DiveEquipmentDetailPage({ params }: { params: Prom
 
   return (
     <div className="space-y-6">
-      <Link href="/dives/equipment" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+      <Link href="/dives?tab=equipment" className={buttonVariants({ variant: "ghost", size: "sm" })}>
         <ArrowLeft className="h-4 w-4 mr-1.5" /> {t.diveEquipmentTab}
       </Link>
 

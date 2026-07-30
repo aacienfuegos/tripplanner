@@ -27,7 +27,7 @@ export async function createDiveArea(formData: FormData) {
     },
   });
 
-  revalidatePath("/dives/sites");
+  revalidatePath("/dives");
   return area;
 }
 
@@ -44,13 +44,13 @@ export async function updateDiveArea(id: string, formData: FormData) {
     },
   });
 
-  revalidatePath("/dives/sites");
+  revalidatePath("/dives");
 }
 
 export async function deleteDiveArea(id: string) {
   const userId = await requireUser();
   await prisma.diveArea.delete({ where: { id, userId } });
-  revalidatePath("/dives/sites");
+  revalidatePath("/dives");
 }
 
 export async function updateDiveSite(id: string, formData: FormData) {
@@ -78,7 +78,6 @@ export async function updateDiveSite(id: string, formData: FormData) {
   if (previous && previous.address !== (data.address || null)) void geocodeDiveSite(id);
 
   revalidatePath("/dives");
-  revalidatePath("/dives/sites");
   revalidatePath(`/dives/sites/${id}`);
 }
 
@@ -86,5 +85,4 @@ export async function deleteDiveSite(id: string) {
   const userId = await requireUser();
   await prisma.diveSite.delete({ where: { id, userId } });
   revalidatePath("/dives");
-  revalidatePath("/dives/sites");
 }

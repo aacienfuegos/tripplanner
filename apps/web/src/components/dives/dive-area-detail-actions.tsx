@@ -29,7 +29,7 @@ export function DiveAreaDetailActions({ area }: { area: DiveArea }) {
     try {
       await deleteDiveArea(area.id);
       toast.success(t.deletedToastDiveArea);
-      router.push("/dives/sites");
+      router.push("/dives?tab=sites");
     } catch {
       toast.error(t.error);
     }

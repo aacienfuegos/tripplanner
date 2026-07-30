@@ -29,7 +29,7 @@ export function EquipmentDetailActions({ equipment }: { equipment: DiveEquipment
     try {
       await deleteDiveEquipment(equipment.id);
       toast.success(t.deletedToastEquipment);
-      router.push("/dives/equipment");
+      router.push("/dives?tab=equipment");
     } catch {
       toast.error(t.error);
     }
