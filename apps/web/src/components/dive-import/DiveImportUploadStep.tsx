@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { AlertCircle, Upload, Loader2 } from "lucide-react";
-import { parseDivingLogFile, DivingLogParseErrorCode } from "@/actions/dive-import";
+import type { DivingLogParseErrorCode, DivingLogParseResponse } from "@/actions/dive-import";
 import { DivingLogImportPayload } from "@/lib/schemas";
 import { useT } from "@/contexts/LanguageContext";
 import type { WebTKeys } from "@/i18n";
@@ -35,12 +35,21 @@ export function DiveImportUploadStep({ onNext }: { onNext: (payload: DivingLogIm
     const formData = new FormData();
     formData.set("file", file);
     startTransition(async () => {
-      const result = await parseDivingLogFile(formData);
-      if (!result.ok) {
-        setError(errorMessage(result.errorCode, result.maxSizeMb, t));
-        return;
+      // A la Server Action anterior le bastaba con lanzar para que React lo
+      // capturase; un fetch() a mano necesita su propio try/catch o un fallo
+      // de red/parseo deja el spinner de "processing" girando para siempre
+      // sin ningún error visible — el propio síntoma original del bug #1.
+      try {
+        const response = await fetch("/api/dives/import", { method: "POST", body: formData });
+        const result: DivingLogParseResponse = await response.json();
+        if (!result.ok) {
+          setError(errorMessage(result.errorCode, result.maxSizeMb, t));
+          return;
+        }
+        onNext(result.payload);
+      } catch {
+        setError(errorMessage("UNKNOWN", undefined, t));
       }
-      onNext(result.payload);
     });
   };
 
