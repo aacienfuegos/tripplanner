@@ -13,6 +13,25 @@ async function resolveConversion(expenseCurrency: string, tripCurrency: string, 
   return { exchangeRate: rate, convertedAmount: amount * rate };
 }
 
+// Los gastos guardan exchangeRate/convertedAmount calculados contra la moneda
+// del viaje en el momento de crearse/editarse — si luego cambia trip.currency
+// (updateTrip), esos valores quedan obsoletos y hay que recalcularlos todos,
+// incluyendo los que antes tenían convertedAmount: null por coincidir con la
+// moneda anterior del viaje.
+export async function recalculateExpenseConversions(tripId: string, tripCurrency: string) {
+  const expenses = await prisma.expense.findMany({
+    where: { tripId },
+    select: { id: true, currency: true, amount: true },
+  });
+
+  await Promise.all(
+    expenses.map(async (expense) => {
+      const { exchangeRate, convertedAmount } = await resolveConversion(expense.currency, tripCurrency, expense.amount);
+      await prisma.expense.update({ where: { id: expense.id }, data: { exchangeRate, convertedAmount } });
+    }),
+  );
+}
+
 export async function createExpense(tripId: string, formData: FormData) {
   const trip = await requireTripOwner(tripId);
   const data = expenseSchema.parse(Object.fromEntries(formData));
