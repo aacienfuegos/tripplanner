@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { packingItemSchema as itemSchema } from "@/lib/schemas";
-import { requireTripOwner } from "@/lib/action-auth";
+import { requireTripOwner, requireUser } from "@/lib/action-auth";
+
+const DIVE_EQUIPMENT_PACKING_CATEGORY = "Buceo";
 
 export async function createPackingItem(tripId: string, formData: FormData) {
   await requireTripOwner(tripId);
@@ -47,4 +49,25 @@ export async function addDefaultPackingItems(tripId: string) {
     skipDuplicates: true,
   });
   revalidatePath(`/trips/${tripId}/packing`);
+}
+
+export async function addDiveEquipmentToPackingList(tripId: string): Promise<{ added: number }> {
+  const userId = await requireUser();
+  await requireTripOwner(tripId);
+
+  const [equipment, existingItems] = await Promise.all([
+    prisma.diveEquipment.findMany({ where: { userId, status: "OWNED" }, select: { name: true } }),
+    prisma.packingItem.findMany({ where: { tripId }, select: { name: true } }),
+  ]);
+
+  const existingNames = new Set(existingItems.map((i) => i.name.trim().toLowerCase()));
+  const toAdd = equipment.filter((e) => !existingNames.has(e.name.trim().toLowerCase()));
+  if (toAdd.length === 0) return { added: 0 };
+
+  await prisma.packingItem.createMany({
+    data: toAdd.map((e) => ({ tripId, name: e.name, category: DIVE_EQUIPMENT_PACKING_CATEGORY, quantity: 1, packed: false })),
+  });
+
+  revalidatePath(`/trips/${tripId}/packing`);
+  return { added: toAdd.length };
 }

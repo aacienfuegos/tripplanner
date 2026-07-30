@@ -2,19 +2,25 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, ShoppingBag, Trash2, Wand2 } from "lucide-react";
+import { Plus, ShoppingBag, Trash2, Wand2, Anchor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createPackingItem, togglePackingItem, deletePackingItem, addDefaultPackingItems } from "@/actions/packing";
+import {
+  createPackingItem,
+  togglePackingItem,
+  deletePackingItem,
+  addDefaultPackingItems,
+  addDiveEquipmentToPackingList,
+} from "@/actions/packing";
 import type { PackingItem } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 
-interface Props { tripId: string; items: PackingItem[]; }
+interface Props { tripId: string; items: PackingItem[]; hasDiveEquipment?: boolean; }
 
-export function PackingList({ tripId, items }: Props) {
+export function PackingList({ tripId, items, hasDiveEquipment = false }: Props) {
   const { t } = useT();
   const [showForm, setShowForm] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -65,6 +71,16 @@ export function PackingList({ tripId, items }: Props) {
     finally { setIsPending(false); }
   }
 
+  async function handleAddDiveEquipment() {
+    setIsPending(true);
+    try {
+      const { added } = await addDiveEquipmentToPackingList(tripId);
+      toast.success(added > 0 ? t.diveEquipmentAddedToPackingToast(added) : t.diveEquipmentAlreadyInPackingToast);
+    }
+    catch { toast.error(t.error); }
+    finally { setIsPending(false); }
+  }
+
   async function handleCreate(formData: FormData) {
     const category = activeCategory === OTHER_LABEL ? customCategory.trim() : activeCategory;
     if (!category) { toast.error(t.enterCategoryError); return; }
@@ -83,6 +99,12 @@ export function PackingList({ tripId, items }: Props) {
           <Button variant="outline" onClick={handleAddDefaults} disabled={isPending}>
             <Wand2 className="h-4 w-4 mr-2" />
             {t.addDefaultListBtn}
+          </Button>
+        )}
+        {hasDiveEquipment && (
+          <Button variant="outline" onClick={handleAddDiveEquipment} disabled={isPending}>
+            <Anchor className="h-4 w-4 mr-2" />
+            {t.addDiveEquipmentToPackingBtn}
           </Button>
         )}
         {total > 0 && (
