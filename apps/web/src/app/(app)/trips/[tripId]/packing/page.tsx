@@ -18,7 +18,10 @@ export default async function PackingPage({ params }: { params: Promise<{ tripId
     getT(),
   ]);
   if (!trip || trip.userId !== session!.user!.id) notFound();
-  const counts = await getTripNavCounts(tripId);
+  const [counts, ownedEquipmentCount] = await Promise.all([
+    getTripNavCounts(tripId),
+    prisma.diveEquipment.count({ where: { userId: session!.user!.id, status: "OWNED" } }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -30,7 +33,7 @@ export default async function PackingPage({ params }: { params: Promise<{ tripId
         icon={<ShoppingBag className="h-5 w-5" />}
         counts={counts}
       />
-      <PackingList tripId={trip.id} items={trip.packingItems} />
+      <PackingList tripId={trip.id} items={trip.packingItems} hasDiveEquipment={ownedEquipmentCount > 0} />
     </div>
   );
 }
