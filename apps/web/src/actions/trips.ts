@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { tripSchema, tripStatusSchema } from "@/lib/schemas";
 import { requireUser } from "@/lib/action-auth";
+import { recalculateExpenseConversions } from "@/actions/expenses";
 
 export async function createTrip(formData: FormData) {
   const userId = await requireUser();
@@ -35,6 +36,8 @@ export async function updateTrip(tripId: string, formData: FormData) {
   const raw = Object.fromEntries(formData);
   const data = tripSchema.parse(raw);
 
+  const previous = await prisma.trip.findUnique({ where: { id: tripId }, select: { currency: true } });
+
   await prisma.trip.update({
     where: { id: tripId, userId },
     data: {
@@ -47,6 +50,11 @@ export async function updateTrip(tripId: string, formData: FormData) {
       coverImage: data.coverImage,
     },
   });
+
+  if (previous && previous.currency !== data.currency) {
+    await recalculateExpenseConversions(tripId, data.currency);
+    revalidatePath(`/trips/${tripId}/expenses`);
+  }
 
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/trips");
