@@ -5,13 +5,16 @@ set -e
 echo "==> Aplicando migraciones de base de datos..."
 /app/node_modules/.bin/prisma migrate deploy
 
-# ALLOW_DEV_LOGIN solo debe existir en el .env de staging (ver src/lib/auth.ts)
-# — reutilizarlo aquí mantiene el usuario dummy siempre con el dataset de
-# prueba definido en prisma/seed.ts, sin depender de un paso manual en cada
-# despliegue (staging redeploya automáticamente vía cron cada 5 min). node
-# ejecuta el .ts nativamente; no hace falta tsx en la imagen de producción.
-if [ "$ALLOW_DEV_LOGIN" = "true" ]; then
-  echo "==> ALLOW_DEV_LOGIN activo: sembrando datos de prueba del usuario dev..."
+# SEED_ON_BOOT solo debe existir en el .env de staging — mantiene el usuario
+# dummy siempre con el dataset de prueba definido en prisma/seed.ts, sin
+# depender de un paso manual en cada despliegue (staging redeploya
+# automáticamente vía cron cada 5 min). Separado de ALLOW_DEV_LOGIN (que solo
+# controla si el proveedor de credenciales dev existe, ver src/lib/auth.ts)
+# porque son cosas distintas: una es superficie de auth, otra es ciclo de
+# vida de datos. node ejecuta el .ts nativamente; no hace falta tsx en la
+# imagen de producción.
+if [ "$SEED_ON_BOOT" = "true" ]; then
+  echo "==> SEED_ON_BOOT activo: sembrando datos de prueba del usuario dev..."
   node prisma/seed.ts
 fi
 
