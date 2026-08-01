@@ -1,3 +1,4 @@
+import { db } from "./database";
 import { listTrips, createTrip, deleteTrip } from "./trips";
 import { createFlight } from "./flights";
 import { createAccommodation } from "./accommodations";
@@ -6,6 +7,11 @@ import { createExpense } from "./expenses";
 import { createPackingItem } from "./packing";
 import { createDocument } from "./documents";
 import { createTask } from "./tasks";
+import { createDiveArea } from "./dive-areas";
+import { createDiveSite } from "./dive-sites";
+import { createDiveEquipment } from "./dive-equipment";
+import { createDiveCertification } from "./dive-certifications";
+import { createDiveLog } from "./dive-logs";
 
 function iso(daysFromToday: number, time = "00:00:00"): string {
   const d = new Date();
@@ -16,8 +22,20 @@ function day(daysFromToday: number): string {
   return iso(daysFromToday).slice(0, 10);
 }
 
+// trip_id en dive_logs es ON DELETE SET NULL (una inmersión sobrevive a su
+// viaje), así que borrar los viajes no limpia el módulo de buceo — hay que
+// vaciarlo aparte para no acumular datos de pruebas en cada reseed.
 export function clearAllData(): void {
   for (const trip of listTrips()) deleteTrip(trip.id);
+  db.execSync(`
+    DELETE FROM dive_log_equipment;
+    DELETE FROM dive_equipment_service;
+    DELETE FROM dive_logs;
+    DELETE FROM dive_equipment;
+    DELETE FROM dive_certifications;
+    DELETE FROM dive_sites;
+    DELETE FROM dive_areas;
+  `);
 }
 
 // Tres viajes (futuro, en curso y pasado) para poder ver todos los estados
@@ -235,4 +253,141 @@ export async function seedDevData(): Promise<void> {
   await createExpense(rome.id, { description: "Cena de aniversario", category: "FOOD", amount: 88, currency: "EUR", date: day(-116), paid: 1, notes: "Restaurante Roscioli" });
 
   createTask(rome.id, { title: "Imprimir entradas del Coliseo", notes: null, due_date: day(-121), priority: "MEDIUM", done: 1 });
+
+  // ─── Módulo de buceo: histórico propio, sin viaje asociado ────────────
+  const redSea = createDiveArea({ name: "Mar Rojo", country: "Egipto", notes: null });
+  const costaBrava = createDiveArea({ name: "Costa Brava", country: "España", notes: null });
+
+  const illesMedes = createDiveSite({
+    dive_area_id: costaBrava.id, name: "Illes Medes",
+    address: null, country: "España", region: "L'Estartit",
+    notes: "Reserva marina, gran biodiversidad",
+  });
+  const capDeCreus = createDiveSite({
+    dive_area_id: costaBrava.id, name: "Cap de Creus",
+    address: null, country: "España", region: "Cadaqués", notes: null,
+  });
+  const blueHole = createDiveSite({
+    dive_area_id: redSea.id, name: "Blue Hole",
+    address: null, country: "Egipto", region: "Dahab",
+    notes: "Entrada famosa por el arco a 56m, solo con formación técnica",
+  });
+  const thistlegorm = createDiveSite({
+    dive_area_id: redSea.id, name: "SS Thistlegorm",
+    address: null, country: "Egipto", region: "Sharm el-Sheij",
+    notes: "Pecio de la Segunda Guerra Mundial",
+  });
+
+  const wetsuit = createDiveEquipment({
+    name: "Traje 5mm Cressi", category: "WETSUIT", status: "OWNED",
+    brand: "Cressi", model: "Fisherman", size: "L", serial_number: null,
+    purchase_date: day(-800), purchase_price: 220,
+    last_service_date: null, service_interval_months: null, notes: null,
+  });
+  const bcd = createDiveEquipment({
+    name: "Chaleco Scubapro Hydros", category: "BCD", status: "OWNED",
+    brand: "Scubapro", model: "Hydros Pro", size: "M", serial_number: "SP-88231",
+    purchase_date: day(-700), purchase_price: 650,
+    last_service_date: day(-400), service_interval_months: 12, notes: null,
+  });
+  const regulator = createDiveEquipment({
+    name: "Regulador Apeks XTX50", category: "REGULATOR", status: "OWNED",
+    brand: "Apeks", model: "XTX50", size: null, serial_number: "AX-55210",
+    purchase_date: day(-700), purchase_price: 480,
+    last_service_date: day(-450), service_interval_months: 12,
+    notes: "Revisión anual obligatoria",
+  });
+  const computer = createDiveEquipment({
+    name: "Ordenador Suunto D5", category: "COMPUTER", status: "OWNED",
+    brand: "Suunto", model: "D5", size: null, serial_number: "SU-1120X",
+    purchase_date: day(-500), purchase_price: 520,
+    last_service_date: null, service_interval_months: null, notes: null,
+  });
+  const fins = createDiveEquipment({
+    name: "Aletas Mares Avanti", category: "FINS", status: "OWNED",
+    brand: "Mares", model: "Avanti Quattro", size: "42-43", serial_number: null,
+    purchase_date: day(-700), purchase_price: 110,
+    last_service_date: null, service_interval_months: null, notes: null,
+  });
+  createDiveEquipment({
+    name: "Cámara GoPro Hero con housing", category: "CAMERA", status: "WISHLIST",
+    brand: "GoPro", model: "Hero 12", size: null, serial_number: null,
+    purchase_date: null, purchase_price: 450,
+    last_service_date: null, service_interval_months: null,
+    notes: "Para grabar los pecios del Mar Rojo",
+  });
+
+
+  createDiveCertification({
+    agency: "PADI", level: "Open Water Diver", cert_number: "OW-88213",
+    issue_date: day(-900), instructor_name: "Marco Bianchi", notes: null,
+  });
+  createDiveCertification({
+    agency: "PADI", level: "Advanced Open Water Diver", cert_number: "AOW-91820",
+    issue_date: day(-600), instructor_name: "Elena Vidal",
+    notes: "Especialidad en pecios y profunda",
+  });
+
+  const fullGear = [wetsuit.id, bcd.id, regulator.id, computer.id, fins.id];
+
+  createDiveLog({
+    trip_id: null, dive_site_id: illesMedes.id, date: iso(-820, "10:00:00"),
+    depth_max: 18, bottom_time: 42, surface_interval: null,
+    gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
+    pressure_start: null, pressure_end: null,
+    water_temp: 16, air_temp: 20, visibility: 10,
+    dive_type: "RECREATIONAL", buddy_name: "Marco Bianchi", suit_type: "5mm húmedo",
+    weight: 6, rating: 4, notes: "Primera inmersión certificada, agua fría pero buena visibilidad",
+    equipmentIds: [],
+  });
+  createDiveLog({
+    trip_id: null, dive_site_id: capDeCreus.id, date: iso(-600, "09:30:00"),
+    depth_max: 24, bottom_time: 38, surface_interval: null,
+    gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
+    pressure_start: 210, pressure_end: 60,
+    water_temp: 18, air_temp: 22, visibility: 12,
+    dive_type: "DRIFT", buddy_name: "Elena Vidal", suit_type: "5mm húmedo",
+    weight: 5, rating: 5, notes: null,
+    equipmentIds: [fins.id],
+  });
+  createDiveLog({
+    trip_id: null, dive_site_id: illesMedes.id, date: iso(-450, "21:00:00"),
+    depth_max: 15, bottom_time: 35, surface_interval: null,
+    gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
+    pressure_start: 200, pressure_end: 70,
+    water_temp: 19, air_temp: 21, visibility: 8,
+    dive_type: "NIGHT", buddy_name: "Elena Vidal", suit_type: "5mm húmedo",
+    weight: 5, rating: 5, notes: "Pulpos y nudibranquios por todas partes",
+    equipmentIds: fullGear,
+  });
+  createDiveLog({
+    trip_id: null, dive_site_id: blueHole.id, date: iso(-40, "08:15:00"),
+    depth_max: 32, bottom_time: 28, surface_interval: 65,
+    gas_mix: "NITROX", o2_percentage: 32, helium_percentage: null,
+    pressure_start: 200, pressure_end: 60,
+    water_temp: 26, air_temp: 32, visibility: 25,
+    dive_type: "DEEP", buddy_name: "Ahmed Hassan", suit_type: "3mm húmedo",
+    weight: 4, rating: 5, notes: "El arco impresionante, muy buena visibilidad",
+    equipmentIds: fullGear,
+  });
+  createDiveLog({
+    trip_id: null, dive_site_id: thistlegorm.id, date: iso(-38, "09:00:00"),
+    depth_max: 28, bottom_time: 45, surface_interval: null,
+    gas_mix: "NITROX", o2_percentage: 32, helium_percentage: null,
+    pressure_start: 210, pressure_end: 50,
+    water_temp: 27, air_temp: 33, visibility: 20,
+    dive_type: "WRECK", buddy_name: "Ahmed Hassan", suit_type: "3mm húmedo",
+    weight: 4, rating: 5, notes: "Motos y camiones aún visibles en las bodegas",
+    equipmentIds: fullGear,
+  });
+  createDiveLog({
+    trip_id: null, dive_site_id: illesMedes.id, date: iso(-5, "10:30:00"),
+    depth_max: 20, bottom_time: 40, surface_interval: null,
+    gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
+    pressure_start: 205, pressure_end: 65,
+    water_temp: 17, air_temp: 20, visibility: 14,
+    dive_type: "RECREATIONAL", buddy_name: "Marco Bianchi", suit_type: "5mm húmedo",
+    weight: 6, rating: 4, notes: null,
+    equipmentIds: fullGear,
+  });
 }
