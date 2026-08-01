@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { createDiveSite, updateDiveSite, DiveSite } from "@/db/dive-sites";
 import { listDiveAreas, DiveArea } from "@/db/dive-areas";
+import { geocodeQuery } from "@/lib/geocode";
 import { useT } from "@/contexts/I18nContext";
 import DiveAreaFormModal from "./DiveAreaFormModal";
 
@@ -45,14 +46,30 @@ export default function DiveSiteFormModal({ visible, onClose, onSaved, onDelete,
     }
   }, [visible, initialData]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) { setError(t.diveSiteName); return; }
+
+    // Sólo geocodifica si el punto todavía no tiene coordenadas — evita
+    // pegarle a Nominatim en cada edición de un punto ya localizado.
+    let latitude = initialData?.latitude ?? null;
+    let longitude = initialData?.longitude ?? null;
+    if (latitude === null || longitude === null) {
+      const query = [name, address, region, country].map((v) => v.trim()).filter(Boolean).join(", ");
+      const geocoded = await geocodeQuery(query);
+      if (geocoded) {
+        latitude = geocoded.latitude;
+        longitude = geocoded.longitude;
+      }
+    }
+
     const data = {
       dive_area_id: diveAreaId,
       name: name.trim(),
       address: address.trim() || null,
       country: country.trim() || null,
       region: region.trim() || null,
+      latitude,
+      longitude,
       notes: notes.trim() || null,
     };
     const site = initialData

@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { listDiveSites, deleteDiveSite, DiveSite } from "@/db/dive-sites";
 import { listDiveAreas, DiveArea } from "@/db/dive-areas";
 import DiveSiteFormModal from "@/components/forms/DiveSiteFormModal";
+import DiveSitesMapModal from "@/components/DiveSitesMapModal";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
 
@@ -18,6 +19,7 @@ export default function DiveSitesScreen() {
   const [areas, setAreas] = useState<DiveArea[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<DiveSite | undefined>();
+  const [mapOpen, setMapOpen] = useState(false);
 
   const refresh = useCallback(() => {
     setSites(listDiveSites());
@@ -45,7 +47,14 @@ export default function DiveSitesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
-      <Tabs.Screen options={{ title: t.diveSitesTab }} />
+      <Tabs.Screen options={{
+        title: t.diveSitesTab,
+        headerRight: () => (
+          <TouchableOpacity onPress={() => setMapOpen(true)} className="mr-1 p-1" accessibilityLabel={t.viewDiveSitesMap}>
+            <Ionicons name="map-outline" size={22} color={COLOR} />
+          </TouchableOpacity>
+        ),
+      }} />
 
       <SectionList
         sections={sections}
@@ -99,6 +108,7 @@ export default function DiveSitesScreen() {
         onSaved={() => { closeForm(); refresh(); }}
         onDelete={editingItem ? () => { deleteDiveSite(editingItem.id); closeForm(); refresh(); } : undefined}
       />
+      <DiveSitesMapModal visible={mapOpen} onClose={() => setMapOpen(false)} sites={sites} />
     </SafeAreaView>
   );
 }

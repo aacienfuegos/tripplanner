@@ -22,6 +22,8 @@ export interface DiveSiteInput {
   address: string | null;
   country: string | null;
   region: string | null;
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
 }
 
@@ -42,18 +44,24 @@ export function getDiveSite(id: number): DiveSite | null {
 
 export function createDiveSite(data: DiveSiteInput): DiveSite {
   const result = db.runSync(
-    `INSERT INTO dive_sites (dive_area_id, name, address, country, region, notes)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [data.dive_area_id, data.name, data.address, data.country, data.region, data.notes]
+    `INSERT INTO dive_sites (dive_area_id, name, address, country, region, latitude, longitude, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      data.dive_area_id, data.name, data.address, data.country, data.region,
+      data.latitude, data.longitude, data.notes,
+    ]
   );
   return getDiveSite(result.lastInsertRowId)!;
 }
 
 export function updateDiveSite(id: number, data: DiveSiteInput): void {
   db.runSync(
-    `UPDATE dive_sites SET dive_area_id=?, name=?, address=?, country=?, region=?, notes=?,
-     updated_at=datetime('now') WHERE id=?`,
-    [data.dive_area_id, data.name, data.address, data.country, data.region, data.notes, id]
+    `UPDATE dive_sites SET dive_area_id=?, name=?, address=?, country=?, region=?,
+     latitude=?, longitude=?, notes=?, updated_at=datetime('now') WHERE id=?`,
+    [
+      data.dive_area_id, data.name, data.address, data.country, data.region,
+      data.latitude, data.longitude, data.notes, id,
+    ]
   );
 }
 
