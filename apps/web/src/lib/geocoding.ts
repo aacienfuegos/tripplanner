@@ -32,35 +32,62 @@ const nominatimResponseSchema = z.array(nominatimResultSchema);
 
 const cache = new BoundedCache<string, GeoResult | null>(MAX_CACHE_ENTRIES);
 
-// Cola serie: Nominatim permite máx. 1 req/s. Encadenamos las llamadas y
-// esperamos el intervalo mínimo entre cada una para no disparar en paralelo.
-let lastRequestAt = 0;
-let queue: Promise<unknown> = Promise.resolve();
+// Nominatim exige máx. 1 req/s para todo el proceso (no por usuario), así
+// que ese límite global no se puede eliminar. Lo que sí se puede evitar es
+// que un solo owner (trip/usuario) con muchos items pendientes acapare ese
+// único slot por segundo: el scheduling es round-robin por owner en vez de
+// FIFO puro, así que un backfill grande de un trip no retrasa indefinidamente
+// el geocoding de otros trips/usuarios (#185).
+class FairThrottle {
+  private readonly queues = new Map<string, Array<() => void>>();
+  private readonly rotation: string[] = [];
+  private lastRequestAt = 0;
+  private timer: ReturnType<typeof setTimeout> | null = null;
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  schedule<T>(ownerId: string, task: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      let bucket = this.queues.get(ownerId);
+      if (!bucket) {
+        bucket = [];
+        this.queues.set(ownerId, bucket);
+        this.rotation.push(ownerId);
+      }
+      bucket.push(() => task().then(resolve, reject));
+      this.ensureScheduled();
+    });
+  }
+
+  private ensureScheduled(): void {
+    if (this.timer) return;
+    const wait = Math.max(0, MIN_INTERVAL_MS - (Date.now() - this.lastRequestAt));
+    this.timer = setTimeout(() => this.tick(), wait);
+  }
+
+  private tick(): void {
+    this.timer = null;
+    const ownerId = this.rotation.shift();
+    if (ownerId === undefined) return;
+    const bucket = this.queues.get(ownerId);
+    const run = bucket?.shift();
+    if (bucket && bucket.length > 0) {
+      this.rotation.push(ownerId);
+    } else {
+      this.queues.delete(ownerId);
+    }
+    this.lastRequestAt = Date.now();
+    run?.();
+    if (this.rotation.length > 0) this.ensureScheduled();
+  }
 }
 
-function throttle<T>(task: () => Promise<T>): Promise<T> {
-  const run = queue.then(async () => {
-    const wait = MIN_INTERVAL_MS - (Date.now() - lastRequestAt);
-    if (wait > 0) await sleep(wait);
-    lastRequestAt = Date.now();
-    return task();
-  });
-  queue = run.then(
-    () => undefined,
-    () => undefined,
-  );
-  return run;
-}
+const throttle = new FairThrottle();
 
-export async function geocode(query: string): Promise<GeoResult | null> {
+export async function geocode(query: string, ownerId: string): Promise<GeoResult | null> {
   const key = query.trim().toLowerCase().replace(/\s+/g, " ");
   if (!key) return null;
   if (cache.has(key)) return cache.get(key) ?? null;
 
-  const result = await throttle(async () => {
+  const result = await throttle.schedule(ownerId, async () => {
     const url = new URL(NOMINATIM_URL);
     url.searchParams.set("q", query);
     url.searchParams.set("format", "jsonv2");
