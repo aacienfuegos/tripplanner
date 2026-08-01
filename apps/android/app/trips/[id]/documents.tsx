@@ -8,14 +8,11 @@ import ImportWizard from "@/components/import/ImportWizard";
 import DocumentFormModal from "@/components/forms/DocumentFormModal";
 import SectionHeaderRight from "@/components/SectionHeaderRight";
 import SectionFAB from "@/components/SectionFAB";
+import { useT } from "@/contexts/I18nContext";
 
 const COLOR = "#0e7490";
 const COLOR_BG = "#0e749018";
 
-const TYPE_LABELS: Record<string, string> = {
-  PASSPORT: "Pasaporte", VISA: "Visa", INSURANCE: "Seguro",
-  TICKET: "Billete", VOUCHER: "Voucher", OTHER: "Otro",
-};
 const TYPE_ICONS: Record<string, string> = {
   PASSPORT: "id-card-outline", VISA: "stamp-outline", INSURANCE: "shield-checkmark-outline",
   TICKET: "ticket-outline", VOUCHER: "pricetag-outline", OTHER: "document-outline",
@@ -31,13 +28,15 @@ function expiryStatus(expiresAt: string | null): "expired" | "soon" | "ok" | nul
   return "ok";
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+function formatDate(iso: string, lang: string): string {
+  const locale = lang === "es" ? "es-ES" : "en-US";
+  return new Date(iso + "T00:00:00").toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function DocumentsScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
+  const { t, lang } = useT();
   const [items, setItems] = useState<Document[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -54,10 +53,16 @@ export default function DocumentsScreen() {
   function closeForm() { setFormOpen(false); setEditingItem(undefined); }
   function refresh() { listDocuments(tripId).then(setItems); }
 
+  const typeLabels: Record<string, string> = {
+    PASSPORT: t.docPassport, VISA: t.docVisa, INSURANCE: t.docInsurance,
+    TICKET: t.docTicket, VOUCHER: t.docVoucher, OTHER: t.docOther,
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-zinc-50" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
-        headerRight: () => <SectionHeaderRight tripId={id} onImportPress={() => setImportOpen(true)} />,
+        title: t.documents,
+        headerRight: () => <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />,
       }} />
 
       <FlatList
@@ -69,10 +74,8 @@ export default function DocumentsScreen() {
             <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: COLOR_BG }}>
               <Ionicons name="document-text-outline" size={32} color={COLOR} />
             </View>
-            <Text className="text-base font-semibold text-slate-700">Sin documentos</Text>
-            <Text className="mt-1 text-xs text-slate-400 text-center px-8">
-              Añade pasaportes, visados, seguros y más
-            </Text>
+            <Text className="text-base font-semibold text-slate-700 dark:text-slate-200">{t.noDocuments}</Text>
+            <Text className="mt-1 text-xs text-slate-400 dark:text-slate-500 text-center px-8">{t.noDocumentsHint}</Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -82,11 +85,11 @@ export default function DocumentsScreen() {
             <TouchableOpacity
               onPress={() => openEdit(item)}
               onLongPress={() => Alert.alert(item.name, undefined, [
-                { text: "Editar", onPress: () => openEdit(item) },
-                { text: "Eliminar", style: "destructive", onPress: () => { deleteDocument(item.id); refresh(); } },
-                { text: "Cancelar", style: "cancel" },
+                { text: t.edit, onPress: () => openEdit(item) },
+                { text: t.delete, style: "destructive", onPress: () => { deleteDocument(item.id); refresh(); } },
+                { text: t.cancel, style: "cancel" },
               ])}
-              className="bg-white rounded-2xl mb-3 overflow-hidden shadow-sm"
+              className="bg-white dark:bg-zinc-900 rounded-2xl mb-3 overflow-hidden shadow-sm"
               style={{ borderLeftWidth: 3, borderLeftColor: expiry === "expired" || expiry === "soon" ? "#ef4444" : COLOR }}
               activeOpacity={0.75}
             >
@@ -95,21 +98,22 @@ export default function DocumentsScreen() {
                   <Ionicons name={icon as any} size={20} color={COLOR} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-slate-900" numberOfLines={1}>{item.name}</Text>
-                  <View className="flex-row items-center gap-2 mt-0.5">
+                  <Text className="text-base font-bold text-slate-900 dark:text-white" numberOfLines={1}>{item.name}</Text>
+                  <View className="flex-row items-center gap-2 mt-0.5 flex-wrap">
                     <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: COLOR_BG }}>
                       <Text className="text-xs font-medium" style={{ color: COLOR }}>
-                        {TYPE_LABELS[item.type] ?? item.type}
+                        {typeLabels[item.type] ?? item.type}
                       </Text>
                     </View>
                     {item.expires_at && (
-                      <Text className={`text-xs font-medium ${expiry === "expired" ? "text-red-500" : expiry === "soon" ? "text-orange-500" : "text-slate-400"}`}>
-                        {expiry === "expired" ? "Caducado" : expiry === "soon" ? "Caduca pronto" : ""}{expiry === "ok" ? `Caduca ${formatDate(item.expires_at)}` : ` · ${formatDate(item.expires_at)}`}
+                      <Text className={`text-xs font-medium ${expiry === "expired" ? "text-red-500" : expiry === "soon" ? "text-orange-500" : "text-slate-400 dark:text-slate-500"}`}>
+                        {expiry === "expired" ? t.expired : expiry === "soon" ? t.expiresSoon : t.expires}
+                        {" · "}{formatDate(item.expires_at, lang)}
                       </Text>
                     )}
                   </View>
                   {item.notes && (
-                    <Text className="text-xs text-slate-400 mt-1" numberOfLines={1}>{item.notes}</Text>
+                    <Text className="text-xs text-slate-400 dark:text-slate-500 mt-1" numberOfLines={1}>{item.notes}</Text>
                   )}
                 </View>
               </View>

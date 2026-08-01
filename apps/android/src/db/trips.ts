@@ -72,6 +72,55 @@ export function deleteTrip(id: number): void {
   db.runSync("DELETE FROM trips WHERE id = ?", [id]);
 }
 
+export interface TimelineFlight {
+  id: number;
+  airline: string | null;
+  flight_number: string | null;
+  origin: string;
+  destination: string;
+  departure_at: string | null;
+  arrival_at: string | null;
+  booking_ref: string | null;
+}
+
+export interface TimelineAccommodation {
+  id: number;
+  name: string;
+  city: string;
+  check_in: string | null;
+  check_out: string | null;
+  booking_ref: string | null;
+}
+
+export interface TimelineActivity {
+  id: number;
+  name: string;
+  type: string;
+  city: string | null;
+  scheduled_at: string | null;
+  status: string;
+}
+
+export function getTimelineData(tripId: number): {
+  flights: TimelineFlight[];
+  accommodations: TimelineAccommodation[];
+  activities: TimelineActivity[];
+} {
+  const flights = db.getAllSync<TimelineFlight>(
+    "SELECT id, airline, flight_number, origin, destination, departure_at, arrival_at, booking_ref FROM flights WHERE trip_id = ? ORDER BY departure_at ASC NULLS LAST",
+    [tripId]
+  );
+  const accommodations = db.getAllSync<TimelineAccommodation>(
+    "SELECT id, name, city, check_in, check_out, booking_ref FROM accommodations WHERE trip_id = ? ORDER BY check_in ASC NULLS LAST",
+    [tripId]
+  );
+  const activities = db.getAllSync<TimelineActivity>(
+    "SELECT id, name, type, city, scheduled_at, status FROM activities WHERE trip_id = ? ORDER BY scheduled_at ASC NULLS LAST",
+    [tripId]
+  );
+  return { flights, accommodations, activities };
+}
+
 export function countTrips(): number {
   const row = db.getFirstSync<{ count: number }>(
     "SELECT COUNT(*) as count FROM trips"

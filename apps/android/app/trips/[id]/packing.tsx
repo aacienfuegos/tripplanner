@@ -8,6 +8,7 @@ import ImportWizard from "@/components/import/ImportWizard";
 import PackingFormModal from "@/components/forms/PackingFormModal";
 import SectionHeaderRight from "@/components/SectionHeaderRight";
 import SectionFAB from "@/components/SectionFAB";
+import { useT } from "@/contexts/I18nContext";
 
 const COLOR = "#4f46e5";
 const COLOR_BG = "#4f46e518";
@@ -25,6 +26,7 @@ function groupByCategory(items: PackingItem[]) {
 export default function PackingScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
+  const { t } = useT();
   const [items, setItems] = useState<PackingItem[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -39,9 +41,9 @@ export default function PackingScreen() {
 
   function handleLongPress(item: PackingItem) {
     Alert.alert(item.name, undefined, [
-      { text: "Editar", onPress: () => { setEditingItem(item); setFormOpen(true); } },
-      { text: "Eliminar", style: "destructive", onPress: () => { deletePackingItem(item.id); setItems(listPackingItems(tripId)); } },
-      { text: "Cancelar", style: "cancel" },
+      { text: t.edit, onPress: () => { setEditingItem(item); setFormOpen(true); } },
+      { text: t.delete, style: "destructive", onPress: () => { deletePackingItem(item.id); setItems(listPackingItems(tripId)); } },
+      { text: t.cancel, style: "cancel" },
     ]);
   }
 
@@ -50,30 +52,28 @@ export default function PackingScreen() {
   function refresh() { setItems(listPackingItems(tripId)); }
 
   return (
-    <SafeAreaView className="flex-1 bg-zinc-50" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
+        title: t.packing,
         headerRight: () => <SectionHeaderRight tripId={id} onImportPress={() => setImportOpen(true)} />,
       }} />
 
       {total > 0 && (
-        <View className="mx-4 mt-3 bg-white rounded-2xl px-4 py-3 shadow-sm" style={{ borderLeftWidth: 3, borderLeftColor: COLOR }}>
+        <View className="mx-4 mt-3 bg-white dark:bg-zinc-900 rounded-2xl px-4 py-3 shadow-sm" style={{ borderLeftWidth: 3, borderLeftColor: COLOR }}>
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-sm font-semibold text-slate-700">Maleta preparada</Text>
+            <Text className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t.packingReady}</Text>
             <Text className="text-sm font-bold" style={{ color: pct === 100 ? "#059669" : COLOR }}>
               {packed}/{total}  ·  {pct}%
             </Text>
           </View>
-          <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <View className="h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
             <View
               className="h-full rounded-full"
-              style={{
-                width: `${pct}%`,
-                backgroundColor: pct === 100 ? "#059669" : COLOR,
-              }}
+              style={{ width: `${pct}%`, backgroundColor: pct === 100 ? "#059669" : COLOR }}
             />
           </View>
           {pct === 100 && (
-            <Text className="text-xs text-emerald-600 font-medium mt-1.5">¡Todo listo para el viaje!</Text>
+            <Text className="text-xs text-emerald-600 font-medium mt-1.5">{t.packingDone}</Text>
           )}
         </View>
       )}
@@ -87,14 +87,12 @@ export default function PackingScreen() {
             <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: COLOR_BG }}>
               <Ionicons name="briefcase-outline" size={32} color={COLOR} />
             </View>
-            <Text className="text-base font-semibold text-slate-700">Lista de maleta vacía</Text>
-            <Text className="mt-1 text-xs text-slate-400 text-center px-8">
-              Añade ítems o usa ✨ para importarlos desde un itinerario
-            </Text>
+            <Text className="text-base font-semibold text-slate-700 dark:text-slate-200">{t.packingEmpty}</Text>
+            <Text className="mt-1 text-xs text-slate-400 dark:text-slate-500 text-center px-8">{t.packingEmptyHint}</Text>
           </View>
         }
         renderSectionHeader={({ section: { title } }) => (
-          <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-1">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 mt-4 px-1">
             {title}
           </Text>
         )}
@@ -102,7 +100,7 @@ export default function PackingScreen() {
           <TouchableOpacity
             onPress={() => { setEditingItem(item); setFormOpen(true); }}
             onLongPress={() => handleLongPress(item)}
-            className="bg-white rounded-2xl mb-2 overflow-hidden shadow-sm"
+            className="bg-white dark:bg-zinc-900 rounded-2xl mb-2 overflow-hidden shadow-sm"
             style={{ borderLeftWidth: 3, borderLeftColor: item.packed ? "#d1fae5" : COLOR }}
             activeOpacity={0.75}
           >
@@ -110,12 +108,12 @@ export default function PackingScreen() {
               <TouchableOpacity
                 onPress={() => { togglePacked(item.id, !item.packed); refresh(); }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                className={`w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.packed ? "bg-emerald-500 border-emerald-500" : "border-slate-300"}`}
+                className={`w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.packed ? "bg-emerald-500 border-emerald-500" : "border-slate-300 dark:border-zinc-600"}`}
               >
                 {item.packed ? <Ionicons name="checkmark" size={11} color="white" /> : null}
               </TouchableOpacity>
-              <Text className={`flex-1 text-base ${item.packed ? "line-through text-slate-400" : "text-slate-900 font-medium"}`}>
-                {item.name}{item.quantity > 1 ? <Text className="text-slate-400 font-normal"> ×{item.quantity}</Text> : ""}
+              <Text className={`flex-1 text-base ${item.packed ? "line-through text-slate-400 dark:text-zinc-600" : "text-slate-900 dark:text-white font-medium"}`}>
+                {item.name}{item.quantity > 1 ? <Text className="text-slate-400 dark:text-zinc-500 font-normal"> ×{item.quantity}</Text> : ""}
               </Text>
             </View>
           </TouchableOpacity>
