@@ -93,11 +93,11 @@ export default function ReviewStep({ tripId, payload, onBack, onDone }: Props) {
   const [importing, setImporting] = useState(false);
 
   useEffect(() => {
-    try {
-      setDuplicates(checkDuplicates(tripId, payload));
-    } catch {
-      setDuplicates(null);
-    }
+    let cancelled = false;
+    checkDuplicates(tripId, payload)
+      .then((flags) => { if (!cancelled) setDuplicates(flags); })
+      .catch(() => { if (!cancelled) setDuplicates(null); });
+    return () => { cancelled = true; };
   }, [tripId, payload]);
 
   function toggleItem(section: SectionKey, index: number) {
@@ -108,7 +108,7 @@ export default function ReviewStep({ tripId, payload, onBack, onDone }: Props) {
     });
   }
 
-  function handleImport() {
+  async function handleImport() {
     const filtered: ImportPayload = {} as ImportPayload;
     for (const key of Object.keys(payload) as SectionKey[]) {
       (filtered as Record<string, unknown[]>)[key] = (payload[key] as unknown[]).filter(
@@ -124,7 +124,7 @@ export default function ReviewStep({ tripId, payload, onBack, onDone }: Props) {
 
     setImporting(true);
     try {
-      const result: ImportResult = bulkImport(tripId, filtered);
+      const result: ImportResult = await bulkImport(tripId, filtered);
       const parts: string[] = [];
       if (result.flights > 0) parts.push(`${result.flights} vuelo${result.flights !== 1 ? "s" : ""}`);
       if (result.accommodations > 0) parts.push(`${result.accommodations} alojamiento${result.accommodations !== 1 ? "s" : ""}`);

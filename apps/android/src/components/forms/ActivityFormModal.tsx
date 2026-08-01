@@ -58,7 +58,7 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved, o
     }
   }, [visible, initialData]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
     const data = {
       name: name.trim(),
@@ -75,9 +75,9 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved, o
       notes: null,
     };
     if (initialData) {
-      updateActivity(initialData.id, data);
+      await updateActivity(initialData.id, data);
     } else {
-      createActivity(tripId, data);
+      await createActivity(tripId, data);
     }
     onSaved();
   }

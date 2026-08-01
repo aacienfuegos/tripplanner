@@ -31,13 +31,17 @@ export default function DocumentsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Document | undefined>();
 
-  useFocusEffect(useCallback(() => { setItems(listDocuments(tripId)); }, [tripId]));
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    listDocuments(tripId).then((docs) => { if (!cancelled) setItems(docs); });
+    return () => { cancelled = true; };
+  }, [tripId]));
 
   function handleDelete(item: Document) {
     Alert.alert("Eliminar documento", `¿Eliminar "${item.name}"?`, [
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deleteDocument(item.id); setItems(listDocuments(tripId));
+        deleteDocument(item.id); refresh();
       }},
     ]);
   }
@@ -45,7 +49,7 @@ export default function DocumentsScreen() {
   function openEdit(item: Document) { setEditingItem(item); setFormOpen(true); }
   function openAdd() { setEditingItem(undefined); setFormOpen(true); }
   function closeForm() { setFormOpen(false); setEditingItem(undefined); }
-  function refresh() { setItems(listDocuments(tripId)); }
+  function refresh() { listDocuments(tripId).then(setItems); }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>

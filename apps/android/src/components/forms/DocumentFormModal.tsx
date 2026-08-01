@@ -44,7 +44,7 @@ export default function DocumentFormModal({ tripId, visible, onClose, onSaved, o
     }
   }, [visible, initialData]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
     const data = {
       name: name.trim(),
@@ -53,9 +53,9 @@ export default function DocumentFormModal({ tripId, visible, onClose, onSaved, o
       notes: notes.trim() || null,
     };
     if (initialData) {
-      updateDocument(initialData.id, data);
+      await updateDocument(initialData.id, data);
     } else {
-      createDocument(tripId, data);
+      await createDocument(tripId, data);
     }
     onSaved();
   }

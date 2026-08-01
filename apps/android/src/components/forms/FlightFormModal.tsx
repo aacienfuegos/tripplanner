@@ -58,7 +58,7 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved, onD
     }
   }, [visible, initialData]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!origin.trim()) { setError("El origen es obligatorio"); return; }
     if (!destination.trim()) { setError("El destino es obligatorio"); return; }
     const data = {
@@ -76,9 +76,9 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved, onD
       notes: null,
     };
     if (initialData) {
-      updateFlight(initialData.id, data);
+      await updateFlight(initialData.id, data);
     } else {
-      createFlight(tripId, data);
+      await createFlight(tripId, data);
     }
     onSaved();
   }

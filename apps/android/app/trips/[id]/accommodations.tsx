@@ -21,13 +21,17 @@ export default function AccommodationsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Accommodation | undefined>();
 
-  useFocusEffect(useCallback(() => { setItems(listAccommodations(tripId)); }, [tripId]));
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    listAccommodations(tripId).then((docs) => { if (!cancelled) setItems(docs); });
+    return () => { cancelled = true; };
+  }, [tripId]));
 
   function handleDelete(item: Accommodation) {
     Alert.alert("Eliminar alojamiento", `¿Eliminar "${item.name}"?`, [
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deleteAccommodation(item.id); setItems(listAccommodations(tripId));
+        deleteAccommodation(item.id); refresh();
       }},
     ]);
   }
@@ -35,7 +39,7 @@ export default function AccommodationsScreen() {
   function openEdit(item: Accommodation) { setEditingItem(item); setFormOpen(true); }
   function openAdd() { setEditingItem(undefined); setFormOpen(true); }
   function closeForm() { setFormOpen(false); setEditingItem(undefined); }
-  function refresh() { setItems(listAccommodations(tripId)); }
+  function refresh() { listAccommodations(tripId).then(setItems); }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>

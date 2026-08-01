@@ -13,11 +13,14 @@
     "@expo/vector-icons": "^15.0.2",
     "@react-native-community/datetimepicker": "9.1.0",
     "@tripplanner/shared": "*",
+    "crypto-js": "^4.2.0",
     "expo": "~54.0.0",
     "expo-clipboard": "~8.0.6",
     "expo-constants": "~18.0.7",
+    "expo-crypto": "~15.0.9",
     "expo-linking": "~8.0.7",
     "expo-router": "~6.0.0",
+    "expo-secure-store": "~15.0.8",
     "expo-sqlite": "~16.0.8",
     "expo-status-bar": "~3.0.7",
     "nativewind": "^4.2.6",
@@ -34,6 +37,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "~19.1.10",
     "tailwindcss": "3.4.17",
     "typescript": "~6.0.3"

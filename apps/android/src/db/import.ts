@@ -4,12 +4,13 @@
  */
 import { importPayloadSchema, ImportPayload } from "@tripplanner/shared";
 import { db } from "./database";
-import { bulkCreateFlights } from "./flights";
-import { bulkCreateAccommodations } from "./accommodations";
-import { bulkCreateActivities } from "./activities";
+import { bulkCreateFlights, encryptImportFlights } from "./flights";
+import { bulkCreateAccommodations, encryptImportAccommodations } from "./accommodations";
+import { bulkCreateActivities, encryptImportActivities } from "./activities";
 import { bulkCreateExpenses } from "./expenses";
 import { bulkCreatePackingItems } from "./packing";
-import { bulkCreateDocuments } from "./documents";
+import { bulkCreateDocuments, encryptImportDocuments } from "./documents";
+import { decryptText } from "@/crypto/fieldEncryption";
 
 export interface ImportResult {
   flights: number;
@@ -20,17 +21,26 @@ export interface ImportResult {
   documents: number;
 }
 
-export function bulkImport(tripId: number, payload: ImportPayload): ImportResult {
+export async function bulkImport(tripId: number, payload: ImportPayload): Promise<ImportResult> {
   const data = importPayloadSchema.parse(payload);
+  // Cifrado fuera de la transacción: expo-sqlite no admite await dentro de
+  // withTransactionSync (#182).
+  const [encryptedFlights, encryptedAccommodations, encryptedActivities, encryptedDocuments] =
+    await Promise.all([
+      encryptImportFlights(data.flights),
+      encryptImportAccommodations(data.accommodations),
+      encryptImportActivities(data.activities),
+      encryptImportDocuments(data.documents),
+    ]);
   let result: ImportResult = { flights: 0, accommodations: 0, activities: 0, expenses: 0, packing: 0, documents: 0 };
   db.withTransactionSync(() => {
     result = {
-      flights:        bulkCreateFlights(tripId, data.flights),
-      accommodations: bulkCreateAccommodations(tripId, data.accommodations),
-      activities:     bulkCreateActivities(tripId, data.activities),
+      flights:        bulkCreateFlights(tripId, encryptedFlights),
+      accommodations: bulkCreateAccommodations(tripId, encryptedAccommodations),
+      activities:     bulkCreateActivities(tripId, encryptedActivities),
       expenses:       bulkCreateExpenses(tripId, data.expenses),
       packing:        bulkCreatePackingItems(tripId, data.packing),
-      documents:      bulkCreateDocuments(tripId, data.documents),
+      documents:      bulkCreateDocuments(tripId, encryptedDocuments),
     };
   });
   return result;
@@ -84,10 +94,10 @@ export interface DuplicateFlags {
   documents:      boolean[];
 }
 
-export function checkDuplicates(
+export async function checkDuplicates(
   tripId: number,
   payload: ImportPayload
-): DuplicateFlags {
+): Promise<DuplicateFlags> {
   const data = importPayloadSchema.parse(payload);
 
   type ExistingFlight = { flight_number: string | null; departure_at: string | null };
@@ -117,10 +127,13 @@ export function checkDuplicates(
     ? db.getAllSync<ExistingPack>(
         "SELECT name, category FROM packing_items WHERE trip_id = ?", [tripId]
       ) : [];
-  const existingDocs: ExistingDoc[] = data.documents.length > 0
+  const existingDocsEncrypted: ExistingDoc[] = data.documents.length > 0
     ? db.getAllSync<ExistingDoc>(
         "SELECT name, type FROM documents WHERE trip_id = ?", [tripId]
       ) : [];
+  const existingDocs: ExistingDoc[] = await Promise.all(
+    existingDocsEncrypted.map(async (d) => ({ ...d, name: await decryptText(d.name) }))
+  );
 
   return {
     flights: data.flights.map((f) =>
