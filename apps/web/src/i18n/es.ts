@@ -452,7 +452,7 @@ export const es = {
   viewOnMap: "Ver en Google Maps",
   backToDiveSites: "← Volver a puntos de inmersión",
   diveAreaDiveSiteCount: (n: number) => `${n} punto${n === 1 ? "" : "s"}`,
-  diveSitesMapEmpty: "Ningún punto de inmersión con coordenadas todavía.",
+  viewDiveSitesMap: "Ver mapa",
   diveSiteMapDiveCount: (n: number) => `${n} inmersión${n === 1 ? "" : "es"}`,
 
   // --- Dive stats ---

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Plus, MapPin, Pencil, Trash2, Waves } from "lucide-react";
+import { Plus, MapPin, Map, Pencil, Trash2, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,18 +11,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DiveAreaForm } from "./dive-area-form";
 import { DiveSiteForm } from "./dive-site-form";
+import { DiveSitesMapView, type DiveSitePoint } from "./DiveSitesMapView";
 import { deleteDiveArea, deleteDiveSite } from "@/actions/dive-sites";
 import type { DiveArea, DiveSiteWithArea } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 
 type SiteWithCount = DiveSiteWithArea & { _count: { diveLogs: number } };
 
-export function DiveSiteList({ areas, sites }: { areas: DiveArea[]; sites: SiteWithCount[] }) {
+export function DiveSiteList({
+  areas,
+  sites,
+  sitePoints,
+}: {
+  areas: DiveArea[];
+  sites: SiteWithCount[];
+  sitePoints: DiveSitePoint[];
+}) {
   const { t } = useT();
   const [areaDialogOpen, setAreaDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<DiveArea | null>(null);
   const [siteDialogOpen, setSiteDialogOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<SiteWithCount | null>(null);
+  const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   async function handleDeleteArea(id: string) {
@@ -82,6 +92,11 @@ export function DiveSiteList({ areas, sites }: { areas: DiveArea[]; sites: SiteW
         >
           <Plus className="h-4 w-4 mr-2" /> {t.addDiveArea}
         </Button>
+        {sitePoints.length > 0 && (
+          <Button variant="outline" onClick={() => setMapDialogOpen(true)}>
+            <Map className="h-4 w-4 mr-2" /> {t.viewDiveSitesMap}
+          </Button>
+        )}
       </div>
 
       {sites.length === 0 ? (
@@ -189,6 +204,15 @@ export function DiveSiteList({ areas, sites }: { areas: DiveArea[]; sites: SiteW
             <DialogTitle>{editingSite ? t.editDiveSite : t.addDiveSite}</DialogTitle>
           </DialogHeader>
           <DiveSiteForm site={editingSite ?? undefined} areas={areas} onSuccess={() => setSiteDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mapDialogOpen} onOpenChange={setMapDialogOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{t.viewDiveSitesMap}</DialogTitle>
+          </DialogHeader>
+          {mapDialogOpen && <DiveSitesMapView points={sitePoints} labels={{ viewDetail: t.viewDetail }} />}
         </DialogContent>
       </Dialog>
       {confirmDialog}

@@ -454,7 +454,7 @@ export const en: WebTKeys = {
   viewOnMap: "View on Google Maps",
   backToDiveSites: "← Back to dive sites",
   diveAreaDiveSiteCount: (n: number) => `${n} site${n === 1 ? "" : "s"}`,
-  diveSitesMapEmpty: "No dive sites with coordinates yet.",
+  viewDiveSitesMap: "View map",
   diveSiteMapDiveCount: (n: number) => `${n} dive${n === 1 ? "" : "s"}`,
 
   // --- Dive stats ---
