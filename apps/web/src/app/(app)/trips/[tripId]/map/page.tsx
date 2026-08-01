@@ -17,13 +17,10 @@ import { getT } from "@/lib/locale";
 //
 // El backfill corre en after() (fuera del render, tras enviar la respuesta):
 // esta visita pinta con las coordenadas ya persistidas y una visita
-// posterior recoge las que se rellenen entretanto. Esto evita que el render
-// de ESTE usuario se bloquee esperando la cola de geocoding (#185), pero la
-// cola (`geocoding.ts`) sigue siendo un módulo global compartido por todo el
-// proceso — el backfill de un usuario con muchos items sin geocodificar
-// puede seguir retrasando el geocoding (no el render) de otros usuarios.
-// Pendiente: cola/contexto de trabajo por-trip o por-usuario en vez de la
-// cola FIFO global — ver comentario en el issue #185.
+// posterior recoge las que se rellenen entretanto. La cola de geocoding
+// (`geocoding.ts`) reparte ese único slot/s de forma round-robin por trip,
+// así que un backfill grande de un trip no retrasa indefinidamente el
+// geocoding de otros trips/usuarios (#185).
 const BACKFILL_LIMIT = 12;
 
 export default async function TripMapPage({ params }: { params: Promise<{ tripId: string }> }) {

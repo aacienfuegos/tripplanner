@@ -10,13 +10,16 @@ const IATA_CODE_RE = /^[A-Z]{3}$/;
 // árabe transcribe igual. Los códigos de 3 letras se resuelven contra un
 // dataset de aeropuertos (OurAirports, dominio público) antes de recurrir al
 // geocoder genérico.
-async function geocodeAirportText(text: string): Promise<{ lat: number; lng: number } | null> {
+async function geocodeAirportText(
+  text: string,
+  ownerId: string,
+): Promise<{ lat: number; lng: number } | null> {
   const code = text.trim().toUpperCase();
   if (IATA_CODE_RE.test(code)) {
     const coords = (iataAirports as unknown as Record<string, [number, number]>)[code];
     if (coords) return { lat: coords[0], lng: coords[1] };
   }
-  return geocode(text);
+  return geocode(text, ownerId);
 }
 
 function accommodationQuery(a: { name: string; address: string | null; city: string }): string {
@@ -49,10 +52,10 @@ export async function geocodeAccommodation(id: string): Promise<void> {
   try {
     const a = await prisma.accommodation.findUnique({
       where: { id },
-      select: { name: true, address: true, city: true },
+      select: { name: true, address: true, city: true, tripId: true },
     });
     if (!a) return;
-    const result = await geocode(accommodationQuery(a));
+    const result = await geocode(accommodationQuery(a), a.tripId);
     if (!result) return;
     await prisma.accommodation.update({
       where: { id },
@@ -67,12 +70,12 @@ export async function geocodeActivity(id: string): Promise<void> {
   try {
     const a = await prisma.activity.findUnique({
       where: { id },
-      select: { name: true, location: true, city: true },
+      select: { name: true, location: true, city: true, tripId: true },
     });
     if (!a) return;
     const query = activityQuery(a);
     if (!query) return;
-    const result = await geocode(query);
+    const result = await geocode(query, a.tripId);
     if (!result) return;
     await prisma.activity.update({
       where: { id },
@@ -87,10 +90,10 @@ export async function geocodeDiveSite(id: string): Promise<void> {
   try {
     const s = await prisma.diveSite.findUnique({
       where: { id },
-      select: { name: true, address: true, region: true, country: true },
+      select: { name: true, address: true, region: true, country: true, userId: true },
     });
     if (!s) return;
-    const result = await geocode(diveSiteQuery(s));
+    const result = await geocode(diveSiteQuery(s), s.userId);
     if (!result) return;
     await prisma.diveSite.update({
       where: { id },
@@ -112,13 +115,14 @@ export async function geocodeFlight(id: string): Promise<void> {
         originLng: true,
         destinationLat: true,
         destinationLng: true,
+        tripId: true,
       },
     });
     if (!f) return;
 
     const [originResult, destinationResult] = await Promise.all([
-      f.originLat === null ? geocodeAirportText(f.origin) : null,
-      f.destinationLat === null ? geocodeAirportText(f.destination) : null,
+      f.originLat === null ? geocodeAirportText(f.origin, f.tripId) : null,
+      f.destinationLat === null ? geocodeAirportText(f.destination, f.tripId) : null,
     ]);
 
     await prisma.flight.update({
