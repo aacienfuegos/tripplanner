@@ -34,12 +34,16 @@ export default function FlightsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingFlight, setEditingFlight] = useState<Flight | undefined>();
 
-  useFocusEffect(useCallback(() => { setFlights(listFlights(tripId)); }, [tripId]));
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    listFlights(tripId).then((f) => { if (!cancelled) setFlights(f); });
+    return () => { cancelled = true; };
+  }, [tripId]));
 
   function openEdit(f: Flight) { setEditingFlight(f); setFormOpen(true); }
   function openAdd() { setEditingFlight(undefined); setFormOpen(true); }
   function closeForm() { setFormOpen(false); setEditingFlight(undefined); }
-  function refresh() { setFlights(listFlights(tripId)); }
+  function refresh() { listFlights(tripId).then(setFlights); }
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
