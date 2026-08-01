@@ -5,7 +5,7 @@ import { CertificationList } from "@/components/dives/certification-list";
 import { DiveSiteList } from "@/components/dives/dive-site-list";
 import { EquipmentList } from "@/components/dives/equipment-list";
 import { DiveStatsView } from "@/components/dives/dive-stats";
-import { DiveSitesMapView, type DiveSitePoint } from "@/components/dives/DiveSitesMapView";
+import type { DiveSitePoint } from "@/components/dives/DiveSitesMapView";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Waves, Award, MapPin, Anchor, BarChart3 } from "lucide-react";
 import { getT } from "@/lib/locale";
@@ -106,13 +106,8 @@ export default async function DivesPage({
         <TabsContent value="certifications" className="mt-4">
           <CertificationList certifications={certifications} />
         </TabsContent>
-        <TabsContent value="sites" className="mt-4 space-y-4">
-          {sitePoints.length > 0 ? (
-            <DiveSitesMapView points={sitePoints} labels={{ viewDetail: t.viewDetail }} />
-          ) : (
-            <p className="text-sm text-muted-foreground">{t.diveSitesMapEmpty}</p>
-          )}
-          <DiveSiteList areas={areas} sites={sitesWithCount} />
+        <TabsContent value="sites" className="mt-4">
+          <DiveSiteList areas={areas} sites={sitesWithCount} sitePoints={sitePoints} />
         </TabsContent>
         <TabsContent value="equipment" className="mt-4">
           <EquipmentList equipment={allEquipment} />
