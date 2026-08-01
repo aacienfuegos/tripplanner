@@ -4,13 +4,13 @@
  */
 import { importPayloadSchema, ImportPayload } from "@tripplanner/shared";
 import { db } from "./database";
-import { bulkCreateFlights } from "./flights";
-import { bulkCreateAccommodations } from "./accommodations";
-import { bulkCreateActivities } from "./activities";
+import { bulkCreateFlights, encryptImportFlights } from "./flights";
+import { bulkCreateAccommodations, encryptImportAccommodations } from "./accommodations";
+import { bulkCreateActivities, encryptImportActivities } from "./activities";
 import { bulkCreateExpenses } from "./expenses";
 import { bulkCreatePackingItems } from "./packing";
 import { bulkCreateDocuments, encryptImportDocuments } from "./documents";
-import { decryptText } from "@/crypto/documentEncryption";
+import { decryptText } from "@/crypto/fieldEncryption";
 
 export interface ImportResult {
   flights: number;
@@ -25,13 +25,19 @@ export async function bulkImport(tripId: number, payload: ImportPayload): Promis
   const data = importPayloadSchema.parse(payload);
   // Cifrado fuera de la transacción: expo-sqlite no admite await dentro de
   // withTransactionSync (#182).
-  const encryptedDocuments = await encryptImportDocuments(data.documents);
+  const [encryptedFlights, encryptedAccommodations, encryptedActivities, encryptedDocuments] =
+    await Promise.all([
+      encryptImportFlights(data.flights),
+      encryptImportAccommodations(data.accommodations),
+      encryptImportActivities(data.activities),
+      encryptImportDocuments(data.documents),
+    ]);
   let result: ImportResult = { flights: 0, accommodations: 0, activities: 0, expenses: 0, packing: 0, documents: 0 };
   db.withTransactionSync(() => {
     result = {
-      flights:        bulkCreateFlights(tripId, data.flights),
-      accommodations: bulkCreateAccommodations(tripId, data.accommodations),
-      activities:     bulkCreateActivities(tripId, data.activities),
+      flights:        bulkCreateFlights(tripId, encryptedFlights),
+      accommodations: bulkCreateAccommodations(tripId, encryptedAccommodations),
+      activities:     bulkCreateActivities(tripId, encryptedActivities),
       expenses:       bulkCreateExpenses(tripId, data.expenses),
       packing:        bulkCreatePackingItems(tripId, data.packing),
       documents:      bulkCreateDocuments(tripId, encryptedDocuments),

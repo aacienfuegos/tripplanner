@@ -53,7 +53,7 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
     }
   }, [visible, initialData]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
     if (!city.trim()) { setError("La ciudad es obligatoria"); return; }
     const data = {
@@ -70,9 +70,9 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
       notes: null,
     };
     if (initialData) {
-      updateAccommodation(initialData.id, data);
+      await updateAccommodation(initialData.id, data);
     } else {
-      createAccommodation(tripId, data);
+      await createAccommodation(tripId, data);
     }
     onSaved();
   }

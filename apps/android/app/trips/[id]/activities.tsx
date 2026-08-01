@@ -29,13 +29,17 @@ export default function ActivitiesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Activity | undefined>();
 
-  useFocusEffect(useCallback(() => { setItems(listActivities(tripId)); }, [tripId]));
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    listActivities(tripId).then((docs) => { if (!cancelled) setItems(docs); });
+    return () => { cancelled = true; };
+  }, [tripId]));
 
   function handleDelete(item: Activity) {
     Alert.alert("Eliminar actividad", `¿Eliminar "${item.name}"?`, [
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deleteActivity(item.id); setItems(listActivities(tripId));
+        deleteActivity(item.id); refresh();
       }},
     ]);
   }
@@ -43,7 +47,7 @@ export default function ActivitiesScreen() {
   function openEdit(item: Activity) { setEditingItem(item); setFormOpen(true); }
   function openAdd() { setEditingItem(undefined); setFormOpen(true); }
   function closeForm() { setFormOpen(false); setEditingItem(undefined); }
-  function refresh() { setItems(listActivities(tripId)); }
+  function refresh() { listActivities(tripId).then(setItems); }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>

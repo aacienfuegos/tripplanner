@@ -1,6 +1,6 @@
 import { db } from "./database";
 import type { ImportDocument } from "@tripplanner/shared";
-import { encryptText, decryptText } from "@/crypto/documentEncryption";
+import { encryptText, decryptText } from "@/crypto/fieldEncryption";
 
 export interface Document {
   id: number;

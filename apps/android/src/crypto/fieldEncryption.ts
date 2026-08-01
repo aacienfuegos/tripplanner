@@ -2,14 +2,16 @@ import * as SecureStore from "expo-secure-store";
 import * as Crypto from "expo-crypto";
 import CryptoJS from "crypto-js";
 
-// Cifrado de campos sensibles (documentos de identidad) en reposo: la DB
-// SQLite en sí no está cifrada (expo-sqlite no soporta SQLCipher out of the
-// box), así que un backup extraído fuera del sandbox de la app (adb backup
-// con USB debugging, o un dispositivo rooteado) expondría el nombre/notas de
-// pasaportes, visados, etc. en claro. Las claves viven en el Android Keystore
-// vía expo-secure-store, no en la propia DB (#182).
-const ENC_KEY_STORE_KEY = "document_enc_key_v1";
-const MAC_KEY_STORE_KEY = "document_mac_key_v1";
+// Cifrado de campos sensibles en reposo (documentos de identidad, referencias
+// de reserva, notas libres): la DB SQLite en sí no está cifrada (expo-sqlite
+// soporta SQLCipher pero exige salir de Expo Go — ver issue de seguimiento),
+// así que un backup extraído fuera del sandbox de la app (adb backup con USB
+// debugging, o un dispositivo rooteado) expondría esos campos en claro. Las
+// claves viven en el Android Keystore vía expo-secure-store, no en la propia
+// DB (#182). Una única clave se comparte entre todas las tablas que usan
+// este módulo.
+const ENC_KEY_STORE_KEY = "field_enc_key_v1";
+const MAC_KEY_STORE_KEY = "field_mac_key_v1";
 const KEY_BYTE_LENGTH = 32;
 const IV_BYTE_LENGTH = 16;
 
@@ -73,7 +75,7 @@ export async function decryptText(stored: string): Promise<string> {
   ]);
 
   if (hmac(ivB64, ciphertextB64, macKey) !== mac) {
-    throw new Error("Document integrity check failed: ciphertext or MAC mismatch");
+    throw new Error("Field integrity check failed: ciphertext or MAC mismatch");
   }
 
   const decrypted = CryptoJS.AES.decrypt(

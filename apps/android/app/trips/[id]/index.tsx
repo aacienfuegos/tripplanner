@@ -21,13 +21,17 @@ export default function FlightsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingFlight, setEditingFlight] = useState<Flight | undefined>();
 
-  useFocusEffect(useCallback(() => { setFlights(listFlights(tripId)); }, [tripId]));
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    listFlights(tripId).then((f) => { if (!cancelled) setFlights(f); });
+    return () => { cancelled = true; };
+  }, [tripId]));
 
   function handleDelete(flight: Flight) {
     Alert.alert("Eliminar vuelo", `¿Eliminar "${[flight.airline, flight.flight_number].filter(Boolean).join(" ") || flight.origin}"?`, [
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: () => {
-        deleteFlight(flight.id); setFlights(listFlights(tripId));
+        deleteFlight(flight.id); refresh();
       }},
     ]);
   }
@@ -35,7 +39,7 @@ export default function FlightsScreen() {
   function openEdit(flight: Flight) { setEditingFlight(flight); setFormOpen(true); }
   function openAdd() { setEditingFlight(undefined); setFormOpen(true); }
   function closeForm() { setFormOpen(false); setEditingFlight(undefined); }
-  function refresh() { setFlights(listFlights(tripId)); }
+  function refresh() { listFlights(tripId).then(setFlights); }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
