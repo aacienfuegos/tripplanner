@@ -26,9 +26,14 @@ export default function TripsLayout() {
           title: t.trips,
           headerShown: true,
           headerRight: () => (
-            <TouchableOpacity onPress={() => router.push("/settings")} className="mr-1 p-1">
-              <Ionicons name="settings-outline" size={22} color={headerTint} />
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity onPress={() => router.push("/dives")} className="p-1" accessibilityLabel={t.dives}>
+                <Ionicons name="water-outline" size={22} color={headerTint} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/settings")} className="mr-1 p-1">
+                <Ionicons name="settings-outline" size={22} color={headerTint} />
+              </TouchableOpacity>
+            </>
           ),
         }}
       />

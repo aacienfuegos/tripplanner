@@ -28,6 +28,7 @@ export default function TripTabsLayout() {
     { name: "packing",   label: t.packingFull,   icon: "briefcase-outline",         color: "#4f46e5" },
     { name: "documents", label: t.documentsFull, icon: "document-text-outline",     color: "#0e7490" },
     { name: "tasks",     label: t.tasksFull,     icon: "checkmark-circle-outline",  color: "#7c3aed" },
+    { name: "dives",     label: t.dives,         icon: "water-outline",             color: "#0e7490" },
   ] as const;
 
   useFocusEffect(
@@ -107,6 +108,7 @@ export default function TripTabsLayout() {
         <Tabs.Screen name="packing"        options={{ href: null }} />
         <Tabs.Screen name="documents"      options={{ href: null }} />
         <Tabs.Screen name="tasks"          options={{ href: null }} />
+        <Tabs.Screen name="dives"          options={{ href: null }} />
         <Tabs.Screen name="edit"           options={{ href: null }} />
       </Tabs>
 
