@@ -309,4 +309,15 @@ export function initDatabase(): void {
 
     db.execSync("PRAGMA user_version = 7");
   }
+
+  if (user_version < 8) {
+    // Paridad con la web (#263): profundidad máxima y tipo de agua del
+    // punto de inmersión, ver #274.
+    db.execSync(`
+      ALTER TABLE dive_sites ADD COLUMN max_depth REAL;
+      ALTER TABLE dive_sites ADD COLUMN water_type TEXT;
+
+      PRAGMA user_version = 8;
+    `);
+  }
 }
