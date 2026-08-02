@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { normalizeCountryName } from "@/lib/country-names";
+import { countryNameToCode } from "@tripplanner/shared";
 
 // Server-side, read-only parser for Diving Log (4.2.0 / DiveLogDT) SQLite
 // exports — see issue #169 for the verified field-by-field mapping.
@@ -454,11 +454,12 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       const rawCountry =
         (place.CountryID ? countryNameById.get(place.CountryID) : undefined) ??
         countryByPlaceId.get(place.ID);
-      // Diving Log exporta el país en el idioma configurado en la app (en la
-      // práctica, inglés — "Spain"), mientras que el resto de TripPlanner usa
-      // español — sin normalizar, un mismo país aparece duplicado por idioma
-      // en sitios/áreas de buceo (ver #265).
-      const country = rawCountry ? normalizeCountryName(rawCountry) : undefined;
+      // Diving Log exporta el país como nombre de texto (en la práctica,
+      // inglés — "Spain"), pero el resto de la app guarda código ISO
+      // 3166-1 — se resuelve aquí para que no haya país en texto libre en
+      // ningún punto de entrada (ver #264). Si no lo reconoce, se deja sin
+      // país en vez de guardar basura.
+      const country = rawCountry ? (countryNameToCode(rawCountry) ?? undefined) : undefined;
 
       const { name, area } = splitPlaceName(nonEmpty(place.Place) ?? "—");
 

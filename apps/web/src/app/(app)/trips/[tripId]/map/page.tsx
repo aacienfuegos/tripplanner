@@ -6,6 +6,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { TripMapView, type MapPoint, type FlightSegment } from "@/components/map/TripMapView";
 import { geocodeAccommodation, geocodeActivity, geocodeFlight } from "@/lib/geocode-items";
+import { countryCodeToName } from "@tripplanner/shared";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import { format } from "date-fns";
@@ -132,7 +133,10 @@ export default async function TripMapPage({ params }: { params: Promise<{ tripId
       name: d.diveSite.name,
       lat: d.diveSite.latitude,
       lng: d.diveSite.longitude,
-      subtitle: [d.diveSite.region, d.diveSite.country].filter(Boolean).join(", ") || null,
+      subtitle:
+        [d.diveSite.region, d.diveSite.country && countryCodeToName(d.diveSite.country, t.locale)]
+          .filter(Boolean)
+          .join(", ") || null,
       date: d.date.toISOString(),
       dateLabel: `#${d.diveNumber} · ${format(d.date, "d MMM", { locale: dateFnsLocale })}`,
       detailHref: `/dives#${d.id}`,

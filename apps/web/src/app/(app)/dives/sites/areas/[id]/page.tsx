@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, ArrowLeft, Waves } from "lucide-react";
+import { countryCodeToName } from "@tripplanner/shared";
 import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export default async function DiveAreaDetailPage({ params }: { params: Promise<{
           <div className="flex items-center gap-2 flex-wrap">
             <MapPin className="h-5 w-5 text-primary" />
             <h1 className="text-2xl font-bold">{area.name}</h1>
-            {area.country && <Badge variant="outline">{area.country}</Badge>}
+            {area.country && <Badge variant="outline">{countryCodeToName(area.country, t.locale)}</Badge>}
           </div>
           {area.notes && <p className="text-sm italic text-muted-foreground max-w-prose">{area.notes}</p>}
         </div>
@@ -58,7 +59,9 @@ export default async function DiveAreaDetailPage({ params }: { params: Promise<{
                   <p className="font-medium truncate">{site.name}</p>
                   {(site.region || site.country) && (
                     <p className="text-xs text-muted-foreground truncate">
-                      {[site.region, site.country].filter(Boolean).join(", ")}
+                      {[site.region, site.country && countryCodeToName(site.country, t.locale)]
+                        .filter(Boolean)
+                        .join(", ")}
                     </p>
                   )}
                   <Badge variant="outline" className="text-xs gap-1">

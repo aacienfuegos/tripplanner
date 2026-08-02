@@ -463,6 +463,7 @@ export const es = {
   diveSitesTab: "Puntos de inmersión",
   diveAreaLabel: "Zona",
   diveAreaNone: "Sin zona",
+  countryNone: "Sin país",
   diveAreaCreateNew: "+ Crear nueva zona",
   diveAreaName: "Nombre de la zona",
   diveAreaCountry: "País",

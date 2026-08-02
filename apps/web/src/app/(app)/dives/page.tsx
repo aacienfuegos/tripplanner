@@ -1,3 +1,4 @@
+import { countryCodeToName } from "@tripplanner/shared";
 import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { DiveLogList } from "@/components/dives/dive-log-list";
@@ -71,7 +72,9 @@ export default async function DivesPage({
       name: s.name,
       lat: s.latitude!,
       lng: s.longitude!,
-      subtitle: [s.diveArea?.name, s.region, s.country].filter(Boolean).join(", ") || null,
+      subtitle:
+        [s.diveArea?.name, s.region, s.country && countryCodeToName(s.country, t.locale)].filter(Boolean).join(", ") ||
+        null,
       diveCountLabel: t.diveSiteMapDiveCount(s._count.diveLogs),
       detailHref: `/dives/sites/${s.id}`,
     }));

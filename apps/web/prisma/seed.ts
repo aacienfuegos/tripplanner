@@ -1,11 +1,20 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { normalizeCountryName } from "../src/lib/country-names";
+import { countryNameToCode } from "@tripplanner/shared";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 const DEV_USER_ID = "dev-local-user-001";
+
+// Los nombres de país de este seed son constantes conocidas — falla alto y
+// claro si alguna deja de resolver, en vez de colar un `string | null` al
+// tipo requerido `Destination.country`.
+function country(name: string): string {
+  const code = countryNameToCode(name);
+  if (!code) throw new Error(`countryNameToCode no reconoce "${name}" — revisa el seed`);
+  return code;
+}
 
 async function main() {
   // Usuario dev
@@ -43,9 +52,9 @@ async function main() {
       budget: 350000,
       destinations: {
         create: [
-          { city: "Tokio", country: "Japón", arrivalDate: new Date("2026-06-08"), departureDate: new Date("2026-06-12"), order: 1 },
-          { city: "Kioto", country: "Japón", arrivalDate: new Date("2026-06-12"), departureDate: new Date("2026-06-17"), order: 2 },
-          { city: "Osaka", country: "Japón", arrivalDate: new Date("2026-06-17"), departureDate: new Date("2026-06-21"), order: 3 },
+          { city: "Tokio", country: country("Japan"), arrivalDate: new Date("2026-06-08"), departureDate: new Date("2026-06-12"), order: 1 },
+          { city: "Kioto", country: country("Japan"), arrivalDate: new Date("2026-06-12"), departureDate: new Date("2026-06-17"), order: 2 },
+          { city: "Osaka", country: country("Japan"), arrivalDate: new Date("2026-06-17"), departureDate: new Date("2026-06-21"), order: 3 },
         ],
       },
       flights: {
@@ -306,8 +315,8 @@ async function main() {
       budget: 600,
       destinations: {
         create: [
-          { city: "Lisboa", country: "Portugal", arrivalDate: new Date("2026-03-14"), departureDate: new Date("2026-03-16"), order: 1 },
-          { city: "Sintra", country: "Portugal", arrivalDate: new Date("2026-03-16"), departureDate: new Date("2026-03-17"), order: 2 },
+          { city: "Lisboa", country: country("Portugal"), arrivalDate: new Date("2026-03-14"), departureDate: new Date("2026-03-16"), order: 1 },
+          { city: "Sintra", country: country("Portugal"), arrivalDate: new Date("2026-03-16"), departureDate: new Date("2026-03-17"), order: 2 },
         ],
       },
       flights: {
@@ -398,9 +407,9 @@ async function main() {
       budget: 1200,
       destinations: {
         create: [
-          { city: "Marrakech", country: "Marruecos", arrivalDate: new Date("2026-10-03"), departureDate: new Date("2026-10-05"), order: 1 },
-          { city: "Merzouga", country: "Marruecos", arrivalDate: new Date("2026-10-06"), departureDate: new Date("2026-10-08"), order: 2 },
-          { city: "Fez", country: "Marruecos", arrivalDate: new Date("2026-10-09"), departureDate: new Date("2026-10-12"), order: 3 },
+          { city: "Marrakech", country: country("Morocco"), arrivalDate: new Date("2026-10-03"), departureDate: new Date("2026-10-05"), order: 1 },
+          { city: "Merzouga", country: country("Morocco"), arrivalDate: new Date("2026-10-06"), departureDate: new Date("2026-10-08"), order: 2 },
+          { city: "Fez", country: country("Morocco"), arrivalDate: new Date("2026-10-09"), departureDate: new Date("2026-10-12"), order: 3 },
         ],
       },
       flights: {
@@ -539,7 +548,7 @@ async function main() {
     data: {
       userId: DEV_USER_ID,
       name: "Costa Brava",
-      country: normalizeCountryName("Spain"),
+      country: country("Spain"),
       notes: "Zona habitual de fin de semana, a un par de horas de Madrid en coche.",
     },
   });
@@ -548,7 +557,7 @@ async function main() {
     data: {
       userId: DEV_USER_ID,
       name: "Mar Rojo - Sinaí",
-      country: normalizeCountryName("Egypt"),
+      country: country("Egypt"),
       notes: "Liveaboard de una semana, mayo 2026.",
     },
   });
@@ -559,7 +568,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: costaBrava.id,
       name: "Cala Montgó",
-      country: normalizeCountryName("Spain"),
+      country: country("Spain"),
       region: "L'Escala, Girona",
       latitude: 42.1207,
       longitude: 3.1583,
@@ -572,7 +581,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: costaBrava.id,
       name: "Islas Medas",
-      country: normalizeCountryName("Spain"),
+      country: country("Spain"),
       region: "L'Estartit, Girona",
       latitude: 42.0486,
       longitude: 3.2189,
@@ -585,7 +594,7 @@ async function main() {
     data: {
       userId: DEV_USER_ID,
       name: "Cantera de Alcázar de San Juan",
-      country: normalizeCountryName("Spain"),
+      country: country("Spain"),
       region: "Ciudad Real",
       notes: "Cantera inundada de agua dulce, entrenamiento en frío. Sin coordenadas registradas todavía.",
     },
@@ -596,7 +605,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: marRojoSinai.id,
       name: "Ras Mohammed - Shark & Yolanda Reef",
-      country: normalizeCountryName("Egypt"),
+      country: country("Egypt"),
       region: "Sinaí, Mar Rojo",
       latitude: 27.7167,
       longitude: 34.25,
@@ -609,7 +618,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: marRojoSinai.id,
       name: "Pecio SS Thistlegorm",
-      country: normalizeCountryName("Egypt"),
+      country: country("Egypt"),
       region: "Mar Rojo",
       latitude: 27.8135,
       longitude: 33.92,
@@ -667,7 +676,7 @@ async function main() {
       budget: 1400,
       destinations: {
         create: [
-          { city: "Sharm el Sheikh", country: "Egipto", arrivalDate: new Date("2026-05-04"), departureDate: new Date("2026-05-11"), order: 1 },
+          { city: "Sharm el Sheikh", country: country("Egypt"), arrivalDate: new Date("2026-05-04"), departureDate: new Date("2026-05-11"), order: 1 },
         ],
       },
       flights: {

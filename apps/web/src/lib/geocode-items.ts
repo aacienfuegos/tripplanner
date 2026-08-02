@@ -1,4 +1,5 @@
 import "server-only";
+import { countryCodeToName } from "@tripplanner/shared";
 import { prisma } from "@/lib/prisma";
 import { geocode } from "@/lib/geocoding";
 import iataAirports from "@/lib/data/iata-airports.json";
@@ -45,7 +46,10 @@ function diveSiteQuery(s: {
   country: string | null;
 }): string {
   const anchor = s.address?.trim() || s.name;
-  return [anchor, s.region, s.country].filter(Boolean).join(", ");
+  // country es código ISO (p.ej. "ES") — Nominatim busca mejor con el
+  // nombre del país en el idioma de la petición (Accept-Language: es).
+  const countryName = s.country ? countryCodeToName(s.country, "es") : null;
+  return [anchor, s.region, countryName].filter(Boolean).join(", ");
 }
 
 export async function geocodeAccommodation(id: string): Promise<void> {

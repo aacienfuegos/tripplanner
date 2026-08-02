@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { CURRENCIES } from "@tripplanner/shared";
+import { CURRENCIES, ISO_3166_ALPHA2_CODES } from "@tripplanner/shared";
+
+// País: siempre código ISO 3166-1 alpha-2, nunca texto libre — el nombre a
+// mostrar se resuelve por locale en el momento del render (ver #264).
+export const countryCodeSchema = z.enum(ISO_3166_ALPHA2_CODES);
 
 const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
 const httpUrl = z.string().refine(isHttpUrl, "La URL debe usar http o https");
@@ -107,7 +111,7 @@ export const waterTypeSchema = z.enum(["SALT", "FRESH", "BRACKISH", "CHLORINATED
 
 export const diveAreaSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
-  country: z.string().optional(),
+  country: countryCodeSchema.optional(),
   notes: z.string().optional(),
 });
 
@@ -115,7 +119,7 @@ export const diveSiteSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   diveAreaId: z.string().optional(),
   address: z.string().optional(),
-  country: z.string().optional(),
+  country: countryCodeSchema.optional(),
   region: z.string().optional(),
   notes: z.string().optional(),
 });

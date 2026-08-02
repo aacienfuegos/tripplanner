@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { MapPin, ArrowLeft, ExternalLink, Waves, ArrowDownToLine, Timer } from "lucide-react";
+import { countryCodeToName } from "@tripplanner/shared";
 import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
@@ -66,7 +67,11 @@ export default async function DiveSiteDetailPage({ params }: { params: Promise<{
               </Link>
             )}
             {[site.region, site.country].filter(Boolean).length > 0 && (
-              <span>{[site.region, site.country].filter(Boolean).join(", ")}</span>
+              <span>
+                {[site.region, site.country && countryCodeToName(site.country, t.locale)]
+                  .filter(Boolean)
+                  .join(", ")}
+              </span>
             )}
             {site.address && <span>· {site.address}</span>}
           </div>

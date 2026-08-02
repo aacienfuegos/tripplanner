@@ -203,14 +203,14 @@ describe("bulkImportDivingLog", () => {
   it("creates a DiveArea for a new site's region and links it via diveAreaId", async () => {
     const { bulkImportDivingLog } = await import("@/actions/dive-import");
     await bulkImportDivingLog({
-      sites: [{ name: "Piles 1", region: "Cabo de Palos", country: "Spain", externalId: "site-ext-1" }],
+      sites: [{ name: "Piles 1", region: "Cabo de Palos", country: "ES", externalId: "site-ext-1" }],
       logs: [],
       certifications: [],
       trips: [],
     });
 
     expect(diveAreaCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ userId: "user-1", name: "Cabo de Palos", country: "Spain" }) }),
+      expect.objectContaining({ data: expect.objectContaining({ userId: "user-1", name: "Cabo de Palos", country: "ES" }) }),
     );
     expect(diveSiteCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ diveAreaId: "area-Cabo de Palos" }) }),

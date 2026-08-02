@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, MapPin, Map, Pencil, Trash2, Waves } from "lucide-react";
+import { countryCodeToName } from "@tripplanner/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ export function DiveSiteList({
   sites: SiteWithCount[];
   sitePoints: DiveSitePoint[];
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [areaDialogOpen, setAreaDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<DiveArea | null>(null);
   const [siteDialogOpen, setSiteDialogOpen] = useState(false);
@@ -122,7 +123,7 @@ export function DiveSiteList({
                   )}
                   {area?.country && (
                     <Badge variant="outline" className="text-xs">
-                      {area.country}
+                      {countryCodeToName(area.country, locale)}
                     </Badge>
                   )}
                   <Badge variant="secondary" className="text-xs">
@@ -157,7 +158,9 @@ export function DiveSiteList({
                           {(site.region || site.country) && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <MapPin className="h-3 w-3 shrink-0" />
-                              {[site.region, site.country].filter(Boolean).join(", ")}
+                              {[site.region, site.country && countryCodeToName(site.country, locale)]
+                                .filter(Boolean)
+                                .join(", ")}
                             </p>
                           )}
                           <Badge variant="outline" className="text-xs gap-1">
