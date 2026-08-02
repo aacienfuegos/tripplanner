@@ -10,6 +10,7 @@ import { listDiveSites, DiveSite } from "@/db/dive-sites";
 import DiveLogFormModal from "@/components/forms/DiveLogFormModal";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
+import { useTripLock } from "@/contexts/TripLockContext";
 
 const COLOR = "#0e7490";
 const COLOR_BG = "#0e749018";
@@ -24,6 +25,7 @@ export default function TripDivesScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const { t, lang } = useT();
+  const { isLocked, guard } = useTripLock();
   const [dives, setDives] = useState<DiveLog[]>([]);
   const [allDives, setAllDives] = useState<DiveLog[]>([]);
   const [sites, setSites] = useState<DiveSite[]>([]);
@@ -68,7 +70,7 @@ export default function TripDivesScreen() {
               {availableDives.map((d) => (
                 <TouchableOpacity
                   key={d.id}
-                  onPress={() => { linkDiveToTrip(d.id, tripId); refresh(); }}
+                  onPress={() => guard(() => { linkDiveToTrip(d.id, tripId); refresh(); })}
                   className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed"
                   style={{ borderColor: COLOR }}
                 >
@@ -97,13 +99,13 @@ export default function TripDivesScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => openEdit(item)}
-            onLongPress={() => Alert.alert(`#${item.dive_number}`, undefined, [
+            onPress={() => guard(() => openEdit(item))}
+            onLongPress={() => guard(() => Alert.alert(`#${item.dive_number}`, undefined, [
               { text: t.edit, onPress: () => openEdit(item) },
               { text: t.unlinkDive, onPress: () => { unlinkDiveFromTrip(item.id); refresh(); } },
               { text: t.delete, style: "destructive", onPress: () => { deleteDiveLog(item.id); refresh(); } },
               { text: t.cancel, style: "cancel" },
-            ])}
+            ]))}
             className="bg-white dark:bg-zinc-900 rounded-2xl mb-3 overflow-hidden shadow-sm"
             style={{ borderLeftWidth: 3, borderLeftColor: COLOR }}
             activeOpacity={0.75}
@@ -118,7 +120,7 @@ export default function TripDivesScreen() {
                     {siteLabel(item)}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => { unlinkDiveFromTrip(item.id); refresh(); }} hitSlop={8}>
+                <TouchableOpacity onPress={() => guard(() => { unlinkDiveFromTrip(item.id); refresh(); })} hitSlop={8}>
                   <Ionicons name="link-outline" size={18} color="#94a3b8" />
                 </TouchableOpacity>
               </View>
@@ -132,7 +134,7 @@ export default function TripDivesScreen() {
         )}
       />
 
-      <SectionFAB onPress={openAdd} color={COLOR} />
+      <SectionFAB onPress={() => guard(openAdd)} color={COLOR} locked={isLocked} />
 
       <DiveLogFormModal
         visible={formOpen}

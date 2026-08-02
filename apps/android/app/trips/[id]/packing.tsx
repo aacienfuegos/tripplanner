@@ -9,6 +9,7 @@ import PackingFormModal from "@/components/forms/PackingFormModal";
 import SectionHeaderRight from "@/components/SectionHeaderRight";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
+import { useTripLock } from "@/contexts/TripLockContext";
 
 const COLOR = "#4f46e5";
 const COLOR_BG = "#4f46e518";
@@ -27,6 +28,7 @@ export default function PackingScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const { t } = useT();
+  const { isLocked, guard } = useTripLock();
   const [items, setItems] = useState<PackingItem[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -55,7 +57,12 @@ export default function PackingScreen() {
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
         title: t.packing,
-        headerRight: () => <SectionHeaderRight tripId={id} onImportPress={() => setImportOpen(true)} />,
+        headerRight: () => (
+          <SectionHeaderRight
+            tripId={id} onImportPress={() => setImportOpen(true)}
+            locked={isLocked} onLockedPress={() => guard(() => {})}
+          />
+        ),
       }} />
 
       {total > 0 && (
@@ -98,15 +105,15 @@ export default function PackingScreen() {
         )}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => { setEditingItem(item); setFormOpen(true); }}
-            onLongPress={() => handleLongPress(item)}
+            onPress={() => guard(() => { setEditingItem(item); setFormOpen(true); })}
+            onLongPress={() => guard(() => handleLongPress(item))}
             className="bg-white dark:bg-zinc-900 rounded-2xl mb-2 overflow-hidden shadow-sm"
             style={{ borderLeftWidth: 3, borderLeftColor: item.packed ? "#d1fae5" : COLOR }}
             activeOpacity={0.75}
           >
             <View className="px-4 py-3 flex-row items-center gap-3">
               <TouchableOpacity
-                onPress={() => { togglePacked(item.id, !item.packed); refresh(); }}
+                onPress={() => guard(() => { togglePacked(item.id, !item.packed); refresh(); })}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 className={`w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.packed ? "bg-emerald-500 border-emerald-500" : "border-slate-300 dark:border-zinc-600"}`}
               >
@@ -120,7 +127,7 @@ export default function PackingScreen() {
         )}
       />
 
-      <SectionFAB onPress={openAdd} color={COLOR} />
+      <SectionFAB onPress={() => guard(openAdd)} color={COLOR} locked={isLocked} />
 
       <ImportWizard tripId={tripId} visible={importOpen} onClose={() => { setImportOpen(false); refresh(); }} />
       <PackingFormModal

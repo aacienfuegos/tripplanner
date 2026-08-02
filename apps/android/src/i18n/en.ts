@@ -41,6 +41,10 @@ export const en: TKeys = {
   freeLimitMsg: (max: number) =>
     `The free plan allows up to ${max} trip${max === 1 ? "" : "s"}. Upgrade to Pro for unlimited trips.`,
   upgradeToPro: "Upgrade to Pro",
+  tripLockedTitle: "Trip locked",
+  tripLockedMsg: "This trip was locked due to the free plan's trip limit. It stays visible but can't be edited — upgrade to Pro to edit it again.",
+  tripLockedBanner: "Read-only — upgrade to Pro to edit this trip",
+  tripLockedBadge: "Locked",
   deleteTrip: "Delete trip",
   deleteTripConfirm: "Delete this trip? This action cannot be undone.",
   tripDeleted: "Trip deleted",

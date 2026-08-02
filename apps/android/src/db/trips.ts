@@ -1,4 +1,5 @@
 import { db } from "./database";
+import { FREE_TRIP_LIMIT } from "@/lib/pro-limits";
 
 export interface Trip {
   id: number;
@@ -27,6 +28,27 @@ export function listTrips(): Trip[] {
 
 export function getTrip(id: number): Trip | null {
   return db.getFirstSync<Trip>("SELECT * FROM trips WHERE id = ?", [id]) ?? null;
+}
+
+// El límite free no solo bloquea crear viajes nuevos (trips/index.tsx) —
+// también hay que aplicarlo retroactivamente si el usuario deja de ser Pro
+// con varios viajes ya creados. Se mantiene editable el más reciente
+// (mayor id); el resto pasa a solo lectura.
+export function isTripLocked(tripId: number, isPro: boolean): boolean {
+  if (isPro) return false;
+  const row = db.getFirstSync<{ rank: number }>(
+    "SELECT COUNT(*) as rank FROM trips WHERE id >= (SELECT id FROM trips WHERE id = ?)",
+    [tripId]
+  );
+  return (row?.rank ?? 1) > FREE_TRIP_LIMIT;
+}
+
+export function lockedTripIds(isPro: boolean): Set<number> {
+  if (isPro) return new Set();
+  const trips = listTrips();
+  if (trips.length <= FREE_TRIP_LIMIT) return new Set();
+  const sorted = [...trips].sort((a, b) => b.id - a.id);
+  return new Set(sorted.slice(FREE_TRIP_LIMIT).map((t) => t.id));
 }
 
 export function createTrip(input: CreateTripInput): Trip {

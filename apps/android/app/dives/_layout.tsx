@@ -3,6 +3,7 @@ import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { useT } from "@/contexts/I18nContext";
+import ModuleSwitcherHeader from "@/components/ModuleSwitcherHeader";
 
 export default function DivesTabsLayout() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function DivesTabsLayout() {
         tabBarInactiveTintColor: isDark ? "#52525b" : "#94a3b8",
         tabBarStyle: { backgroundColor: tabBg, borderTopColor: tabBorder },
         tabBarLabelStyle: { fontSize: 10, fontWeight: "500" },
-        headerTitle: t.dives,
+        headerTitle: () => <ModuleSwitcherHeader current="dives" />,
         headerTitleStyle: { fontWeight: "700", fontSize: 17, color: headerTint },
         headerStyle: { backgroundColor: headerBg },
         headerLeft: () => (

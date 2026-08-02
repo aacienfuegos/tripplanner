@@ -39,6 +39,10 @@ export const es = {
   freeLimitMsg: (max: number) =>
     `El plan gratuito permite hasta ${max} viaje${max === 1 ? "" : "s"}. Actualiza a Pro para crear viajes ilimitados.`,
   upgradeToPro: "Actualizar a Pro",
+  tripLockedTitle: "Viaje bloqueado",
+  tripLockedMsg: "Este viaje ha quedado bloqueado por el límite del plan gratuito. Se mantiene visible pero no se puede editar — actualiza a Pro para volver a hacerlo.",
+  tripLockedBanner: "Solo lectura — actualiza a Pro para editar este viaje",
+  tripLockedBadge: "Bloqueado",
   deleteTrip: "Eliminar viaje",
   deleteTripConfirm: "¿Eliminar este viaje? Esta acción no se puede deshacer.",
   tripDeleted: "Viaje eliminado",

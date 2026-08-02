@@ -9,6 +9,7 @@ import FlightFormModal from "@/components/forms/FlightFormModal";
 import SectionHeaderRight from "@/components/SectionHeaderRight";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
+import { useTripLock } from "@/contexts/TripLockContext";
 
 const COLOR = "#2563eb";
 const COLOR_BG = "#2563eb18";
@@ -29,6 +30,7 @@ export default function FlightsScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const { t, lang } = useT();
+  const { isLocked, guard } = useTripLock();
   const [flights, setFlights] = useState<Flight[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -49,7 +51,12 @@ export default function FlightsScreen() {
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
         title: t.flights,
-        headerRight: () => <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />,
+        headerRight: () => (
+          <SectionHeaderRight
+            tripId={id!} onImportPress={() => setImportOpen(true)}
+            locked={isLocked} onLockedPress={() => guard(() => {})}
+          />
+        ),
       }} />
 
       <FlatList
@@ -67,8 +74,8 @@ export default function FlightsScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => openEdit(item)}
-            onLongPress={() => Alert.alert(
+            onPress={() => guard(() => openEdit(item))}
+            onLongPress={() => guard(() => Alert.alert(
               [item.airline, item.flight_number].filter(Boolean).join(" ") || `${item.origin}→${item.destination}`,
               undefined,
               [
@@ -76,7 +83,7 @@ export default function FlightsScreen() {
                 { text: t.delete, style: "destructive", onPress: () => { deleteFlight(item.id); refresh(); } },
                 { text: t.cancel, style: "cancel" },
               ]
-            )}
+            ))}
             className="bg-white dark:bg-zinc-900 rounded-2xl mb-3 overflow-hidden shadow-sm"
             style={{ borderLeftWidth: 3, borderLeftColor: COLOR }}
             activeOpacity={0.75}
@@ -130,7 +137,7 @@ export default function FlightsScreen() {
         )}
       />
 
-      <SectionFAB onPress={openAdd} color={COLOR} />
+      <SectionFAB onPress={() => guard(openAdd)} color={COLOR} locked={isLocked} />
 
       <ImportWizard tripId={tripId} visible={importOpen} onClose={() => { setImportOpen(false); refresh(); }} />
       <FlightFormModal
