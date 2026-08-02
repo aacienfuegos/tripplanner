@@ -82,6 +82,20 @@ describe("parseDivingLogDatabase", () => {
     expect(dive5?.notes ?? "").not.toContain("botella adicional");
   });
 
+  it("maps MinPPO2/MaxPPO2/CNS/VisHor when present (empty in every real export seen so far)", () => {
+    const dive1 = result.entries.find((e) => e.depthMax === "18");
+    expect(dive1?.minPpo2).toBe("1.2");
+    expect(dive1?.maxPpo2).toBe("1.4");
+    expect(dive1?.cnsPercent).toBe("8");
+    expect(dive1?.visibilityHorizontal).toBe("12");
+
+    const dive2 = result.entries.find((e) => e.depthMax === "22");
+    expect(dive2?.minPpo2).toBeUndefined();
+    expect(dive2?.maxPpo2).toBeUndefined();
+    expect(dive2?.cnsPercent).toBeUndefined();
+    expect(dive2?.visibilityHorizontal).toBeUndefined();
+  });
+
   it("converts Surfint HH:MM text to minutes", () => {
     const dive1 = result.entries.find((e) => e.depthMax === "18");
     expect(dive1?.surfaceInterval).toBe("60");
