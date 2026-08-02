@@ -16,6 +16,8 @@ export interface Activity {
   confirmation_url: string | null;
   price: number | null;
   status: "PENDING" | "RESERVED" | "CONFIRMED" | "CANCELLED";
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
   created_at: string;
 }
@@ -47,12 +49,12 @@ export async function createActivity(
   db.runSync(
     `INSERT INTO activities
        (trip_id, name, type, description, location, city, scheduled_at,
-        duration, booking_ref, confirmation_url, price, status, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        duration, booking_ref, confirmation_url, price, status, latitude, longitude, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tripId, data.name, data.type, data.description, data.location, data.city,
       data.scheduled_at, data.duration, bookingRef, confirmationUrl,
-      data.price, data.status, notes,
+      data.price, data.status, data.latitude, data.longitude, notes,
     ]
   );
 }
@@ -66,10 +68,11 @@ export async function updateActivity(
   const notes = data.notes ? await encryptText(data.notes) : null;
   db.runSync(
     `UPDATE activities SET name=?, type=?, description=?, location=?, city=?, scheduled_at=?,
-     duration=?, booking_ref=?, confirmation_url=?, price=?, status=?, notes=? WHERE id=?`,
+     duration=?, booking_ref=?, confirmation_url=?, price=?, status=?, latitude=?, longitude=?, notes=? WHERE id=?`,
     [
       data.name, data.type, data.description, data.location, data.city, data.scheduled_at,
-      data.duration, bookingRef, confirmationUrl, data.price, data.status, notes, id,
+      data.duration, bookingRef, confirmationUrl, data.price, data.status,
+      data.latitude, data.longitude, notes, id,
     ]
   );
 }

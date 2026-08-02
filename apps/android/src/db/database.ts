@@ -238,4 +238,47 @@ export function initDatabase(): void {
       PRAGMA user_version = 3;
     `);
   }
+
+  if (user_version < 4) {
+    db.execSync(`
+      ALTER TABLE dive_logs ADD COLUMN current TEXT;
+      ALTER TABLE dive_logs ADD COLUMN visibility_horizontal REAL;
+      ALTER TABLE dive_logs ADD COLUMN divemaster TEXT;
+      ALTER TABLE dive_logs ADD COLUMN boat TEXT;
+      ALTER TABLE dive_logs ADD COLUMN entry_type TEXT;
+      ALTER TABLE dive_logs ADD COLUMN deco_required INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE dive_logs ADD COLUMN safety_stop_minutes INTEGER;
+      ALTER TABLE dive_logs ADD COLUMN min_ppo2 REAL;
+      ALTER TABLE dive_logs ADD COLUMN max_ppo2 REAL;
+      ALTER TABLE dive_logs ADD COLUMN cns_percent INTEGER;
+
+      CREATE TABLE IF NOT EXISTS dive_log_profile_samples (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        dive_log_id INTEGER NOT NULL REFERENCES dive_logs(id) ON DELETE CASCADE,
+        seconds     INTEGER NOT NULL,
+        depth       REAL    NOT NULL,
+        temp        REAL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_dive_log_profile_samples_dive
+        ON dive_log_profile_samples(dive_log_id, seconds);
+
+      PRAGMA user_version = 4;
+    `);
+  }
+
+  if (user_version < 5) {
+    db.execSync(`
+      ALTER TABLE accommodations ADD COLUMN latitude REAL;
+      ALTER TABLE accommodations ADD COLUMN longitude REAL;
+      ALTER TABLE activities ADD COLUMN latitude REAL;
+      ALTER TABLE activities ADD COLUMN longitude REAL;
+      ALTER TABLE flights ADD COLUMN origin_lat REAL;
+      ALTER TABLE flights ADD COLUMN origin_lng REAL;
+      ALTER TABLE flights ADD COLUMN destination_lat REAL;
+      ALTER TABLE flights ADD COLUMN destination_lng REAL;
+
+      PRAGMA user_version = 5;
+    `);
+  }
 }

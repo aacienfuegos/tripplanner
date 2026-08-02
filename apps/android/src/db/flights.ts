@@ -16,6 +16,10 @@ export interface Flight {
   seat_number: string | null;
   class: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
   price: number | null;
+  origin_lat: number | null;
+  origin_lng: number | null;
+  destination_lat: number | null;
+  destination_lng: number | null;
   notes: string | null;
   created_at: string;
 }
@@ -47,8 +51,9 @@ export async function createFlight(
   db.runSync(
     `INSERT INTO flights
        (trip_id, airline, flight_number, origin, destination, departure_at,
-        arrival_at, booking_ref, confirmation_url, seat_number, class, price, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        arrival_at, booking_ref, confirmation_url, seat_number, class, price,
+        origin_lat, origin_lng, destination_lat, destination_lng, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tripId,
       data.airline,
@@ -62,6 +67,10 @@ export async function createFlight(
       data.seat_number,
       data.class,
       data.price,
+      data.origin_lat,
+      data.origin_lng,
+      data.destination_lat,
+      data.destination_lng,
       notes,
     ]
   );
@@ -73,12 +82,14 @@ export async function updateFlight(id: number, data: Omit<Flight, "id" | "trip_i
   const notes = data.notes ? await encryptText(data.notes) : null;
   db.runSync(
     `UPDATE flights SET airline=?, flight_number=?, origin=?, destination=?, departure_at=?,
-     arrival_at=?, booking_ref=?, confirmation_url=?, seat_number=?, class=?, price=?, notes=?
+     arrival_at=?, booking_ref=?, confirmation_url=?, seat_number=?, class=?, price=?,
+     origin_lat=?, origin_lng=?, destination_lat=?, destination_lng=?, notes=?
      WHERE id=?`,
     [
       data.airline, data.flight_number, data.origin, data.destination, data.departure_at,
       data.arrival_at, bookingRef, confirmationUrl, data.seat_number,
-      data.class, data.price, notes, id,
+      data.class, data.price, data.origin_lat, data.origin_lng,
+      data.destination_lat, data.destination_lng, notes, id,
     ]
   );
 }
