@@ -572,6 +572,8 @@ async function main() {
       region: "L'Escala, Girona",
       latitude: 42.1207,
       longitude: 3.1583,
+      maxDepth: 18,
+      waterType: "SALT",
       notes: "Cala resguardada, punto habitual para bautismos y salidas cortas de fin de semana.",
     },
   });
@@ -585,6 +587,8 @@ async function main() {
       region: "L'Estartit, Girona",
       latitude: 42.0486,
       longitude: 3.2189,
+      maxDepth: 25,
+      waterType: "SALT",
       notes: "Reserva marina. Hay que reservar boya con antelación en temporada alta.",
     },
   });
@@ -596,6 +600,8 @@ async function main() {
       name: "Cantera de Alcázar de San Juan",
       country: country("Spain"),
       region: "Ciudad Real",
+      maxDepth: 20,
+      waterType: "FRESH",
       notes: "Cantera inundada de agua dulce, entrenamiento en frío. Sin coordenadas registradas todavía.",
     },
   });
@@ -609,6 +615,8 @@ async function main() {
       region: "Sinaí, Mar Rojo",
       latitude: 27.7167,
       longitude: 34.25,
+      maxDepth: 30,
+      waterType: "SALT",
       notes: "Pared vertical con corriente fuerte. Bajada rápida recomendada por el guía.",
     },
   });
@@ -622,6 +630,8 @@ async function main() {
       region: "Mar Rojo",
       latitude: 27.8135,
       longitude: 33.92,
+      maxDepth: 32,
+      waterType: "SALT",
       notes: "Carguero británico hundido en 1941. Hacen falta dos inmersiones para verlo bien.",
     },
   });

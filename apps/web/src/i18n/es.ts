@@ -98,6 +98,21 @@ export const es = {
   confirmed: "Confirmado",
   unconfirmed: "Sin confirmar",
 
+  // --- Destinations ---
+  destinations: "Destinos",
+  noDestinations: "Sin destinos",
+  noDestinationsHint: "Añade las ciudades y fechas de tu itinerario",
+  addDestination: "Añadir destino",
+  editDestination: "Editar destino",
+  destinationCountry: "País",
+  destinationArrival: "Llegada",
+  destinationDeparture: "Salida",
+  destinationCountryRequired: "Selecciona un país",
+  confirmDeleteDestination: "¿Eliminar este destino?",
+  destinationAddedToast: "Destino añadido",
+  destinationUpdatedToast: "Destino actualizado",
+  destinationDeletedToast: "Destino eliminado",
+
   // --- Accommodations ---
   noAccommodations: "Sin alojamientos",
   noAccommodationsHint: "Añade los hoteles y apartamentos de tu viaje",
@@ -301,6 +316,7 @@ export const es = {
   sectionPacking: "Equipaje",
   sectionMap: "Mapa",
   sectionDives: "Buceo",
+  sectionDestinations: "Destinos",
   moreSections: "Más",
 
   // --- Misc ---

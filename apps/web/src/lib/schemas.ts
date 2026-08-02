@@ -20,6 +20,14 @@ export const tripSchema = z.object({
   coverImage: z.string().optional(),
 });
 
+export const destinationSchema = z.object({
+  city: z.string().min(1),
+  country: countryCodeSchema,
+  arrivalDate: z.string().min(1),
+  departureDate: z.string().min(1),
+  notes: z.string().optional(),
+});
+
 export const flightSchema = z.object({
   airline: z.string().min(1),
   flightNumber: z.string().min(1),

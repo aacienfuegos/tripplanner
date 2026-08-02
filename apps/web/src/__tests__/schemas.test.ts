@@ -15,6 +15,7 @@ import {
   diveCertificationSchema,
   diveSourceSchema,
   gasMixSchema,
+  destinationSchema,
 } from "@/lib/schemas";
 
 // ─── Trip schema ──────────────────────────────────────────────────────────────
@@ -395,6 +396,42 @@ describe("diveSiteSchema", () => {
   it("rejects a country that isn't a valid ISO 3166-1 alpha-2 code", () => {
     const result = diveSiteSchema.safeParse({ name: "Cueva del Diablo", country: "España" });
     expect(result.success).toBe(false);
+  });
+});
+
+// ─── Destination schema ───────────────────────────────────────────────────────
+
+describe("destinationSchema", () => {
+  const valid = {
+    city: "Kioto",
+    country: "JP",
+    arrivalDate: "2026-06-10",
+    departureDate: "2026-06-15",
+  };
+
+  it("accepts a valid destination", () => {
+    expect(destinationSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejects empty city", () => {
+    const result = destinationSchema.safeParse({ ...valid, city: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("requires a country — unlike DiveSite/DiveArea, it isn't optional", () => {
+    const { country: _country, ...withoutCountry } = valid;
+    const result = destinationSchema.safeParse(withoutCountry);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a country that isn't a valid ISO 3166-1 alpha-2 code", () => {
+    const result = destinationSchema.safeParse({ ...valid, country: "Japan" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects missing dates", () => {
+    const { arrivalDate: _arrivalDate, ...withoutArrival } = valid;
+    expect(destinationSchema.safeParse(withoutArrival).success).toBe(false);
   });
 });
 

@@ -131,6 +131,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
   const totalPackItems   = trip.packingItems.length;
 
   const navCounts = {
+    destinations: trip.destinations.length,
     flights: trip.flights.length,
     accommodations: trip.accommodations.length,
     activities: trip.activities.length,
@@ -169,12 +170,12 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
                   {totalDays} {totalDays === 1 ? t.day : t.days}
                 </Badge>
               </span>
-              {trip.destinations.length > 0 && (
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="text-sm">{trip.destinations.map((d) => d.city).join(" → ")}</span>
+              <Link href={`/trips/${trip.id}/destinations`} className="flex items-center gap-1.5 hover:text-foreground">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="text-sm">
+                  {trip.destinations.length > 0 ? trip.destinations.map((d) => d.city).join(" → ") : t.addDestination}
                 </span>
-              )}
+              </Link>
             </div>
             {trip.description && (
               <p className="text-sm text-muted-foreground">{trip.description}</p>
