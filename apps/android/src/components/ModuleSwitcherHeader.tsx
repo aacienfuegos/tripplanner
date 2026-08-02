@@ -33,7 +33,8 @@ export default function ModuleSwitcherHeader({ current }: { current: ModuleKey }
 
   return (
     <>
-      <TouchableOpacity onPress={() => setOpen(true)} className="flex-row items-center gap-1" activeOpacity={0.7}>
+      <TouchableOpacity onPress={() => setOpen(true)} className="flex-row items-center gap-2" activeOpacity={0.7}>
+        <ModuleIcon moduleKey={current} color={headerTint} />
         <Text style={{ color: headerTint, fontWeight: "700", fontSize: 17 }}>
           {current === "trips" ? t.trips : t.dives}
         </Text>

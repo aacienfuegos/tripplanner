@@ -46,7 +46,14 @@ export default function DiveSiteDetailScreen() {
   if (!site) {
     return (
       <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
-        <Tabs.Screen options={{ title: "" }} />
+        <Tabs.Screen options={{
+          title: "",
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} className="ml-3">
+              <Ionicons name="arrow-back" size={24} color={isDark ? "#f1f5f9" : "#374151"} />
+            </TouchableOpacity>
+          ),
+        }} />
       </SafeAreaView>
     );
   }
@@ -60,6 +67,11 @@ export default function DiveSiteDetailScreen() {
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
         title: site.name,
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} className="ml-3">
+            <Ionicons name="arrow-back" size={24} color={isDark ? "#f1f5f9" : "#374151"} />
+          </TouchableOpacity>
+        ),
         headerRight: () => (
           <TouchableOpacity onPress={() => setEditOpen(true)}>
             <Ionicons name="pencil" size={20} color={isDark ? "#f1f5f9" : "#374151"} />

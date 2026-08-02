@@ -1,12 +1,10 @@
-import { Tabs, useRouter } from "expo-router";
-import { TouchableOpacity } from "react-native";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { useT } from "@/contexts/I18nContext";
 import ModuleSwitcherHeader from "@/components/ModuleSwitcherHeader";
 
 export default function DivesTabsLayout() {
-  const router = useRouter();
   const { t } = useT();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -25,11 +23,6 @@ export default function DivesTabsLayout() {
         headerTitle: () => <ModuleSwitcherHeader current="dives" />,
         headerTitleStyle: { fontWeight: "700", fontSize: 17, color: headerTint },
         headerStyle: { backgroundColor: headerBg },
-        headerLeft: () => (
-          <TouchableOpacity onPress={() => router.back()} className="ml-3">
-            <Ionicons name="arrow-back" size={24} color={headerTint} />
-          </TouchableOpacity>
-        ),
       }}
     >
       <Tabs.Screen
