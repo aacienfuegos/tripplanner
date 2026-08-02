@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CountrySelect } from "@/components/dives/country-select";
+import { CountrySelect } from "@/components/ui/country-select";
 import { createDiveArea, updateDiveArea } from "@/actions/dive-sites";
 import type { DiveArea } from "@/types";
 import { useT } from "@/contexts/LanguageContext";

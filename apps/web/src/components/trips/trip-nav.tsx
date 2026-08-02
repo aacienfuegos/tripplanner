@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plane, Hotel, Star, DollarSign, ShoppingBag, FileText, ClipboardList, MapPin, MoreHorizontal, Waves } from "lucide-react";
+import { Plane, Hotel, Star, DollarSign, ShoppingBag, FileText, ClipboardList, MapPin, Milestone, MoreHorizontal, Waves } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,6 +32,7 @@ function mainSections(t: WebTKeys) {
 
 function moreSections(t: WebTKeys) {
   return [
+    { href: "destinations", label: t.sectionDestinations, icon: Milestone, countKey: "destinations" },
     { href: "packing", label: t.sectionPacking, icon: ShoppingBag, countKey: "packingItems" },
     { href: "documents", label: t.sectionDocuments, icon: FileText, countKey: "documents" },
     { href: "tasks", label: t.sectionTasks, icon: ClipboardList, countKey: "tasks" },

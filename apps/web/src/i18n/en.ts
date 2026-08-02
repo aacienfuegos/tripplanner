@@ -100,6 +100,21 @@ export const en: WebTKeys = {
   confirmed: "Confirmed",
   unconfirmed: "Unconfirmed",
 
+  // --- Destinations ---
+  destinations: "Destinations",
+  noDestinations: "No destinations",
+  noDestinationsHint: "Add the cities and dates of your itinerary",
+  addDestination: "Add destination",
+  editDestination: "Edit destination",
+  destinationCountry: "Country",
+  destinationArrival: "Arrival",
+  destinationDeparture: "Departure",
+  destinationCountryRequired: "Select a country",
+  confirmDeleteDestination: "Delete this destination?",
+  destinationAddedToast: "Destination added",
+  destinationUpdatedToast: "Destination updated",
+  destinationDeletedToast: "Destination deleted",
+
   // --- Accommodations ---
   noAccommodations: "No accommodations",
   noAccommodationsHint: "Add the hotels and apartments for your trip",
@@ -303,6 +318,7 @@ export const en: WebTKeys = {
   sectionPacking: "Packing",
   sectionMap: "Map",
   sectionDives: "Diving",
+  sectionDestinations: "Destinations",
   moreSections: "More",
 
   // --- Misc ---

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export interface TripNavCounts {
+  destinations: number;
   flights: number;
   accommodations: number;
   activities: number;
@@ -12,6 +13,7 @@ export interface TripNavCounts {
 }
 
 const EMPTY_COUNTS: TripNavCounts = {
+  destinations: 0,
   flights: 0,
   accommodations: 0,
   activities: 0,
@@ -28,6 +30,7 @@ export async function getTripNavCounts(tripId: string): Promise<TripNavCounts> {
     select: {
       _count: {
         select: {
+          destinations: true,
           flights: true,
           accommodations: true,
           activities: true,
@@ -44,6 +47,7 @@ export async function getTripNavCounts(tripId: string): Promise<TripNavCounts> {
   if (!trip) return EMPTY_COUNTS;
 
   return {
+    destinations: trip._count.destinations,
     flights: trip._count.flights,
     accommodations: trip._count.accommodations,
     activities: trip._count.activities,
