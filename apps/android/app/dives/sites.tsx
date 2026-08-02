@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, Text, SectionList, TouchableOpacity, Alert } from "react-native";
-import { Tabs, useFocusEffect } from "expo-router";
+import { Tabs, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listDiveSites, deleteDiveSite, DiveSite } from "@/db/dive-sites";
@@ -14,6 +14,7 @@ const COLOR = "#0e7490";
 const COLOR_BG = "#0e749018";
 
 export default function DiveSitesScreen() {
+  const router = useRouter();
   const { t } = useT();
   const [sites, setSites] = useState<DiveSite[]>([]);
   const [areas, setAreas] = useState<DiveArea[]>([]);
@@ -77,7 +78,7 @@ export default function DiveSitesScreen() {
         )}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => openEdit(item)}
+            onPress={() => router.push(`/dives/site-detail?id=${item.id}`)}
             onLongPress={() => Alert.alert(item.name, undefined, [
               { text: t.edit, onPress: () => openEdit(item) },
               { text: t.delete, style: "destructive", onPress: () => { deleteDiveSite(item.id); refresh(); } },
@@ -108,7 +109,12 @@ export default function DiveSitesScreen() {
         onSaved={() => { closeForm(); refresh(); }}
         onDelete={editingItem ? () => { deleteDiveSite(editingItem.id); closeForm(); refresh(); } : undefined}
       />
-      <DiveSitesMapModal visible={mapOpen} onClose={() => setMapOpen(false)} sites={sites} />
+      <DiveSitesMapModal
+        visible={mapOpen}
+        onClose={() => setMapOpen(false)}
+        sites={sites}
+        onViewSite={(siteId) => router.push(`/dives/site-detail?id=${siteId}`)}
+      />
     </SafeAreaView>
   );
 }

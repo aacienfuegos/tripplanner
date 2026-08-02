@@ -329,7 +329,10 @@ export const en: TKeys = {
   diveSiteFirstDive: "First dive",
   diveSiteLastDive: "Last dive",
   diveSiteDepthRange: (min: number, max: number) => `${min}–${max} m`,
+  diveSiteMapDiveCount: (n: number) => `${n} dive${n === 1 ? "" : "s"}`,
   viewDiveSitesMap: "View map",
+  viewOnMap: "View on Google Maps",
+  viewDetail: "View details",
 
   diveStatsEmpty: "No dives logged yet.",
   diveStatsTotalDives: "Dives",

@@ -327,7 +327,10 @@ export const es = {
   diveSiteFirstDive: "Primera inmersión",
   diveSiteLastDive: "Última inmersión",
   diveSiteDepthRange: (min: number, max: number) => `${min}–${max} m`,
+  diveSiteMapDiveCount: (n: number) => `${n} inmersi${n === 1 ? "ón" : "ones"}`,
   viewDiveSitesMap: "Ver mapa",
+  viewOnMap: "Ver en Google Maps",
+  viewDetail: "Ver detalle",
 
   diveStatsEmpty: "Todavía no hay inmersiones registradas.",
   diveStatsTotalDives: "Inmersiones",
