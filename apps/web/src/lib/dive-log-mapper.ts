@@ -24,5 +24,15 @@ export function mapDiveLogInput(data: ReturnType<typeof diveLogSchema.parse>, di
     weight: data.weight ? parseFloat(data.weight) : null,
     notes: data.notes || null,
     rating: data.rating ? parseInt(data.rating, 10) : null,
+    visibilityHorizontal: data.visibilityHorizontal ? parseFloat(data.visibilityHorizontal) : null,
+    current: data.current || null,
+    divemaster: data.divemaster || null,
+    boat: data.boat || null,
+    entryType: data.entryType || null,
+    decoRequired: data.decoRequired === "on" || data.decoRequired === "1",
+    safetyStopMinutes: data.safetyStopMinutes ? parseInt(data.safetyStopMinutes, 10) : null,
+    minPpo2: data.minPpo2 ? parseFloat(data.minPpo2) : null,
+    maxPpo2: data.maxPpo2 ? parseFloat(data.maxPpo2) : null,
+    cnsPercent: data.cnsPercent ? parseInt(data.cnsPercent, 10) : null,
   };
 }

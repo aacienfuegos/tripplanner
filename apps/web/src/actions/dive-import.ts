@@ -148,6 +148,39 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
     return result;
   });
 
+  // El perfil profundidad/tiempo se guarda fuera de la transacción anterior:
+  // createMany no soporta relaciones anidadas, y con miles de muestras por
+  // buceo (buceos con ordenador muestreando cada 2s) un borrado+inserción por
+  // buceo dentro de $transaction supera el timeout de transacción interactiva
+  // de Prisma (5s por defecto) — ver #169 seguimiento. Se resuelve el id real
+  // —nuevo o ya existente, para poder rellenar el perfil en una
+  // reimportación— por externalId y se reemplazan sus muestras en un único
+  // deleteMany + createMany en vez de uno por buceo.
+  const logsWithProfile = data.logs.filter((log) => log.profileSamples.length > 0);
+  if (logsWithProfile.length > 0) {
+    const matched = await prisma.diveLog.findMany({
+      where: { userId, externalId: { in: logsWithProfile.map((l) => l.externalId) } },
+      select: { id: true, externalId: true },
+    });
+    const logIdByExternalId = new Map(matched.map((l) => [l.externalId, l.id]));
+
+    const diveLogIds: string[] = [];
+    const sampleRows: Prisma.DiveProfileSampleCreateManyInput[] = [];
+    for (const log of logsWithProfile) {
+      const diveLogId = logIdByExternalId.get(log.externalId);
+      if (!diveLogId) continue;
+      diveLogIds.push(diveLogId);
+      for (const s of log.profileSamples) sampleRows.push({ diveLogId, seconds: s.seconds, depth: s.depth });
+    }
+
+    if (diveLogIds.length > 0) {
+      await prisma.diveProfileSample.deleteMany({ where: { diveLogId: { in: diveLogIds } } });
+    }
+    if (sampleRows.length > 0) {
+      await prisma.diveProfileSample.createMany({ data: sampleRows });
+    }
+  }
+
   revalidatePath("/dives");
   return result;
 }

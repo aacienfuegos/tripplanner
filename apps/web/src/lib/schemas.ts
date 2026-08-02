@@ -146,6 +146,16 @@ export const diveLogSchema = z.object({
       (v) => !v || (Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 5),
       "La valoración debe estar entre 1 y 5",
     ),
+  visibilityHorizontal: z.string().optional(),
+  current: z.enum(["NONE", "LIGHT", "MODERATE", "STRONG"]).optional(),
+  divemaster: z.string().optional(),
+  boat: z.string().optional(),
+  entryType: z.enum(["SHORE", "BOAT"]).optional(),
+  decoRequired: z.string().optional(),
+  safetyStopMinutes: z.string().optional(),
+  minPpo2: z.string().optional(),
+  maxPpo2: z.string().optional(),
+  cnsPercent: z.string().optional(),
 });
 
 export const equipmentCategorySchema = z.enum([
@@ -209,9 +219,18 @@ export const divingLogSiteSchema = diveSiteSchema.extend({
   longitude: z.number().nullable().optional(),
 });
 
+// Muestras profundidad/tiempo del ordenador de buceo, cuando el export las
+// trae — no todas las inmersiones de Diving Log tienen perfil grabado (p.ej.
+// entradas manuales sin ordenador conectado).
+const divingLogProfileSampleSchema = z.object({
+  seconds: z.number().int().nonnegative(),
+  depth: z.number().nonnegative(),
+});
+
 export const divingLogEntrySchema = diveLogSchema.omit({ diveSiteId: true }).extend({
   externalId: z.string().min(1),
   diveSiteExternalId: z.string().nullable(),
+  profileSamples: z.array(divingLogProfileSampleSchema).max(4000).optional().default([]),
 });
 
 export const divingLogCertificationSchema = diveCertificationSchema.extend({

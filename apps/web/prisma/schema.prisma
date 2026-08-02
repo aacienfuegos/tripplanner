@@ -335,6 +335,18 @@ enum GasMix {
   OXYGEN
 }
 
+enum DiveCurrent {
+  NONE
+  LIGHT
+  MODERATE
+  STRONG
+}
+
+enum DiveEntryType {
+  SHORE
+  BOAT
+}
+
 model DiveArea {
   id        String   @id @default(cuid())
   userId    String
@@ -389,23 +401,46 @@ model DiveLog {
   waterTemp        Float?
   airTemp          Float?
   visibility       Float?
+  visibilityHorizontal Float?
   diveType         String?
   buddyName        String?
   suitType         String?
   weight           Float?
   notes            String?
   rating           Int?
+  current          DiveCurrent?
+  divemaster       String?
+  boat             String?
+  entryType        DiveEntryType?
+  decoRequired     Boolean       @default(false)
+  safetyStopMinutes Int?
+  minPpo2          Float?
+  maxPpo2          Float?
+  cnsPercent       Int?
   source           DiveSource @default(MANUAL)
   externalId       String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trip      Trip?           @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  diveSite  DiveSite?       @relation(fields: [diveSiteId], references: [id], onDelete: SetNull)
-  equipment DiveEquipment[]
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip           Trip?               @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  diveSite       DiveSite?           @relation(fields: [diveSiteId], references: [id], onDelete: SetNull)
+  equipment      DiveEquipment[]
+  profileSamples DiveProfileSample[]
 
   @@unique([userId, externalId])
+}
+
+model DiveProfileSample {
+  id        String @id @default(cuid())
+  diveLogId String
+  seconds   Int
+  depth     Float
+  temp      Float?
+
+  diveLog DiveLog @relation(fields: [diveLogId], references: [id], onDelete: Cascade)
+
+  @@index([diveLogId, seconds])
 }
 
 enum EquipmentCategory {

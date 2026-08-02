@@ -22,6 +22,11 @@ export interface DivingLogParsedSite {
   notes: string | undefined;
 }
 
+export interface DivingLogParsedProfileSample {
+  seconds: number;
+  depth: number;
+}
+
 export interface DivingLogParsedEntry {
   externalId: string;
   date: string;
@@ -43,7 +48,11 @@ export interface DivingLogParsedEntry {
   weight: string | undefined;
   notes: string | undefined;
   rating: string | undefined;
+  divemaster: string | undefined;
+  boat: string | undefined;
+  decoRequired: string | undefined;
   diveSiteExternalId: string | null;
+  profileSamples: DivingLogParsedProfileSample[];
 }
 
 export interface DivingLogParsedCertification {
@@ -115,6 +124,11 @@ interface LogbookRow {
   Divesuit: string | null;
   Rating: number | null;
   UUID: string | null;
+  Divemaster: string | null;
+  Boat: string | null;
+  Deco: number | null;
+  Profile: string | null;
+  ProfileInt: number | null;
 }
 
 // Caps every table read at the SQL level (not just post-parse Zod validation)
@@ -188,6 +202,28 @@ function pluralize(count: number, singular: string, plural: string): string {
   return count === 1 ? singular : plural;
 }
 
+// Profile guarda muestras de profundidad concatenadas sin separador: cada
+// muestra ocupa 12 caracteres, los primeros 5 son la profundidad en cm
+// (rellenada con ceros a la izquierda), el resto queda sin usar en los
+// exports verificados hasta ahora. ProfileInt es el intervalo de muestreo en
+// segundos — buceos sin ordenador conectado no traen ninguno de los dos.
+const PROFILE_SAMPLE_CHARS = 12;
+const PROFILE_DEPTH_CHARS = 5;
+const MAX_PROFILE_SAMPLES = 4000;
+
+function decodeProfile(profile: string | null, intervalSeconds: number | null): DivingLogParsedProfileSample[] {
+  if (!profile || !intervalSeconds || intervalSeconds <= 0) return [];
+  const sampleCount = Math.min(Math.floor(profile.length / PROFILE_SAMPLE_CHARS), MAX_PROFILE_SAMPLES);
+  const samples: DivingLogParsedProfileSample[] = [];
+  for (let i = 0; i < sampleCount; i++) {
+    const chunk = profile.slice(i * PROFILE_SAMPLE_CHARS, i * PROFILE_SAMPLE_CHARS + PROFILE_DEPTH_CHARS);
+    const depthCm = parseInt(chunk, 10);
+    if (!Number.isFinite(depthCm)) continue;
+    samples.push({ seconds: (i + 1) * intervalSeconds, depth: round1(depthCm / 100) });
+  }
+  return samples;
+}
+
 export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
   let db: Database.Database;
   try {
@@ -215,7 +251,7 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       db,
       `SELECT ID, Divedate, Entrytime, Surfint, Country, Place, PlaceID, Divetime, Depth,
               Buddy, Comments, Divetype, Airtemp, Watertemp, Visibility, Weight, Divesuit,
-              Rating, UUID
+              Rating, UUID, Divemaster, Boat, Deco, Profile, ProfileInt
        FROM Logbook`,
     );
 
@@ -313,7 +349,11 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         weight: row.Weight != null ? String(round1(row.Weight)) : undefined,
         notes,
         rating,
+        divemaster: nonEmpty(row.Divemaster),
+        boat: nonEmpty(row.Boat),
+        decoRequired: row.Deco === 1 ? "1" : undefined,
         diveSiteExternalId: row.PlaceID ? (placeExternalIdById.get(row.PlaceID) ?? null) : null,
+        profileSamples: decodeProfile(row.Profile, row.ProfileInt),
       });
     }
 

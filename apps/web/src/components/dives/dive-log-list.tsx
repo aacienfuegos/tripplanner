@@ -4,8 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Waves, Pencil, Trash2, MapPin, Star, Thermometer, ArrowDownToLine, Timer, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Plus, Waves, Pencil, Trash2, MapPin, Star, Thermometer, ArrowDownToLine, Timer, X, LineChart } from "lucide-react";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -216,6 +217,9 @@ export function DiveLogList({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <Link href={`/dives/${dive.id}`} className={buttonVariants({ variant: "ghost", size: "icon" })}>
+                      <LineChart className="h-4 w-4" />
+                    </Link>
                     <Button
                       variant="ghost"
                       size="icon"
