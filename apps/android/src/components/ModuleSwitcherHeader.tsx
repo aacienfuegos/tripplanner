@@ -28,7 +28,9 @@ export default function ModuleSwitcherHeader({ current }: { current: ModuleKey }
 
   function select(module: (typeof MODULES)[number]) {
     setOpen(false);
-    if (module.key !== current) router.push(module.route);
+    // replace, no push: cambiar de módulo no debe apilar pantallas -- cada
+    // módulo se siente como su propio home, no como una ruta dentro del otro.
+    if (module.key !== current) router.replace(module.route);
   }
 
   return (
