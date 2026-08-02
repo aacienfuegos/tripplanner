@@ -14,9 +14,15 @@ export default function SectionHeaderRight({ tripId, onImportPress, locked = fal
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const iconColor = locked ? (colorScheme === "dark" ? "#52525b" : "#cbd5e1") : (colorScheme === "dark" ? "#94a3b8" : "#374151");
+  const activeIconColor = colorScheme === "dark" ? "#94a3b8" : "#374151";
 
   return (
     <View className="flex-row items-center gap-4 mr-3">
+      {tripId && (
+        <TouchableOpacity onPress={() => router.push(`/trips/${tripId}/map`)}>
+          <Ionicons name="map-outline" size={20} color={activeIconColor} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity onPress={locked ? onLockedPress : onImportPress}>
         <Ionicons name="sparkles-outline" size={20} color={iconColor} />
       </TouchableOpacity>

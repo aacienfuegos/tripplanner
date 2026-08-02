@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, TouchableWithoutFeedback } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { useT } from "@/contexts/I18nContext";
 
 type ModuleKey = "trips" | "dives";
+
+function ModuleIcon({ moduleKey, color }: { moduleKey: ModuleKey; color: string }) {
+  return moduleKey === "trips"
+    ? <Ionicons name="airplane-outline" size={20} color={color} />
+    : <MaterialCommunityIcons name="diving-snorkel" size={20} color={color} />;
+}
 
 export default function ModuleSwitcherHeader({ current }: { current: ModuleKey }) {
   const router = useRouter();
@@ -15,9 +21,9 @@ export default function ModuleSwitcherHeader({ current }: { current: ModuleKey }
   const headerTint = isDark ? "#f1f5f9" : "#374151";
   const [open, setOpen] = useState(false);
 
-  const MODULES: { key: ModuleKey; label: string; icon: keyof typeof Ionicons.glyphMap; route: "/trips" | "/dives" }[] = [
-    { key: "trips", label: t.trips, icon: "airplane-outline", route: "/trips" },
-    { key: "dives", label: t.dives, icon: "water-outline", route: "/dives" },
+  const MODULES = [
+    { key: "trips" as const, label: t.trips, route: "/trips" as const },
+    { key: "dives" as const, label: t.dives, route: "/dives" as const },
   ];
 
   function select(module: (typeof MODULES)[number]) {
@@ -44,7 +50,7 @@ export default function ModuleSwitcherHeader({ current }: { current: ModuleKey }
                   onPress={() => select(m)}
                   className={`flex-row items-center gap-3 px-4 py-3.5 ${i < MODULES.length - 1 ? "border-b border-slate-50 dark:border-zinc-800" : ""}`}
                 >
-                  <Ionicons name={m.icon} size={20} color={m.key === current ? "#2563eb" : headerTint} />
+                  <ModuleIcon moduleKey={m.key} color={m.key === current ? "#2563eb" : headerTint} />
                   <Text
                     className={m.key === current ? "text-blue-600 font-semibold text-base flex-1" : "text-slate-700 dark:text-slate-200 text-base flex-1"}
                   >

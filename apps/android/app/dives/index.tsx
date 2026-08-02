@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
-import { Tabs, useFocusEffect } from "expo-router";
+import { Tabs, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { listDiveLogs, deleteDiveLog, DiveLog } from "@/db/dive-logs";
 import { listDiveSites, DiveSite } from "@/db/dive-sites";
 import DiveLogFormModal from "@/components/forms/DiveLogFormModal";
+import DiveSitesMapModal from "@/components/DiveSitesMapModal";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
 
@@ -19,11 +20,13 @@ function formatDate(iso: string, lang: string): string {
 }
 
 export default function DiveLogsScreen() {
+  const router = useRouter();
   const { t, lang } = useT();
   const [dives, setDives] = useState<DiveLog[]>([]);
   const [sites, setSites] = useState<DiveSite[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<DiveLog | undefined>();
+  const [mapOpen, setMapOpen] = useState(false);
 
   const refresh = useCallback(() => {
     setDives(listDiveLogs());
@@ -46,7 +49,14 @@ export default function DiveLogsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
-      <Tabs.Screen options={{ title: t.diveLogsTab }} />
+      <Tabs.Screen options={{
+        title: t.diveLogsTab,
+        headerRight: () => (
+          <TouchableOpacity onPress={() => setMapOpen(true)} className="mr-1 p-1" accessibilityLabel={t.viewDiveSitesMap}>
+            <Ionicons name="map-outline" size={22} color={COLOR} />
+          </TouchableOpacity>
+        ),
+      }} />
 
       <FlatList
         data={dives}
@@ -110,6 +120,13 @@ export default function DiveLogsScreen() {
         onClose={closeForm}
         onSaved={() => { closeForm(); refresh(); }}
         onDelete={editingItem ? () => { deleteDiveLog(editingItem.id); closeForm(); refresh(); } : undefined}
+      />
+
+      <DiveSitesMapModal
+        visible={mapOpen}
+        onClose={() => setMapOpen(false)}
+        sites={sites}
+        onViewSite={(siteId) => router.push(`/dives/site-detail?id=${siteId}`)}
       />
     </SafeAreaView>
   );

@@ -237,7 +237,14 @@ export default function TripOverviewScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
-      <Tabs.Screen options={{ title: t.overview }} />
+      <Tabs.Screen options={{
+        title: t.overview,
+        headerRight: () => (
+          <TouchableOpacity onPress={() => router.push(`/trips/${id}/map`)} className="mr-3">
+            <Ionicons name="map-outline" size={20} color={colorScheme === "dark" ? "#94a3b8" : "#374151"} />
+          </TouchableOpacity>
+        ),
+      }} />
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 }}

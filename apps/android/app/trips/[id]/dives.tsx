@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView } from "react-native";
-import { Tabs, useFocusEffect, useGlobalSearchParams } from "expo-router";
+import { Tabs, useFocusEffect, useGlobalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -24,6 +24,7 @@ function formatDate(iso: string, lang: string): string {
 export default function TripDivesScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
+  const router = useRouter();
   const { t, lang } = useT();
   const { isLocked, guard } = useTripLock();
   const [dives, setDives] = useState<DiveLog[]>([]);
@@ -58,7 +59,14 @@ export default function TripDivesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
-      <Tabs.Screen options={{ title: t.dives }} />
+      <Tabs.Screen options={{
+        title: t.dives,
+        headerRight: () => (
+          <TouchableOpacity onPress={() => router.push(`/trips/${id}/map`)} className="mr-3">
+            <Ionicons name="map-outline" size={20} color={COLOR} />
+          </TouchableOpacity>
+        ),
+      }} />
 
       {availableDives.length > 0 && (
         <View className="px-4 pt-3">
