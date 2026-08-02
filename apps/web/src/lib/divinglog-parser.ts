@@ -52,6 +52,7 @@ export interface DivingLogParsedEntry {
   waterTemp: string | undefined;
   airTemp: string | undefined;
   visibility: string | undefined;
+  visibilityHorizontal: string | undefined;
   diveType: string | undefined;
   buddyName: string | undefined;
   suitType: string | undefined;
@@ -62,6 +63,9 @@ export interface DivingLogParsedEntry {
   boat: string | undefined;
   decoRequired: string | undefined;
   entryType: "SHORE" | "BOAT" | undefined;
+  minPpo2: string | undefined;
+  maxPpo2: string | undefined;
+  cnsPercent: string | undefined;
   diveSiteExternalId: string | null;
   tripExternalId: string | null;
   profileSamples: DivingLogParsedProfileSample[];
@@ -153,6 +157,7 @@ interface LogbookRow {
   Airtemp: number | null;
   Watertemp: number | null;
   Visibility: number | null;
+  VisHor: string | null;
   Weight: number | null;
   Divesuit: string | null;
   Rating: number | null;
@@ -170,6 +175,9 @@ interface LogbookRow {
   PresE: number | null;
   DblTank: number | null;
   TripID: number | null;
+  MinPPO2: number | null;
+  MaxPPO2: number | null;
+  CNS: string | null;
 }
 
 // Caps every table read at the SQL level (not just post-parse Zod validation)
@@ -364,9 +372,9 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
     const logbook = runQuery<LogbookRow>(
       db,
       `SELECT ID, Divedate, Entrytime, Surfint, Country, Place, PlaceID, CityID, Divetime, Depth,
-              Buddy, Comments, Divetype, Entry, Airtemp, Watertemp, Visibility, Weight, Divesuit,
+              Buddy, Comments, Divetype, Entry, Airtemp, Watertemp, Visibility, VisHor, Weight, Divesuit,
               Rating, UUID, Divemaster, Boat, Deco, Profile, ProfileInt, Profile2, Profile4,
-              O2, He, PresS, PresE, DblTank, TripID
+              O2, He, PresS, PresE, DblTank, TripID, MinPPO2, MaxPPO2, CNS
        FROM Logbook`,
     );
 
@@ -487,6 +495,8 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       const notes = notesParts.filter(Boolean).join(" — ") || undefined;
 
       const rating = row.Rating && row.Rating >= 1 && row.Rating <= 5 ? String(row.Rating) : undefined;
+      const visHor = toNumberOrNull(row.VisHor);
+      const cns = toNumberOrNull(row.CNS);
 
       entries.push({
         externalId,
@@ -503,6 +513,7 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         waterTemp: row.Watertemp != null ? String(round1(row.Watertemp)) : undefined,
         airTemp: row.Airtemp != null ? String(round1(row.Airtemp)) : undefined,
         visibility: row.Visibility != null ? String(round1(row.Visibility)) : undefined,
+        visibilityHorizontal: visHor !== null ? String(round1(visHor)) : undefined,
         diveType: resolveDiveType(row.Divetype, divetypeNameById),
         buddyName: nonEmpty(row.Buddy),
         suitType: nonEmpty(row.Divesuit),
@@ -513,6 +524,9 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         boat: nonEmpty(row.Boat),
         decoRequired: row.Deco === 1 ? "1" : undefined,
         entryType: resolveEntryType(row.Entry),
+        minPpo2: row.MinPPO2 != null ? String(round1(row.MinPPO2)) : undefined,
+        maxPpo2: row.MaxPPO2 != null ? String(round1(row.MaxPPO2)) : undefined,
+        cnsPercent: cns !== null ? String(Math.round(cns)) : undefined,
         diveSiteExternalId: row.PlaceID ? (placeExternalIdById.get(row.PlaceID) ?? null) : null,
         tripExternalId: row.TripID ? (tripExternalIdById.get(row.TripID) ?? null) : null,
         profileSamples: decodeProfile(row.Profile, row.ProfileInt, row.Profile2, row.Profile4),

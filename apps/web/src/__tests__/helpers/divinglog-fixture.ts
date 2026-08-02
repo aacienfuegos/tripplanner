@@ -24,9 +24,10 @@ export function buildDivingLogFixture(): string {
       'ID' INTEGER PRIMARY KEY, 'Number' INTEGER, 'Divedate' TEXT, 'Entrytime' TEXT, 'Surfint' TEXT,
       'Country' TEXT, 'CountryID' INTEGER, 'Place' TEXT, 'PlaceID' INTEGER, 'CityID' INTEGER, 'Divetime' REAL, 'Depth' REAL,
       'Buddy' TEXT, 'Comments' TEXT, 'Divetype' TEXT, 'Entry' INTEGER, 'Airtemp' REAL, 'Watertemp' REAL, 'Visibility' INTEGER,
-      'Weight' REAL, 'Divesuit' TEXT, 'Rating' INTEGER, 'UUID' TEXT, 'Divemaster' TEXT, 'Boat' TEXT,
+      'VisHor' TEXT, 'Weight' REAL, 'Divesuit' TEXT, 'Rating' INTEGER, 'UUID' TEXT, 'Divemaster' TEXT, 'Boat' TEXT,
       'Deco' INTEGER, 'Profile' TEXT, 'ProfileInt' INTEGER, 'Profile2' TEXT, 'Profile4' TEXT,
-      'O2' REAL, 'He' REAL, 'PresS' REAL, 'PresE' REAL, 'DblTank' INTEGER, 'TripID' INTEGER
+      'O2' REAL, 'He' REAL, 'PresS' REAL, 'PresE' REAL, 'DblTank' INTEGER, 'TripID' INTEGER,
+      'MinPPO2' REAL, 'MaxPPO2' REAL, 'CNS' TEXT
     );
   `);
 
@@ -92,10 +93,10 @@ export function buildDivingLogFixture(): string {
   const logInsert = db.prepare(`
     INSERT INTO Logbook (
       ID, Number, Divedate, Entrytime, Surfint, Country, CountryID, Place, PlaceID, CityID, Divetime, Depth,
-      Buddy, Comments, Divetype, Entry, Airtemp, Watertemp, Visibility, Weight, Divesuit, Rating, UUID,
+      Buddy, Comments, Divetype, Entry, Airtemp, Watertemp, Visibility, VisHor, Weight, Divesuit, Rating, UUID,
       Divemaster, Boat, Deco, Profile, ProfileInt, Profile2, Profile4,
-      O2, He, PresS, PresE, DblTank, TripID
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      O2, He, PresS, PresE, DblTank, TripID, MinPPO2, MaxPPO2, CNS
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const logUuids = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
   // 3 samples @ 60s: 5m, 15m, 18m — exercises decodeProfile's 12-char chunking
@@ -108,40 +109,43 @@ export function buildDivingLogFixture(): string {
   // Dive 1: CityID=1 (Cartagena) resolves Wreck Reef's region; Entry=1 (Shore);
   // Divetype="2,5" joins to "Education, Deep" via the Divetype table above
   // (never shown as raw digit codes); TripID=1 links it to Test Trip 2024.
+  // VisHor/MinPPO2/MaxPPO2/CNS are all empty in every real export seen so
+  // far, but the columns and mapping do exist in Diving Log — exercised here
+  // with fabricated values since there's no real reference data yet.
   logInsert.run(
     1, 1, "2024-06-01", "10:00", "01:00", "Spain", null, "Wreck Reef", 1, 1, 45, 18,
-    null, "First dive of the trip", "2,5", 1, 28, 21, 15, 6, "5mm", 4, logUuids[0],
+    null, "First dive of the trip", "2,5", 1, 28, 21, 15, "12", 6, "5mm", 4, logUuids[0],
     "Jane Master", "MV Explorer", 0, sampleProfile, 60, sampleTemp, sampleNdl,
-    21, 0, 200, 60, 0, 1,
+    21, 0, 200, 60, 0, 1, 1.2, 1.4, "8",
   );
   // Dive 2: Entry=2 (Boat); same trip as dive 1.
   logInsert.run(
     2, 2, "2024-06-02", "09:30", "00:45", "Spain", null, "Blue Cave", 2, null, 38, 22,
-    null, null, null, 2, 27, 20, 10, 6, "5mm", 0, logUuids[1],
+    null, null, null, 2, 27, 20, 10, null, 6, "5mm", 0, logUuids[1],
     null, null, null, null, null, null, null,
-    null, null, null, null, 1, 1,
+    null, null, null, null, 1, 1, null, null, null,
   );
   // Dive 3: no CityID of its own — exercises the "first non-empty wins"
   // fallback resolving Wreck Reef's region from dive 1's CityID instead.
   logInsert.run(
     3, 3, "2024-06-03", "11:00", null, "Spain", null, "Wreck Reef", 1, null, 40, 30,
-    null, null, null, null, 26, 15, 12, 8, "7mm", 5, logUuids[2],
+    null, null, null, null, 26, 15, 12, null, 8, "7mm", 5, logUuids[2],
     null, null, 1, null, null, null, null,
-    18, 35, 210, 70, 0, 1,
+    18, 35, 210, 70, 0, 1, null, null, null,
   );
   // No PlaceID (0 = "no site", matches the sentinel found in the real export)
   // and no Divetime (missing bottom time, also found in the real export).
   logInsert.run(
     4, 4, "2024-06-04", "08:00", null, null, null, null, 0, null, null, 12,
-    null, null, null, null, 24, 18, 8, 4, null, 0, logUuids[3],
+    null, null, null, null, 24, 18, 8, null, 4, null, 0, logUuids[3],
     null, null, null, null, null, null, null,
-    null, null, null, null, 0, null,
+    null, null, null, null, 0, null, null, null, null,
   );
   logInsert.run(
     5, 5, "2024-06-05", "12:00", null, "Spain", null, "Wreck Reef", 1, null, 42, 20,
-    null, null, null, null, 26, 20, 12, 6, "5mm", 5, logUuids[4],
+    null, null, null, null, 26, 20, 12, null, 6, "5mm", 5, logUuids[4],
     null, null, 0, null, null, null, null,
-    31, 0, 200, 50, 0, null,
+    31, 0, 200, 50, 0, null, null, null, null,
   );
 
   db.close();
