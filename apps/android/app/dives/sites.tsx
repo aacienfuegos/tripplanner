@@ -9,13 +9,14 @@ import DiveSiteFormModal from "@/components/forms/DiveSiteFormModal";
 import DiveSitesMapModal from "@/components/DiveSitesMapModal";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
+import { countryCodeToName } from "@tripplanner/shared";
 
 const COLOR = "#0e7490";
 const COLOR_BG = "#0e749018";
 
 export default function DiveSitesScreen() {
   const router = useRouter();
-  const { t } = useT();
+  const { t, lang } = useT();
   const [sites, setSites] = useState<DiveSite[]>([]);
   const [areas, setAreas] = useState<DiveArea[]>([]);
   const [formOpen, setFormOpen] = useState(false);
@@ -92,7 +93,7 @@ export default function DiveSitesScreen() {
               <Text className="text-base font-bold text-slate-900 dark:text-white" numberOfLines={1}>{item.name}</Text>
               {(item.region || item.country) && (
                 <Text className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                  {[item.region, item.country].filter(Boolean).join(", ")}
+                  {[item.region, item.country && countryCodeToName(item.country, lang)].filter(Boolean).join(", ")}
                 </Text>
               )}
             </View>

@@ -10,6 +10,7 @@ import { listDiveLogsForSite, DiveLog } from "@/db/dive-logs";
 import DiveSiteFormModal from "@/components/forms/DiveSiteFormModal";
 import DiveLogFormModal from "@/components/forms/DiveLogFormModal";
 import { useT } from "@/contexts/I18nContext";
+import { countryCodeToName } from "@tripplanner/shared";
 
 const COLOR = "#0e7490";
 
@@ -82,7 +83,7 @@ export default function DiveSiteDetailScreen() {
         <View className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-sm mb-4">
           {(area || site.region || site.country) && (
             <Text className="text-sm text-slate-500 dark:text-slate-400 mb-1">
-              {[area?.name, site.region, site.country].filter(Boolean).join(" · ")}
+              {[area?.name, site.region, site.country && countryCodeToName(site.country, lang)].filter(Boolean).join(" · ")}
             </Text>
           )}
           {site.address && (

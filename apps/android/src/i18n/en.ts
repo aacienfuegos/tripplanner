@@ -347,6 +347,8 @@ export const en: TKeys = {
   diveAreaCreateNew: "+ New area",
   diveAreaName: "Area name",
   diveAreaCountry: "Country",
+  countryNone: "No country",
+  countrySearchPlaceholder: "Search country...",
   addDiveArea: "Add area",
   editDiveArea: "Edit area",
   confirmDeleteDiveArea: "Delete this area? Dive sites won't be deleted, they'll just lose the area link.",

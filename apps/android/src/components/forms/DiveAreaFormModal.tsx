@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { createDiveArea, updateDiveArea, DiveArea } from "@/db/dive-areas";
 import { useT } from "@/contexts/I18nContext";
+import CountryPickerInput from "@/components/CountryPickerInput";
 
 interface Props {
   visible: boolean;
@@ -21,14 +22,14 @@ export default function DiveAreaFormModal({ visible, onClose, onSaved, onDelete,
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const [name, setName] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (visible) {
       setName(initialData?.name ?? "");
-      setCountry(initialData?.country ?? "");
+      setCountry(initialData?.country ?? null);
       setNotes(initialData?.notes ?? "");
       setError("");
     }
@@ -36,7 +37,7 @@ export default function DiveAreaFormModal({ visible, onClose, onSaved, onDelete,
 
   function handleSave() {
     if (!name.trim()) { setError(t.diveAreaName); return; }
-    const data = { name: name.trim(), country: country.trim() || null, notes: notes.trim() || null };
+    const data = { name: name.trim(), country, notes: notes.trim() || null };
     const area = initialData ? (updateDiveArea(initialData.id, data), { ...initialData, ...data }) : createDiveArea(data);
     onSaved(area);
   }
@@ -62,7 +63,7 @@ export default function DiveAreaFormModal({ visible, onClose, onSaved, onDelete,
           </View>
           <View>
             <Text className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t.diveAreaCountry}</Text>
-            <TextInput className={inputClass} value={country} onChangeText={setCountry} />
+            <CountryPickerInput value={country} onChange={setCountry} />
           </View>
         </View>
         <View className="px-5 pb-8 pt-3 border-t border-gray-100 dark:border-zinc-800 gap-3">

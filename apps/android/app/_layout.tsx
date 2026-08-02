@@ -1,4 +1,12 @@
 import "../global.css";
+// Hermes (Expo Go, RN 0.81) no trae Intl.DisplayNames ni Intl.Locale (del
+// que depende) — necesarios para country-names.ts (código ISO -> nombre
+// localizado, ver #264). Cada polyfill se auto-detecta y no hace nada si el
+// motor ya lo soporta nativamente.
+import "@formatjs/intl-locale/polyfill";
+import "@formatjs/intl-displaynames/polyfill";
+import "@formatjs/intl-displaynames/locale-data/es";
+import "@formatjs/intl-displaynames/locale-data/en";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Stack } from "expo-router";
