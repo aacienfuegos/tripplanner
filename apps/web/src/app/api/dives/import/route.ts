@@ -60,9 +60,15 @@ export async function POST(request: Request): Promise<NextResponse<DivingLogPars
       sites: raw.sites,
       logs: raw.entries,
       certifications: raw.certifications,
+      trips: raw.trips,
     });
 
-    if (payload.sites.length === 0 && payload.logs.length === 0 && payload.certifications.length === 0) {
+    if (
+      payload.sites.length === 0 &&
+      payload.logs.length === 0 &&
+      payload.certifications.length === 0 &&
+      payload.trips.length === 0
+    ) {
       return NextResponse.json({ ok: false, errorCode: "EMPTY_PAYLOAD" });
     }
 

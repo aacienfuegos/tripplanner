@@ -33,6 +33,7 @@ export type DivingLogDuplicateFlags = {
   sites: boolean[];
   logs: boolean[];
   certifications: boolean[];
+  trips: boolean[];
 };
 
 export async function checkDivingLogDuplicates(
@@ -41,15 +42,17 @@ export async function checkDivingLogDuplicates(
   const userId = await requireUser();
   const data = divingLogImportPayloadSchema.parse(payload);
 
-  const [existingSites, existingLogs, existingCerts] = await Promise.all([
+  const [existingSites, existingLogs, existingCerts, existingTrips] = await Promise.all([
     prisma.diveSite.findMany({ where: { userId, externalId: { not: null } }, select: { externalId: true, name: true } }),
     prisma.diveLog.findMany({ where: { userId, externalId: { not: null } }, select: { externalId: true } }),
     prisma.diveCertification.findMany({ where: { userId, externalId: { not: null } }, select: { externalId: true } }),
+    prisma.trip.findMany({ where: { userId, externalId: { not: null } }, select: { externalId: true } }),
   ]);
 
   const siteExternalIds = new Set(existingSites.map((s) => s.externalId));
   const logExternalIds = new Set(existingLogs.map((l) => l.externalId));
   const certExternalIds = new Set(existingCerts.map((c) => c.externalId));
+  const tripExternalIds = new Set(existingTrips.map((t) => t.externalId));
 
   return {
     // Primary signal is externalId (survives reimport of the exact same DivingLog
@@ -60,6 +63,7 @@ export async function checkDivingLogDuplicates(
     ),
     logs: data.logs.map((l) => logExternalIds.has(l.externalId)),
     certifications: data.certifications.map((c) => certExternalIds.has(c.externalId)),
+    trips: data.trips.map((t) => tripExternalIds.has(t.externalId)),
   };
 }
 
@@ -67,6 +71,7 @@ export type DivingLogImportResult = {
   sites: number;
   logs: number;
   certifications: number;
+  trips: number;
 };
 
 export async function bulkImportDivingLog(payload: DivingLogImportPayload): Promise<DivingLogImportResult> {
@@ -74,7 +79,7 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
   const data = divingLogImportPayloadSchema.parse(payload);
 
   const result = await prisma.$transaction(async (tx) => {
-    const result: DivingLogImportResult = { sites: 0, logs: 0, certifications: 0 };
+    const result: DivingLogImportResult = { sites: 0, logs: 0, certifications: 0, trips: 0 };
 
     const siteIdByExternalId = new Map<string, string>();
     if (data.sites.length > 0) {
@@ -94,6 +99,7 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
             userId,
             name: s.name,
             country: s.country || null,
+            region: s.region || null,
             notes: s.notes || null,
             latitude: s.latitude ?? null,
             longitude: s.longitude ?? null,
@@ -111,16 +117,49 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
       for (const id of needsGeocoding) void geocodeDiveSite(id);
     }
 
+    const tripIdByExternalId = new Map<string, string>();
+    if (data.trips.length > 0) {
+      const existing = await tx.trip.findMany({
+        where: { userId, externalId: { in: data.trips.map((t) => t.externalId) } },
+        select: { id: true, externalId: true },
+      });
+      for (const e of existing) {
+        if (e.externalId) tripIdByExternalId.set(e.externalId, e.id);
+      }
+
+      const toCreate = data.trips.filter((t) => !tripIdByExternalId.has(t.externalId));
+      for (const t of toCreate) {
+        const endDate = new Date(t.endDate);
+        const created = await tx.trip.create({
+          data: {
+            userId,
+            name: t.name,
+            startDate: new Date(t.startDate),
+            endDate,
+            // Un viaje importado de un logbook ya sucedió salvo que su fecha de
+            // fin todavía esté en el futuro (viaje futuro ya planeado en Diving Log).
+            status: endDate < new Date() ? "COMPLETED" : "BOOKED",
+            source: "IMPORTED",
+            externalId: t.externalId,
+          },
+        });
+        tripIdByExternalId.set(t.externalId, created.id);
+        result.trips += 1;
+      }
+    }
+
     if (data.logs.length > 0) {
       // diveNumber es un valor temporal — renumberDives lo recalcula por
       // fecha justo después de insertar las filas.
       const rows: Prisma.DiveLogCreateManyInput[] = data.logs.map((log) => {
         const diveSiteId = log.diveSiteExternalId ? (siteIdByExternalId.get(log.diveSiteExternalId) ?? null) : null;
+        const tripId = log.tripExternalId ? (tripIdByExternalId.get(log.tripExternalId) ?? null) : null;
         return {
           userId,
           diveNumber: 0,
           source: "IMPORTED",
           externalId: log.externalId,
+          tripId,
           ...mapDiveLogInput(log, diveSiteId),
         };
       });

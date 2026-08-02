@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { toast } from "sonner";
-import { MapPin, Waves, Award, AlertTriangle, Loader2 } from "lucide-react";
+import { MapPin, Waves, Award, AlertTriangle, Loader2, Plane } from "lucide-react";
 import { DivingLogImportPayload } from "@/lib/schemas";
 import {
   bulkImportDivingLog,
@@ -17,13 +17,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useT } from "@/contexts/LanguageContext";
 import type { WebTKeys } from "@/i18n";
 
-type SectionKey = "sites" | "logs" | "certifications";
+type SectionKey = "sites" | "logs" | "certifications" | "trips";
 
 function sectionConfig(t: WebTKeys): Record<SectionKey, { label: string; icon: React.ElementType }> {
   return {
     logs: { label: t.diveImportSectionLogs, icon: Waves },
     sites: { label: t.diveImportSectionSites, icon: MapPin },
     certifications: { label: t.diveImportSectionCertifications, icon: Award },
+    trips: { label: t.diveImportSectionTrips, icon: Plane },
   };
 }
 
@@ -34,6 +35,7 @@ function initSelection(payload: DivingLogImportPayload): SelectionState {
     sites: payload.sites.map(() => true),
     logs: payload.logs.map(() => true),
     certifications: payload.certifications.map(() => true),
+    trips: payload.trips.map(() => true),
   };
 }
 
@@ -42,6 +44,7 @@ function applyDuplicateFlags(prev: SelectionState, flags: DivingLogDuplicateFlag
     sites: prev.sites.map((v, i) => (flags.sites[i] ? false : v)),
     logs: prev.logs.map((v, i) => (flags.logs[i] ? false : v)),
     certifications: prev.certifications.map((v, i) => (flags.certifications[i] ? false : v)),
+    trips: prev.trips.map((v, i) => (flags.trips[i] ? false : v)),
   };
 }
 
@@ -109,12 +112,14 @@ export function DiveImportReviewStep({
   );
 
   const siteNameByExternalId = new Map(payload.sites.map((s) => [s.externalId, s.name]));
+  const tripNameByExternalId = new Map(payload.trips.map((tr) => [tr.externalId, tr.name]));
 
   const handleImport = () => {
     const filtered: DivingLogImportPayload = {
       sites: payload.sites.filter((_, i) => selection.sites[i]),
       logs: payload.logs.filter((_, i) => selection.logs[i]),
       certifications: payload.certifications.filter((_, i) => selection.certifications[i]),
+      trips: payload.trips.filter((_, i) => selection.trips[i]),
     };
 
     startTransition(async () => {
@@ -124,6 +129,7 @@ export function DiveImportReviewStep({
           result.sites > 0 && t.diveImportResultSites(result.sites),
           result.logs > 0 && t.diveImportResultLogs(result.logs),
           result.certifications > 0 && t.diveImportResultCertifications(result.certifications),
+          result.trips > 0 && t.diveImportResultTrips(result.trips),
         ].filter(Boolean);
         toast.success(`${t.importedToastPrefix}: ${parts.join(", ")}`);
         onDone();
@@ -222,7 +228,13 @@ export function DiveImportReviewStep({
                         className="mt-0.5 accent-primary"
                       />
                       <div className="flex-1 min-w-0">
-                        <ItemSummary section={key} item={item} t={t} siteNameByExternalId={siteNameByExternalId} />
+                        <ItemSummary
+                          section={key}
+                          item={item}
+                          t={t}
+                          siteNameByExternalId={siteNameByExternalId}
+                          tripNameByExternalId={tripNameByExternalId}
+                        />
                       </div>
                       {sectionDups[idx] && (
                         <Badge
@@ -279,11 +291,13 @@ function ItemSummary({
   item,
   t,
   siteNameByExternalId,
+  tripNameByExternalId,
 }: {
   section: SectionKey;
   item: unknown;
   t: WebTKeys;
   siteNameByExternalId: Map<string, string>;
+  tripNameByExternalId: Map<string, string>;
 }) {
   switch (section) {
     case "sites": {
@@ -291,7 +305,9 @@ function ItemSummary({
       return (
         <div className="text-xs space-y-0.5">
           <p className="font-medium">{s.name}</p>
-          {s.country && <p className="text-muted-foreground">{s.country}</p>}
+          {(s.region || s.country) && (
+            <p className="text-muted-foreground">{[s.region, s.country].filter(Boolean).join(", ")}</p>
+          )}
         </div>
       );
     }
@@ -299,6 +315,7 @@ function ItemSummary({
       const l = item as DivingLogImportPayload["logs"][number];
       const gasLabel = t[gasMixLabelKey[l.gasMix]] as string;
       const siteName = l.diveSiteExternalId ? siteNameByExternalId.get(l.diveSiteExternalId) : undefined;
+      const tripName = l.tripExternalId ? tripNameByExternalId.get(l.tripExternalId) : undefined;
       const timeSuffix = l.time && l.time !== "00:00" ? `, ${l.time}` : "";
       return (
         <div className="text-xs space-y-0.5">
@@ -308,6 +325,7 @@ function ItemSummary({
           </p>
           <p className="text-muted-foreground">
             {l.depthMax} m · {l.bottomTime} min · {gasLabel}
+            {tripName ? ` · ${tripName}` : ""}
           </p>
         </div>
       );
@@ -320,6 +338,17 @@ function ItemSummary({
           <p className="text-muted-foreground">
             {c.agency}
             {c.issueDate ? ` · ${safeDate(c.issueDate, "d MMM yyyy", t)}` : ""}
+          </p>
+        </div>
+      );
+    }
+    case "trips": {
+      const tr = item as DivingLogImportPayload["trips"][number];
+      return (
+        <div className="text-xs space-y-0.5">
+          <p className="font-medium">{tr.name}</p>
+          <p className="text-muted-foreground">
+            {safeDate(tr.startDate, "d MMM yyyy", t)} – {safeDate(tr.endDate, "d MMM yyyy", t)}
           </p>
         </div>
       );
