@@ -98,6 +98,13 @@ export function listDiveLogsForTrip(tripId: number): DiveLog[] {
   );
 }
 
+export function listDiveLogsForSite(diveSiteId: number): DiveLog[] {
+  return db.getAllSync<DiveLog>(
+    "SELECT * FROM dive_logs WHERE dive_site_id = ? ORDER BY date DESC",
+    [diveSiteId]
+  );
+}
+
 export interface DiveStatsRow {
   depthMax: number;
   bottomTime: number;
