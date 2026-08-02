@@ -17,9 +17,17 @@ export interface DivingLogParsedSite {
   externalId: string;
   name: string;
   country: string | undefined;
+  region: string | undefined;
   latitude: number | null;
   longitude: number | null;
   notes: string | undefined;
+}
+
+export interface DivingLogParsedTrip {
+  externalId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface DivingLogParsedProfileSample {
@@ -53,7 +61,9 @@ export interface DivingLogParsedEntry {
   divemaster: string | undefined;
   boat: string | undefined;
   decoRequired: string | undefined;
+  entryType: "SHORE" | "BOAT" | undefined;
   diveSiteExternalId: string | null;
+  tripExternalId: string | null;
   profileSamples: DivingLogParsedProfileSample[];
 }
 
@@ -70,6 +80,7 @@ export interface DivingLogParseResult {
   sites: DivingLogParsedSite[];
   entries: DivingLogParsedEntry[];
   certifications: DivingLogParsedCertification[];
+  trips: DivingLogParsedTrip[];
 }
 
 interface CountryRow {
@@ -106,6 +117,24 @@ interface TankRow {
   He: number | null;
 }
 
+interface CityRow {
+  ID: number;
+  City: string | null;
+}
+
+interface DivetypeRow {
+  ID: number;
+  Typename: string | null;
+}
+
+interface TripRow {
+  ID: number;
+  TripName: string | null;
+  StartDate: string | null;
+  EndDate: string | null;
+  UUID: string | null;
+}
+
 interface LogbookRow {
   ID: number;
   Divedate: string | null;
@@ -114,11 +143,13 @@ interface LogbookRow {
   Country: string | null;
   Place: string | null;
   PlaceID: number | null;
+  CityID: number | null;
   Divetime: number | null;
   Depth: number | null;
   Buddy: string | null;
   Comments: string | null;
   Divetype: string | null;
+  Entry: number | null;
   Airtemp: number | null;
   Watertemp: number | null;
   Visibility: number | null;
@@ -133,6 +164,12 @@ interface LogbookRow {
   ProfileInt: number | null;
   Profile2: string | null;
   Profile4: string | null;
+  O2: number | null;
+  He: number | null;
+  PresS: number | null;
+  PresE: number | null;
+  DblTank: number | null;
+  TripID: number | null;
 }
 
 // Caps every table read at the SQL level (not just post-parse Zod validation)
@@ -204,6 +241,47 @@ function classifyGasMix(o2: number | null, he: number | null): DivingLogParsedEn
 
 function pluralize(count: number, singular: string, plural: string): string {
   return count === 1 ? singular : plural;
+}
+
+// Diving Log's Entry field has 6 possible values (Shore, Boat, Pool,
+// Aquarium, Jetty, Ice — confirmed against its own UI, not documented in the
+// export schema itself); our own DiveEntryType enum only distinguishes
+// SHORE/BOAT, so the other 4 are left unmapped rather than guessed into one
+// of the two.
+function resolveEntryType(value: number | null): "SHORE" | "BOAT" | undefined {
+  if (value === 1) return "SHORE";
+  if (value === 2) return "BOAT";
+  return undefined;
+}
+
+// Diving Log's own City field isn't a dive-area classification — it's the
+// base of operations (city/island/hotel/liveaboard/camping/day trip, per
+// City.Type), which doesn't always match the actual dive area. Divers after
+// finer grouping resort to a naming convention instead: verified 100%
+// consistent across a real 27-site export, "{Site} - {Area}" (e.g. "Piles 1 -
+// Cabo de Palos"). That suffix is more specific and diver-recognizable than
+// City, so it takes priority; City is only used as a fallback for places
+// without it.
+function splitPlaceName(raw: string): { name: string; area: string | undefined } {
+  const separatorIndex = raw.lastIndexOf(" - ");
+  if (separatorIndex === -1) return { name: raw, area: undefined };
+  return {
+    name: raw.slice(0, separatorIndex).trim() || raw,
+    area: nonEmpty(raw.slice(separatorIndex + 3)),
+  };
+}
+
+// Logbook.Divetype stores Divetype.ID values joined by commas (e.g. "2,5,7"),
+// never the type names — without this join the user sees raw digit codes
+// instead of "Education, Deep, Wreck".
+function resolveDiveType(raw: string | null, namesById: Map<number, string>): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
+  const names = trimmed
+    .split(",")
+    .map((part) => namesById.get(Number(part.trim())))
+    .filter((name): name is string => !!name);
+  return names.length > 0 ? names.join(", ") : undefined;
 }
 
 // Profile/Profile2/Profile4 guardan muestras concatenadas sin separador, un
@@ -280,11 +358,15 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       db,
       "SELECT LogID, SortOrd, PresS, PresE, O2, He FROM Tank ORDER BY LogID, SortOrd",
     );
+    const cities = runQuery<CityRow>(db, "SELECT ID, City FROM City");
+    const divetypes = runQuery<DivetypeRow>(db, "SELECT ID, Typename FROM Divetype");
+    const trips = runQuery<TripRow>(db, "SELECT ID, TripName, StartDate, EndDate, UUID FROM Trip");
     const logbook = runQuery<LogbookRow>(
       db,
-      `SELECT ID, Divedate, Entrytime, Surfint, Country, Place, PlaceID, Divetime, Depth,
-              Buddy, Comments, Divetype, Airtemp, Watertemp, Visibility, Weight, Divesuit,
-              Rating, UUID, Divemaster, Boat, Deco, Profile, ProfileInt, Profile2, Profile4
+      `SELECT ID, Divedate, Entrytime, Surfint, Country, Place, PlaceID, CityID, Divetime, Depth,
+              Buddy, Comments, Divetype, Entry, Airtemp, Watertemp, Visibility, Weight, Divesuit,
+              Rating, UUID, Divemaster, Boat, Deco, Profile, ProfileInt, Profile2, Profile4,
+              O2, He, PresS, PresE, DblTank, TripID
        FROM Logbook`,
     );
 
@@ -306,6 +388,38 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       if (country) countryByPlaceId.set(row.PlaceID, country);
     }
 
+    const cityNameById = new Map<number, string>();
+    for (const city of cities) {
+      const name = nonEmpty(city.City);
+      if (name) cityNameById.set(city.ID, name);
+    }
+
+    // Place itself has no city column — only Logbook.CityID does, denormalized
+    // per-dive same as Country above. First non-empty value wins.
+    const regionByPlaceId = new Map<number, string>();
+    for (const row of logbook) {
+      if (!row.PlaceID) continue;
+      if (regionByPlaceId.has(row.PlaceID)) continue;
+      const region = row.CityID ? cityNameById.get(row.CityID) : undefined;
+      if (region) regionByPlaceId.set(row.PlaceID, region);
+    }
+
+    const divetypeNameById = new Map<number, string>();
+    for (const dt of divetypes) {
+      const name = nonEmpty(dt.Typename);
+      if (name) divetypeNameById.set(dt.ID, name);
+    }
+
+    const tripExternalIdById = new Map<number, string>();
+    const parsedTrips: DivingLogParsedTrip[] = [];
+    for (const trip of trips) {
+      const externalId = nonEmpty(trip.UUID);
+      const name = nonEmpty(trip.TripName);
+      if (!externalId || !trip.ID || !name || !trip.StartDate || !trip.EndDate) continue;
+      tripExternalIdById.set(trip.ID, externalId);
+      parsedTrips.push({ externalId, name, startDate: trip.StartDate, endDate: trip.EndDate });
+    }
+
     const placeExternalIdById = new Map<number, string>();
     const sites: DivingLogParsedSite[] = [];
     for (const place of places) {
@@ -317,10 +431,13 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         (place.CountryID ? countryNameById.get(place.CountryID) : undefined) ??
         countryByPlaceId.get(place.ID);
 
+      const { name, area } = splitPlaceName(nonEmpty(place.Place) ?? "—");
+
       sites.push({
         externalId,
-        name: nonEmpty(place.Place) ?? "—",
+        name,
         country,
+        region: area ?? regionByPlaceId.get(place.ID),
         latitude: toNumberOrNull(place.Lat),
         longitude: toNumberOrNull(place.Lon),
         notes: nonEmpty(place.Comments),
@@ -346,10 +463,20 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         (a, b) => (a.SortOrd ?? 0) - (b.SortOrd ?? 0),
       );
       const primaryTank = rowTanks[0];
-      const extraTanks = rowTanks.length - 1;
-
-      const o2 = primaryTank?.O2 ?? null;
-      const he = primaryTank?.He ?? null;
+      const isDoubleTank = row.DblTank === 1;
+      // Diving Log guarda un resumen de gas/presión por buceo directamente en
+      // Logbook (O2/He/PresS/PresE) — es lo que muestra su propia UI y lo
+      // único fiable en exports reales verificados: la tabla Tank suele traer
+      // 2 filas idénticas con O2 de plantilla (p.ej. 19%) y presión vacía
+      // incluso en buceos de una sola botella, sin relación con el gas real
+      // usado. Tank solo se usa como fallback si el resumen falta, y el aviso
+      // de "botella adicional no importada" solo aplica si DblTank marca que
+      // el buceo fue realmente de doble botella.
+      const o2 = row.O2 ?? primaryTank?.O2 ?? null;
+      const he = row.He ?? primaryTank?.He ?? null;
+      const pressureStart = row.PresS ?? primaryTank?.PresS ?? null;
+      const pressureEnd = row.PresE ?? primaryTank?.PresE ?? null;
+      const extraTanks = isDoubleTank ? rowTanks.length - 1 : 0;
 
       const notesParts = [nonEmpty(row.Comments)];
       if (extraTanks > 0) {
@@ -371,12 +498,12 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         gasMix: classifyGasMix(o2, he),
         o2Percentage: o2 !== null ? String(Math.round(o2)) : undefined,
         heliumPercentage: he !== null ? String(Math.round(he)) : undefined,
-        pressureStart: primaryTank?.PresS != null ? String(Math.round(primaryTank.PresS)) : undefined,
-        pressureEnd: primaryTank?.PresE != null ? String(Math.round(primaryTank.PresE)) : undefined,
+        pressureStart: pressureStart !== null ? String(Math.round(pressureStart)) : undefined,
+        pressureEnd: pressureEnd !== null ? String(Math.round(pressureEnd)) : undefined,
         waterTemp: row.Watertemp != null ? String(round1(row.Watertemp)) : undefined,
         airTemp: row.Airtemp != null ? String(round1(row.Airtemp)) : undefined,
         visibility: row.Visibility != null ? String(round1(row.Visibility)) : undefined,
-        diveType: nonEmpty(row.Divetype),
+        diveType: resolveDiveType(row.Divetype, divetypeNameById),
         buddyName: nonEmpty(row.Buddy),
         suitType: nonEmpty(row.Divesuit),
         weight: row.Weight != null ? String(round1(row.Weight)) : undefined,
@@ -385,7 +512,9 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         divemaster: nonEmpty(row.Divemaster),
         boat: nonEmpty(row.Boat),
         decoRequired: row.Deco === 1 ? "1" : undefined,
+        entryType: resolveEntryType(row.Entry),
         diveSiteExternalId: row.PlaceID ? (placeExternalIdById.get(row.PlaceID) ?? null) : null,
+        tripExternalId: row.TripID ? (tripExternalIdById.get(row.TripID) ?? null) : null,
         profileSamples: decodeProfile(row.Profile, row.ProfileInt, row.Profile2, row.Profile4),
       });
     }
@@ -413,7 +542,7 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
     // resto de la app (dive-log-list.tsx: más reciente primero).
     entries.sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`));
 
-    return { sites, entries, certifications };
+    return { sites, entries, certifications, trips: parsedTrips };
   } finally {
     db.close();
   }

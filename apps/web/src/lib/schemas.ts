@@ -229,14 +229,22 @@ const divingLogProfileSampleSchema = z.object({
   ndlMinutes: z.number().int().nullable().optional().default(null),
 });
 
-export const divingLogEntrySchema = diveLogSchema.omit({ diveSiteId: true }).extend({
+export const divingLogEntrySchema = diveLogSchema.omit({ diveSiteId: true, tripId: true }).extend({
   externalId: z.string().min(1),
   diveSiteExternalId: z.string().nullable(),
+  tripExternalId: z.string().nullable(),
   profileSamples: z.array(divingLogProfileSampleSchema).max(4000).optional().default([]),
 });
 
 export const divingLogCertificationSchema = diveCertificationSchema.extend({
   externalId: z.string().min(1),
+});
+
+export const divingLogTripSchema = z.object({
+  externalId: z.string().min(1),
+  name: z.string().min(1),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
 });
 
 const MAX_DIVING_LOG_IMPORT_ROWS = 5000;
@@ -245,6 +253,7 @@ export const divingLogImportPayloadSchema = z.object({
   sites: z.array(divingLogSiteSchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
   logs: z.array(divingLogEntrySchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
   certifications: z.array(divingLogCertificationSchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
+  trips: z.array(divingLogTripSchema).max(MAX_DIVING_LOG_IMPORT_ROWS),
 });
 
 export type DivingLogImportPayload = z.infer<typeof divingLogImportPayloadSchema>;

@@ -91,9 +91,10 @@ describe("POST /api/dives/import", () => {
     const result = await (await POST(postRequest(fd))).json();
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.payload.sites).toHaveLength(3);
-      expect(result.payload.logs).toHaveLength(4);
+      expect(result.payload.sites).toHaveLength(4);
+      expect(result.payload.logs).toHaveLength(5);
       expect(result.payload.certifications).toHaveLength(1);
+      expect(result.payload.trips).toHaveLength(1);
     }
   });
 

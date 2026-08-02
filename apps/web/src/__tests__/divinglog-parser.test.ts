@@ -15,11 +15,11 @@ describe("parseDivingLogDatabase", () => {
   const result = parseDivingLogDatabase(fixturePath);
 
   it("extracts all dive sites, including one not referenced by any dive", () => {
-    expect(result.sites).toHaveLength(3);
+    expect(result.sites).toHaveLength(4);
   });
 
   it("extracts all dive log entries", () => {
-    expect(result.entries).toHaveLength(4);
+    expect(result.entries).toHaveLength(5);
   });
 
   it("extracts certifications", () => {
@@ -37,13 +37,24 @@ describe("parseDivingLogDatabase", () => {
     expect(wreckReef?.country).toBe("Spain");
   });
 
-  it("classifies gas mix from the primary tank's O2/He (single-tank air dive)", () => {
+  it("resolves region via the Logbook.CityID -> City join, first non-empty value wins", () => {
+    const wreckReef = result.sites.find((s) => s.name === "Wreck Reef");
+    expect(wreckReef?.region).toBe("Cartagena");
+  });
+
+  it("splits the '{Site} - {Area}' naming convention into name/region, preferring it over the City join", () => {
+    const piles1 = result.sites.find((s) => s.name === "Piles 1");
+    expect(piles1).toBeDefined();
+    expect(piles1?.region).toBe("Cabo de Palos");
+  });
+
+  it("classifies gas mix from Logbook's own O2/He (single-tank air dive, Tank agrees)", () => {
     const dive1 = result.entries.find((e) => e.depthMax === "18");
     expect(dive1?.gasMix).toBe("AIR");
     expect(dive1?.o2Percentage).toBe("21");
   });
 
-  it("classifies nitrox from O2 > 21%", () => {
+  it("classifies nitrox from O2 > 21%, falling back to the primary tank when Logbook's O2 is null", () => {
     const dive2 = result.entries.find((e) => e.depthMax === "22");
     expect(dive2?.gasMix).toBe("NITROX");
     expect(dive2?.o2Percentage).toBe("32");
@@ -55,11 +66,20 @@ describe("parseDivingLogDatabase", () => {
     expect(dive3?.heliumPercentage).toBe("35");
   });
 
-  it("only imports the primary tank (lowest SortOrd) and summarizes extras in notes", () => {
+  it("falls back to the primary tank (lowest SortOrd) for pressure and summarizes extras in notes when DblTank=1", () => {
     const dive2 = result.entries.find((e) => e.depthMax === "22");
     expect(dive2?.pressureStart).toBe("220");
     expect(dive2?.pressureEnd).toBe("80"); // first tank's PresE, not the second tank's 90
     expect(dive2?.notes).toContain("1 botella adicional no importada");
+  });
+
+  it("prefers Logbook's O2/He/pressure over Tank's placeholder rows and skips the extra-bottle note when DblTank=0", () => {
+    const dive5 = result.entries.find((e) => e.depthMax === "20");
+    expect(dive5?.gasMix).toBe("NITROX");
+    expect(dive5?.o2Percentage).toBe("31"); // Logbook.O2=31, not Tank's placeholder O2=19
+    expect(dive5?.pressureStart).toBe("200"); // Logbook.PresS, Tank.PresS is null
+    expect(dive5?.pressureEnd).toBe("50"); // Logbook.PresE, Tank.PresE is null
+    expect(dive5?.notes ?? "").not.toContain("botella adicional");
   });
 
   it("converts Surfint HH:MM text to minutes", () => {
@@ -88,9 +108,32 @@ describe("parseDivingLogDatabase", () => {
     expect(dive2?.rating).toBeUndefined();
   });
 
-  it("copies Divetype verbatim as free text (no lookup-table join)", () => {
+  it("joins Divetype's comma-separated IDs against the Divetype table instead of showing raw digit codes", () => {
     const dive1 = result.entries.find((e) => e.depthMax === "18");
-    expect(dive1?.diveType).toBe("2,5");
+    expect(dive1?.diveType).toBe("Education, Deep");
+  });
+
+  it("maps Logbook.Entry 1/2 to entryType SHORE/BOAT, leaving other Entry values unmapped", () => {
+    const dive1 = result.entries.find((e) => e.depthMax === "18");
+    const dive2 = result.entries.find((e) => e.depthMax === "22");
+    const dive4 = result.entries.find((e) => e.depthMax === "12");
+    expect(dive1?.entryType).toBe("SHORE");
+    expect(dive2?.entryType).toBe("BOAT");
+    expect(dive4?.entryType).toBeUndefined();
+  });
+
+  it("extracts trips and links dives to their trip via tripExternalId", () => {
+    expect(result.trips).toHaveLength(1);
+    expect(result.trips[0]).toMatchObject({
+      name: "Test Trip 2024",
+      startDate: "2024-06-01",
+      endDate: "2024-06-03",
+    });
+
+    const dive1 = result.entries.find((e) => e.depthMax === "18");
+    const dive4 = result.entries.find((e) => e.depthMax === "12");
+    expect(dive1?.tripExternalId).toBe(result.trips[0].externalId);
+    expect(dive4?.tripExternalId).toBeNull();
   });
 
   it("decodes Profile+ProfileInt into depth/time samples", () => {
