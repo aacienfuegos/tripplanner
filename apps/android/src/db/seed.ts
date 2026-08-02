@@ -11,7 +11,7 @@ import { createDiveArea } from "./dive-areas";
 import { createDiveSite } from "./dive-sites";
 import { createDiveEquipment } from "./dive-equipment";
 import { createDiveCertification } from "./dive-certifications";
-import { createDiveLog } from "./dive-logs";
+import { createDiveLog, setProfileSamples } from "./dive-logs";
 
 function iso(daysFromToday: number, time = "00:00:00"): string {
   const d = new Date();
@@ -354,9 +354,11 @@ export async function seedDevData(): Promise<void> {
     depth_max: 18, bottom_time: 42, surface_interval: null,
     gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
     pressure_start: null, pressure_end: null,
-    water_temp: 16, air_temp: 20, visibility: 10,
+    water_temp: 16, air_temp: 20, visibility: 10, visibility_horizontal: null,
     dive_type: "RECREATIONAL", buddy_name: "Marco Bianchi", suit_type: "5mm húmedo",
     weight: 6, rating: 4, notes: "Primera inmersión certificada, agua fría pero buena visibilidad",
+    current: "NONE", divemaster: null, boat: null, entry_type: "SHORE",
+    deco_required: 0, safety_stop_minutes: 3, min_ppo2: null, max_ppo2: null, cns_percent: null,
     equipmentIds: [],
   });
   createDiveLog({
@@ -364,9 +366,11 @@ export async function seedDevData(): Promise<void> {
     depth_max: 24, bottom_time: 38, surface_interval: null,
     gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
     pressure_start: 210, pressure_end: 60,
-    water_temp: 18, air_temp: 22, visibility: 12,
+    water_temp: 18, air_temp: 22, visibility: 12, visibility_horizontal: 10,
     dive_type: "DRIFT", buddy_name: "Elena Vidal", suit_type: "5mm húmedo",
     weight: 5, rating: 5, notes: null,
+    current: "MODERATE", divemaster: null, boat: null, entry_type: "SHORE",
+    deco_required: 0, safety_stop_minutes: 3, min_ppo2: null, max_ppo2: null, cns_percent: null,
     equipmentIds: [fins.id],
   });
   createDiveLog({
@@ -374,29 +378,52 @@ export async function seedDevData(): Promise<void> {
     depth_max: 15, bottom_time: 35, surface_interval: null,
     gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
     pressure_start: 200, pressure_end: 70,
-    water_temp: 19, air_temp: 21, visibility: 8,
+    water_temp: 19, air_temp: 21, visibility: 8, visibility_horizontal: null,
     dive_type: "NIGHT", buddy_name: "Elena Vidal", suit_type: "5mm húmedo",
     weight: 5, rating: 5, notes: "Pulpos y nudibranquios por todas partes",
+    current: "NONE", divemaster: null, boat: null, entry_type: "SHORE",
+    deco_required: 0, safety_stop_minutes: null, min_ppo2: null, max_ppo2: null, cns_percent: null,
     equipmentIds: fullGear,
   });
-  createDiveLog({
+  const blueHoleDiveId = createDiveLog({
     trip_id: null, dive_site_id: blueHole.id, date: iso(-40, "08:15:00"),
     depth_max: 32, bottom_time: 28, surface_interval: 65,
     gas_mix: "NITROX", o2_percentage: 32, helium_percentage: null,
     pressure_start: 200, pressure_end: 60,
-    water_temp: 26, air_temp: 32, visibility: 25,
+    water_temp: 26, air_temp: 32, visibility: 25, visibility_horizontal: 22,
     dive_type: "DEEP", buddy_name: "Ahmed Hassan", suit_type: "3mm húmedo",
     weight: 4, rating: 5, notes: "El arco impresionante, muy buena visibilidad",
+    current: "LIGHT", divemaster: "Ahmed Hassan", boat: null, entry_type: "SHORE",
+    deco_required: 1, safety_stop_minutes: 5, min_ppo2: 1.1, max_ppo2: 1.35, cns_percent: 22,
     equipmentIds: fullGear,
   });
+  // Perfil real (no sintetizado) para mostrar cómo se ve una curva de
+  // ordenador de buceo de verdad frente a la aproximación automática.
+  setProfileSamples(blueHoleDiveId, [
+    { seconds: 30, depth: 11, temp: 26 },
+    { seconds: 60, depth: 22, temp: 26 },
+    { seconds: 90, depth: 29, temp: 26 },
+    { seconds: 120, depth: 32, temp: 25 },
+    { seconds: 240, depth: 31, temp: 25 },
+    { seconds: 360, depth: 32, temp: 25 },
+    { seconds: 480, depth: 29, temp: 25 },
+    { seconds: 600, depth: 24, temp: 26 },
+    { seconds: 700, depth: 14, temp: 26 },
+    { seconds: 760, depth: 8, temp: 26 },
+    { seconds: 790, depth: 5, temp: 26 },
+    { seconds: 1090, depth: 5, temp: 26 },
+    { seconds: 1130, depth: 0, temp: 26 },
+  ]);
   createDiveLog({
     trip_id: null, dive_site_id: thistlegorm.id, date: iso(-38, "09:00:00"),
     depth_max: 28, bottom_time: 45, surface_interval: null,
     gas_mix: "NITROX", o2_percentage: 32, helium_percentage: null,
     pressure_start: 210, pressure_end: 50,
-    water_temp: 27, air_temp: 33, visibility: 20,
+    water_temp: 27, air_temp: 33, visibility: 20, visibility_horizontal: 18,
     dive_type: "WRECK", buddy_name: "Ahmed Hassan", suit_type: "3mm húmedo",
     weight: 4, rating: 5, notes: "Motos y camiones aún visibles en las bodegas",
+    current: "NONE", divemaster: "Ahmed Hassan", boat: "M/Y Blue Melody", entry_type: "BOAT",
+    deco_required: 0, safety_stop_minutes: 3, min_ppo2: null, max_ppo2: null, cns_percent: null,
     equipmentIds: fullGear,
   });
   createDiveLog({
@@ -404,9 +431,11 @@ export async function seedDevData(): Promise<void> {
     depth_max: 20, bottom_time: 40, surface_interval: null,
     gas_mix: "AIR", o2_percentage: null, helium_percentage: null,
     pressure_start: 205, pressure_end: 65,
-    water_temp: 17, air_temp: 20, visibility: 14,
+    water_temp: 17, air_temp: 20, visibility: 14, visibility_horizontal: null,
     dive_type: "RECREATIONAL", buddy_name: "Marco Bianchi", suit_type: "5mm húmedo",
     weight: 6, rating: 4, notes: null,
+    current: "NONE", divemaster: null, boat: null, entry_type: "SHORE",
+    deco_required: 0, safety_stop_minutes: 3, min_ppo2: null, max_ppo2: null, cns_percent: null,
     equipmentIds: fullGear,
   });
 }

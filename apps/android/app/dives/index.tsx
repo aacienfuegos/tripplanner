@@ -73,7 +73,7 @@ export default function DiveLogsScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => openEdit(item)}
+            onPress={() => router.push(`/dives/dive-detail?id=${item.id}`)}
             onLongPress={() => Alert.alert(`#${item.dive_number}`, undefined, [
               { text: t.edit, onPress: () => openEdit(item) },
               { text: t.delete, style: "destructive", onPress: () => { deleteDiveLog(item.id); refresh(); } },
