@@ -11,6 +11,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DiveSiteDetailActions } from "@/components/dives/dive-site-detail-actions";
 import { formatDiveDate } from "@/lib/dive-date";
 import { getT } from "@/lib/locale";
+import type { WebTKeys } from "@/i18n";
+
+function waterTypeLabel(waterType: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED", t: WebTKeys): string {
+  switch (waterType) {
+    case "SALT":
+      return t.waterTypeSalt;
+    case "FRESH":
+      return t.waterTypeFresh;
+    case "BRACKISH":
+      return t.waterTypeBrackish;
+    case "CHLORINATED":
+      return t.waterTypeChlorinated;
+  }
+}
 
 export default async function DiveSiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -70,6 +84,13 @@ export default async function DiveSiteDetailPage({ params }: { params: Promise<{
         </div>
         <DiveSiteDetailActions site={site} areas={areas} />
       </div>
+
+      {(site.maxDepth != null || site.waterType) && (
+        <div className="flex flex-wrap gap-2">
+          {site.maxDepth != null && <Badge variant="outline">{t.diveSiteMaxDepth(site.maxDepth)}</Badge>}
+          {site.waterType && <Badge variant="outline">{waterTypeLabel(site.waterType, t)}</Badge>}
+        </div>
+      )}
 
       {dives.length > 0 && (
         <div className="flex flex-wrap gap-2">

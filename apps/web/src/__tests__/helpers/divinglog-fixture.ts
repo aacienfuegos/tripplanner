@@ -17,7 +17,7 @@ export function buildDivingLogFixture(): string {
     CREATE TABLE City('ID' INTEGER PRIMARY KEY, 'City' TEXT);
     CREATE TABLE Divetype('ID' INTEGER PRIMARY KEY, 'Typename' TEXT);
     CREATE TABLE Trip('ID' INTEGER PRIMARY KEY, 'TripName' TEXT, 'StartDate' TEXT, 'EndDate' TEXT, 'UUID' TEXT);
-    CREATE TABLE Place('ID' INTEGER PRIMARY KEY, 'CountryID' INTEGER, 'Place' TEXT, 'Lat' TEXT, 'Lon' TEXT, 'Comments' TEXT, 'UUID' TEXT);
+    CREATE TABLE Place('ID' INTEGER PRIMARY KEY, 'CountryID' INTEGER, 'Place' TEXT, 'Lat' TEXT, 'Lon' TEXT, 'MaxDepth' REAL, 'Water' INTEGER, 'Comments' TEXT, 'UUID' TEXT);
     CREATE TABLE Brevets('ID' INTEGER PRIMARY KEY, 'Brevet' TEXT, 'Org' TEXT, 'CertDate' TEXT, 'Number' TEXT, 'Instructor' TEXT, 'UUID' TEXT);
     CREATE TABLE Tank('ID' INTEGER PRIMARY KEY, 'LogID' INTEGER, 'SortOrd' INTEGER, 'PresS' REAL, 'PresE' REAL, 'O2' REAL, 'He' REAL);
     CREATE TABLE Logbook(
@@ -48,18 +48,23 @@ export function buildDivingLogFixture(): string {
   );
 
   const placeInsert = db.prepare(
-    "INSERT INTO Place (ID, CountryID, Place, Lat, Lon, Comments, UUID) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO Place (ID, CountryID, Place, Lat, Lon, MaxDepth, Water, Comments, UUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const placeUuids = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
   // CountryID left empty on purpose (mirrors the real export where Place.CountryID
   // was unreliable and the Logbook.Country fallback carried the value instead).
-  placeInsert.run(1, null, "Wreck Reef", null, null, "Great visibility", placeUuids[0]);
-  placeInsert.run(2, null, "Blue Cave", null, null, null, placeUuids[1]);
-  placeInsert.run(3, null, "Orphan Site", null, null, null, placeUuids[2]);
+  // MaxDepth=18/Water=1 (Salt) exercise the real, filled-in case (verified
+  // against a real export: 3/27 sites had MaxDepth, all Water=1 or unset).
+  placeInsert.run(1, null, "Wreck Reef", null, null, 18, 1, "Great visibility", placeUuids[0]);
+  // Water=2 (Fresh) — the other populated value seen in Diving Log's own
+  // dropdown order (Salt/Fresh/Brackish/Chlorinated), no MaxDepth recorded.
+  placeInsert.run(2, null, "Blue Cave", null, null, null, 2, null, placeUuids[1]);
+  placeInsert.run(3, null, "Orphan Site", null, null, null, null, null, placeUuids[2]);
   // Mirrors the real "{Site} - {Area}" naming convention (verified against a
   // real 65-dive export) — the parser must split this into name="Piles 1",
-  // region="Cabo de Palos", not keep the area glued to the name.
-  placeInsert.run(4, null, "Piles 1 - Cabo de Palos", null, null, null, placeUuids[3]);
+  // region="Cabo de Palos", not keep the area glued to the name. Water=0 here
+  // mirrors the real export too: never filled in, must map to undefined, not "Salt".
+  placeInsert.run(4, null, "Piles 1 - Cabo de Palos", null, null, null, 0, null, placeUuids[3]);
 
   db.prepare("INSERT INTO Brevets (ID, Brevet, Org, CertDate, Number, Instructor, UUID) VALUES (?, ?, ?, ?, ?, ?, ?)").run(
     1,

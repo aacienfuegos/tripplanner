@@ -20,6 +20,8 @@ export interface DivingLogParsedSite {
   region: string | undefined;
   latitude: number | null;
   longitude: number | null;
+  maxDepth: number | null;
+  waterType: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED" | undefined;
   notes: string | undefined;
 }
 
@@ -98,6 +100,8 @@ interface PlaceRow {
   Place: string | null;
   Lat: string | null;
   Lon: string | null;
+  MaxDepth: number | null;
+  Water: number | null;
   Comments: string | null;
   UUID: string | null;
 }
@@ -262,6 +266,17 @@ function resolveEntryType(value: number | null): "SHORE" | "BOAT" | undefined {
   return undefined;
 }
 
+// Place.Water is 1-indexed (1=Salt, 2=Fresh, 3=Brackish, 4=Chlorinated, per
+// the app's own dropdown order) with 0 meaning "never filled in" — same
+// unset-sentinel pattern already used for Logbook.Rating in this file.
+function resolveWaterType(value: number | null): "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED" | undefined {
+  if (value === 1) return "SALT";
+  if (value === 2) return "FRESH";
+  if (value === 3) return "BRACKISH";
+  if (value === 4) return "CHLORINATED";
+  return undefined;
+}
+
 // Diving Log's own City field isn't a dive-area classification — it's the
 // base of operations (city/island/hotel/liveaboard/camping/day trip, per
 // City.Type), which doesn't always match the actual dive area. Divers after
@@ -356,7 +371,7 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
     const countries = runQuery<CountryRow>(db, "SELECT ID, Country FROM Country");
     const places = runQuery<PlaceRow>(
       db,
-      "SELECT ID, CountryID, Place, Lat, Lon, Comments, UUID FROM Place",
+      "SELECT ID, CountryID, Place, Lat, Lon, MaxDepth, Water, Comments, UUID FROM Place",
     );
     const brevets = runQuery<BrevetRow>(
       db,
@@ -448,6 +463,8 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         region: area ?? regionByPlaceId.get(place.ID),
         latitude: toNumberOrNull(place.Lat),
         longitude: toNumberOrNull(place.Lon),
+        maxDepth: place.MaxDepth,
+        waterType: resolveWaterType(place.Water),
         notes: nonEmpty(place.Comments),
       });
     }

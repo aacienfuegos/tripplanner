@@ -351,6 +351,13 @@ enum DiveEntryType {
   BOAT
 }
 
+enum WaterType {
+  SALT
+  FRESH
+  BRACKISH
+  CHLORINATED
+}
+
 model DiveArea {
   id        String   @id @default(cuid())
   userId    String
@@ -374,6 +381,8 @@ model DiveSite {
   region     String?
   latitude   Float?
   longitude  Float?
+  maxDepth   Float?
+  waterType  WaterType?
   notes      String?
   source     DiveSource @default(MANUAL)
   externalId String?

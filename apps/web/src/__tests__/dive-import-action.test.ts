@@ -28,6 +28,8 @@ const diveCertificationFindMany = vi.fn();
 const diveCertificationCreateMany = vi.fn();
 const tripFindMany = vi.fn();
 const tripCreate = vi.fn();
+const diveAreaFindMany = vi.fn();
+const diveAreaCreate = vi.fn();
 
 function makeTx() {
   return {
@@ -35,6 +37,7 @@ function makeTx() {
     diveLog: { createMany: diveLogCreateMany, findMany: diveLogFindManyTx, update: diveLogUpdateTx },
     diveCertification: { createMany: diveCertificationCreateMany },
     trip: { findMany: tripFindMany, create: tripCreate },
+    diveArea: { findMany: diveAreaFindMany, create: diveAreaCreate },
   };
 }
 
@@ -63,6 +66,10 @@ beforeEach(() => {
   diveCertificationCreateMany.mockResolvedValue({ count: 0 });
   diveSiteFindMany.mockResolvedValue([]);
   tripFindMany.mockResolvedValue([]);
+  diveAreaFindMany.mockResolvedValue([]);
+  diveAreaCreate.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+    Promise.resolve({ id: `area-${data.name}`, name: data.name }),
+  );
 });
 
 describe("checkDivingLogDuplicates", () => {
@@ -191,6 +198,55 @@ describe("bulkImportDivingLog", () => {
     });
 
     expect(diveSiteCreate).not.toHaveBeenCalled();
+  });
+
+  it("creates a DiveArea for a new site's region and links it via diveAreaId", async () => {
+    const { bulkImportDivingLog } = await import("@/actions/dive-import");
+    await bulkImportDivingLog({
+      sites: [{ name: "Piles 1", region: "Cabo de Palos", country: "Spain", externalId: "site-ext-1" }],
+      logs: [],
+      certifications: [],
+      trips: [],
+    });
+
+    expect(diveAreaCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: "user-1", name: "Cabo de Palos", country: "Spain" }) }),
+    );
+    expect(diveSiteCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ diveAreaId: "area-Cabo de Palos" }) }),
+    );
+  });
+
+  it("reuses an existing DiveArea matched by name (case-insensitive) instead of creating a duplicate", async () => {
+    diveAreaFindMany.mockResolvedValue([{ id: "existing-area-id", name: "cabo de palos" }]);
+
+    const { bulkImportDivingLog } = await import("@/actions/dive-import");
+    await bulkImportDivingLog({
+      sites: [{ name: "Piles 2", region: "Cabo de Palos", externalId: "site-ext-2" }],
+      logs: [],
+      certifications: [],
+      trips: [],
+    });
+
+    expect(diveAreaCreate).not.toHaveBeenCalled();
+    expect(diveSiteCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ diveAreaId: "existing-area-id" }) }),
+    );
+  });
+
+  it("does not create a DiveArea for a site without a region", async () => {
+    const { bulkImportDivingLog } = await import("@/actions/dive-import");
+    await bulkImportDivingLog({
+      sites: [{ name: "Orphan Site", externalId: "site-ext-3" }],
+      logs: [],
+      certifications: [],
+      trips: [],
+    });
+
+    expect(diveAreaCreate).not.toHaveBeenCalled();
+    expect(diveSiteCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ diveAreaId: null }) }),
+    );
   });
 
   it("kicks off best-effort geocoding for a newly created site without coordinates", async () => {

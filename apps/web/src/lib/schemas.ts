@@ -103,6 +103,8 @@ export const diveSourceSchema = z.enum(["MANUAL", "IMPORTED"]);
 
 export const gasMixSchema = z.enum(["AIR", "NITROX", "TRIMIX", "OXYGEN"]);
 
+export const waterTypeSchema = z.enum(["SALT", "FRESH", "BRACKISH", "CHLORINATED"]);
+
 export const diveAreaSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   country: z.string().optional(),
@@ -217,6 +219,8 @@ export const divingLogSiteSchema = diveSiteSchema.extend({
   externalId: z.string().min(1),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
+  maxDepth: z.number().nullable().optional(),
+  waterType: waterTypeSchema.optional(),
 });
 
 // Muestras profundidad/tiempo del ordenador de buceo, cuando el export las
