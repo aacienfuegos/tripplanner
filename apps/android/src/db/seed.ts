@@ -62,7 +62,7 @@ export async function seedDevData(): Promise<void> {
     departure_at: iso(45, "13:20:00"), arrival_at: iso(46, "09:15:00"),
     booking_ref: "QZX7K2", confirmation_url: "https://iberia.com/mytrips/QZX7K2",
     seat_number: "23A", class: "ECONOMY", price: 780,
-    origin_lat: null, origin_lng: null, destination_lat: null, destination_lng: null,
+    origin_lat: 40.49341, origin_lng: -3.57225, destination_lat: 35.76858, destination_lng: 140.38871,
     notes: "Escala en Frankfurt, 1h50 de conexión",
   });
   await createFlight(japan.id, {
@@ -71,7 +71,7 @@ export async function seedDevData(): Promise<void> {
     departure_at: iso(58, "11:05:00"), arrival_at: iso(58, "18:40:00"),
     booking_ref: "QZX7K2", confirmation_url: "https://ana.co.jp/mytrips/QZX7K2",
     seat_number: "31C", class: "ECONOMY", price: 810,
-    origin_lat: null, origin_lng: null, destination_lat: null, destination_lng: null,
+    origin_lat: 34.4273, origin_lng: 135.244, destination_lat: 40.49341, destination_lng: -3.57225,
     notes: null,
   });
 
@@ -81,7 +81,7 @@ export async function seedDevData(): Promise<void> {
     check_in: day(46), check_out: day(52),
     booking_ref: "BK-9931827", confirmation_url: "https://booking.com/res/9931827",
     price: 1080, price_per_night: 180,
-    latitude: null, longitude: null,
+    latitude: 35.6941, longitude: 139.7038,
     notes: "Pedir habitación en planta alta si hay disponibilidad",
   });
   await createAccommodation(japan.id, {
@@ -90,7 +90,7 @@ export async function seedDevData(): Promise<void> {
     check_in: day(52), check_out: day(58),
     booking_ref: "BK-4471029", confirmation_url: "https://booking.com/res/4471029",
     price: 720, price_per_night: 120,
-    latitude: null, longitude: null,
+    latitude: 35.0104, longitude: 135.7597,
     notes: null,
   });
 
@@ -101,7 +101,7 @@ export async function seedDevData(): Promise<void> {
     scheduled_at: iso(47, "10:00:00"), duration: 120,
     booking_ref: "TLB-5521", confirmation_url: "https://teamlab.art/e/planets/5521",
     price: 38, status: "CONFIRMED",
-    latitude: null, longitude: null,
+    latitude: 35.6469, longitude: 139.793,
     notes: "Llevar toalla, hay zonas con agua",
   });
   await createActivity(japan.id, {
@@ -111,7 +111,7 @@ export async function seedDevData(): Promise<void> {
     scheduled_at: iso(48, "18:30:00"), duration: 180,
     booking_ref: null, confirmation_url: null,
     price: 95, status: "RESERVED",
-    latitude: null, longitude: null,
+    latitude: 35.6595, longitude: 139.7005,
     notes: null,
   });
   await createActivity(japan.id, {
@@ -121,7 +121,7 @@ export async function seedDevData(): Promise<void> {
     scheduled_at: iso(53, "07:30:00"), duration: 150,
     booking_ref: null, confirmation_url: null,
     price: null, status: "PENDING",
-    latitude: null, longitude: null,
+    latitude: 34.9671, longitude: 135.7727,
     notes: "Ir temprano para evitar aglomeraciones",
   });
   await createActivity(japan.id, {
@@ -129,7 +129,7 @@ export async function seedDevData(): Promise<void> {
     description: null, location: null, city: "Kioto",
     scheduled_at: null, duration: null,
     booking_ref: null, confirmation_url: null,
-    price: null, status: "PENDING", latitude: null, longitude: null, notes: null,
+    price: null, status: "PENDING", latitude: 35.0116, longitude: 135.7681, notes: null,
   });
 
   await createDocument(japan.id, {
@@ -171,7 +171,7 @@ export async function seedDevData(): Promise<void> {
     departure_at: iso(-2, "07:45:00"), arrival_at: iso(-2, "08:50:00"),
     booking_ref: "LX88PT", confirmation_url: "https://flytap.com/mytrips/LX88PT",
     seat_number: "14F", class: "ECONOMY", price: 145,
-    origin_lat: null, origin_lng: null, destination_lat: null, destination_lng: null,
+    origin_lat: 40.49341, origin_lng: -3.57225, destination_lat: 38.7813, destination_lng: -9.13592,
     notes: null,
   });
   await createFlight(lisbon.id, {
@@ -180,7 +180,7 @@ export async function seedDevData(): Promise<void> {
     departure_at: iso(2, "20:10:00"), arrival_at: iso(2, "23:35:00"),
     booking_ref: "LX88PT", confirmation_url: "https://flytap.com/mytrips/LX88PT",
     seat_number: "14F", class: "ECONOMY", price: 150,
-    origin_lat: null, origin_lng: null, destination_lat: null, destination_lng: null,
+    origin_lat: 38.7813, origin_lng: -9.13592, destination_lat: 40.49341, destination_lng: -3.57225,
     notes: null,
   });
 
@@ -190,7 +190,7 @@ export async function seedDevData(): Promise<void> {
     check_in: day(-2), check_out: day(2),
     booking_ref: "BK-2210984", confirmation_url: "https://booking.com/res/2210984",
     price: 280, price_per_night: 70,
-    latitude: null, longitude: null,
+    latitude: 38.7127, longitude: -9.1326,
     notes: null,
   });
 
@@ -200,7 +200,7 @@ export async function seedDevData(): Promise<void> {
     location: "Graça", city: "Lisboa",
     scheduled_at: iso(-1, "19:30:00"), duration: 60,
     booking_ref: null, confirmation_url: null,
-    price: null, status: "CONFIRMED", latitude: null, longitude: null, notes: null,
+    price: null, status: "CONFIRMED", latitude: 38.7203, longitude: -9.1301, notes: null,
   });
   await createActivity(lisbon.id, {
     name: "Excursión a Sintra", type: "TOUR",
@@ -208,7 +208,7 @@ export async function seedDevData(): Promise<void> {
     location: "Sintra", city: "Sintra",
     scheduled_at: iso(1, "09:00:00"), duration: 480,
     booking_ref: "GYG-33210", confirmation_url: "https://getyourguide.com/res/33210",
-    price: 65, status: "CONFIRMED", latitude: null, longitude: null,
+    price: 65, status: "CONFIRMED", latitude: 38.7979, longitude: -9.3817,
     notes: "Punto de encuentro: Rossio 8:50",
   });
 
@@ -238,7 +238,7 @@ export async function seedDevData(): Promise<void> {
     departure_at: iso(-120, "10:15:00"), arrival_at: iso(-120, "12:05:00"),
     booking_ref: "RM209X", confirmation_url: null,
     seat_number: null, class: "ECONOMY", price: 110,
-    origin_lat: null, origin_lng: null, destination_lat: null, destination_lng: null,
+    origin_lat: 40.49341, origin_lng: -3.57225, destination_lat: 41.80453, destination_lng: 12.252,
     notes: null,
   });
 
@@ -248,7 +248,7 @@ export async function seedDevData(): Promise<void> {
     check_in: day(-120), check_out: day(-115),
     booking_ref: "BK-1178320", confirmation_url: null,
     price: 620, price_per_night: 124,
-    latitude: null, longitude: null,
+    latitude: 41.8898, longitude: 12.4692,
     notes: null,
   });
 
@@ -258,7 +258,7 @@ export async function seedDevData(): Promise<void> {
     location: "Centro Storico", city: "Roma",
     scheduled_at: iso(-119, "09:00:00"), duration: 240,
     booking_ref: "COL-7743", confirmation_url: null,
-    price: 24, status: "CONFIRMED", latitude: null, longitude: null, notes: null,
+    price: 24, status: "CONFIRMED", latitude: 41.8902, longitude: 12.4922, notes: null,
   });
 
   await createExpense(rome.id, { description: "Vuelos Vueling", category: "FLIGHT", amount: 220, currency: "EUR", date: day(-140), paid: 1, notes: null });

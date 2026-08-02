@@ -238,6 +238,7 @@ export const es = {
   documentsFull: "Documentos",
   tasksFull: "Tareas del viaje",
   expensesFull: "Gastos del viaje",
+  sectionMap: "Mapa",
 
   // --- Dives ---
   dives: "Buceo",
@@ -331,6 +332,10 @@ export const es = {
   viewDiveSitesMap: "Ver mapa",
   viewOnMap: "Ver en Google Maps",
   viewDetail: "Ver detalle",
+  noGeolocatedItems: "Aún no hay elementos geolocalizados en este viaje.",
+  noGeolocatedItemsHint: "Añade alojamientos o actividades con dirección o ciudad y aparecerán aquí en el mapa.",
+  pendingGeolocation: (n: number) =>
+    `${n} elemento${n === 1 ? "" : "s"} sin ubicar todavía. Vuelve a abrir el mapa en unos segundos.`,
 
   diveStatsEmpty: "Todavía no hay inmersiones registradas.",
   diveStatsTotalDives: "Inmersiones",

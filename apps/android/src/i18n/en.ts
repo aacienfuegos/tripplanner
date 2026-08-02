@@ -240,6 +240,7 @@ export const en: TKeys = {
   documentsFull: "Documents",
   tasksFull: "Trip tasks",
   expensesFull: "Trip expenses",
+  sectionMap: "Map",
 
   // --- Dives ---
   dives: "Dives",
@@ -333,6 +334,10 @@ export const en: TKeys = {
   viewDiveSitesMap: "View map",
   viewOnMap: "View on Google Maps",
   viewDetail: "View details",
+  noGeolocatedItems: "No geolocated items in this trip yet.",
+  noGeolocatedItemsHint: "Add accommodations or activities with an address or city and they'll show up here on the map.",
+  pendingGeolocation: (n: number) =>
+    `${n} item${n === 1 ? "" : "s"} not located yet. Reopen the map in a few seconds.`,
 
   diveStatsEmpty: "No dives logged yet.",
   diveStatsTotalDives: "Dives",
