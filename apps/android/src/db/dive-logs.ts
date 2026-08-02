@@ -217,13 +217,22 @@ export interface DiveProfileSample {
   seconds: number;
   depth: number;
   temp: number | null;
+  ndlMinutes: number | null;
+}
+
+interface DiveProfileSampleRow {
+  seconds: number;
+  depth: number;
+  temp: number | null;
+  ndl_minutes: number | null;
 }
 
 export function getProfileSamples(diveLogId: number): DiveProfileSample[] {
-  return db.getAllSync<DiveProfileSample>(
-    "SELECT seconds, depth, temp FROM dive_log_profile_samples WHERE dive_log_id = ? ORDER BY seconds ASC",
+  const rows = db.getAllSync<DiveProfileSampleRow>(
+    "SELECT seconds, depth, temp, ndl_minutes FROM dive_log_profile_samples WHERE dive_log_id = ? ORDER BY seconds ASC",
     [diveLogId]
   );
+  return rows.map((r) => ({ seconds: r.seconds, depth: r.depth, temp: r.temp, ndlMinutes: r.ndl_minutes }));
 }
 
 // Perfiles reales importados desde un ordenador de buceo (o el seed de
@@ -234,8 +243,8 @@ export function setProfileSamples(diveLogId: number, samples: DiveProfileSample[
   db.runSync("DELETE FROM dive_log_profile_samples WHERE dive_log_id = ?", [diveLogId]);
   for (const s of samples) {
     db.runSync(
-      "INSERT INTO dive_log_profile_samples (dive_log_id, seconds, depth, temp) VALUES (?, ?, ?, ?)",
-      [diveLogId, s.seconds, s.depth, s.temp]
+      "INSERT INTO dive_log_profile_samples (dive_log_id, seconds, depth, temp, ndl_minutes) VALUES (?, ?, ?, ?, ?)",
+      [diveLogId, s.seconds, s.depth, s.temp, s.ndlMinutes]
     );
   }
 }

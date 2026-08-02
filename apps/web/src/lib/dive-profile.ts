@@ -7,6 +7,7 @@ export interface ProfileSample {
   seconds: number;
   depth: number;
   temp: number | null;
+  ndlMinutes: number | null;
 }
 
 interface ProfilePoint {
@@ -84,10 +85,10 @@ export function synthesizeProfile(input: SynthesizeProfileInput): ProfileSample[
   const totalSeconds = t;
   const samples: ProfileSample[] = [];
   for (let sec = 0; sec <= totalSeconds; sec += SAMPLE_INTERVAL_SECONDS) {
-    samples.push({ seconds: sec, depth: interpolateDepth(points, sec), temp: waterTemp });
+    samples.push({ seconds: sec, depth: interpolateDepth(points, sec), temp: waterTemp, ndlMinutes: null });
   }
   if (samples[samples.length - 1]?.seconds !== totalSeconds) {
-    samples.push({ seconds: totalSeconds, depth: 0, temp: waterTemp });
+    samples.push({ seconds: totalSeconds, depth: 0, temp: waterTemp, ndlMinutes: null });
   }
   return samples;
 }
@@ -109,4 +110,49 @@ export function resolveDiveProfile(dive: DiveProfileSummary, storedSamples: Prof
     safetyStopMinutes: dive.safetyStopMinutes,
     waterTemp: dive.waterTemp,
   });
+}
+
+export interface SafetyStopRange {
+  startSeconds: number;
+  endSeconds: number;
+}
+
+const SAFETY_STOP_MIN_DEPTH = 3;
+const SAFETY_STOP_MAX_DEPTH = 6;
+const SAFETY_STOP_MIN_DURATION_SECONDS = 60;
+
+// No hay ninguna marca explícita de "aquí empieza/acaba la parada" ni en
+// perfiles sintéticos ni en los importados de un ordenador real — se
+// detecta como la última meseta sostenida entre 3 y 6 m antes de tocar
+// superficie, que es como se reconoce visualmente en cualquier caso.
+export function findSafetyStopRange(samples: ProfileSample[]): SafetyStopRange | null {
+  if (samples.length < 2) return null;
+  let bestStart = -1;
+  let bestEnd = -1;
+  let runStart = -1;
+
+  for (let i = 0; i < samples.length; i++) {
+    const inRange = samples[i].depth >= SAFETY_STOP_MIN_DEPTH && samples[i].depth <= SAFETY_STOP_MAX_DEPTH;
+    if (inRange) {
+      if (runStart === -1) runStart = i;
+      continue;
+    }
+    if (runStart !== -1) {
+      if (samples[i - 1].seconds - samples[runStart].seconds >= SAFETY_STOP_MIN_DURATION_SECONDS) {
+        bestStart = runStart;
+        bestEnd = i - 1;
+      }
+      runStart = -1;
+    }
+  }
+  if (
+    runStart !== -1 &&
+    samples[samples.length - 1].seconds - samples[runStart].seconds >= SAFETY_STOP_MIN_DURATION_SECONDS
+  ) {
+    bestStart = runStart;
+    bestEnd = samples.length - 1;
+  }
+
+  if (bestStart === -1) return null;
+  return { startSeconds: samples[bestStart].seconds, endSeconds: samples[bestEnd].seconds };
 }

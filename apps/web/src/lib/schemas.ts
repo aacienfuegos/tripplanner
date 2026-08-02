@@ -225,6 +225,8 @@ export const divingLogSiteSchema = diveSiteSchema.extend({
 const divingLogProfileSampleSchema = z.object({
   seconds: z.number().int().nonnegative(),
   depth: z.number().nonnegative(),
+  temp: z.number().nullable().optional().default(null),
+  ndlMinutes: z.number().int().nullable().optional().default(null),
 });
 
 export const divingLogEntrySchema = diveLogSchema.omit({ diveSiteId: true }).extend({

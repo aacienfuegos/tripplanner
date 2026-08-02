@@ -259,6 +259,12 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
 
             <Text className={groupLabel}>{t.diveGroupProfile}</Text>
             <View>
+              <Text className={label}>{t.diveSurfaceInterval}</Text>
+              <TextInput className={inputClass} value={surfaceInterval} onChangeText={setSurfaceInterval} keyboardType="number-pad" />
+            </View>
+
+            <Text className={groupLabel}>{t.diveGroupGas}</Text>
+            <View>
               <Text className={label}>{t.diveGasMix}</Text>
               <View className="flex-row gap-2 flex-wrap">
                 {GAS_MIXES.map((g) => (
@@ -289,10 +295,6 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
                 <Text className={label}>{t.divePressureEnd}</Text>
                 <TextInput className={inputClass} value={pressureEnd} onChangeText={setPressureEnd} keyboardType="number-pad" />
               </View>
-            </View>
-            <View>
-              <Text className={label}>{t.diveSurfaceInterval}</Text>
-              <TextInput className={inputClass} value={surfaceInterval} onChangeText={setSurfaceInterval} keyboardType="number-pad" />
             </View>
 
             <Text className={groupLabel}>{t.diveGroupConditions}</Text>
@@ -332,6 +334,16 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
                 {ENTRY_TYPES.map((et) => (
                   <Chip key={et} selected={entryType === et} label={entryTypeLabels[et]} onPress={() => setEntryType(et)} />
                 ))}
+              </View>
+            </View>
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Text className={label}>{t.diveSuitType}</Text>
+                <TextInput className={inputClass} value={suitType} onChangeText={setSuitType} />
+              </View>
+              <View className="flex-1">
+                <Text className={label}>{t.diveWeight}</Text>
+                <TextInput className={inputClass} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
               </View>
             </View>
             <View>
@@ -380,23 +392,13 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
                 <TextInput className={inputClass} value={buddyName} onChangeText={setBuddyName} />
               </View>
               <View className="flex-1">
-                <Text className={label}>{t.diveSuitType}</Text>
-                <TextInput className={inputClass} value={suitType} onChangeText={setSuitType} />
-              </View>
-            </View>
-            <View className="flex-row gap-3">
-              <View className="flex-1">
                 <Text className={label}>{t.diveDivemaster}</Text>
                 <TextInput className={inputClass} value={divemaster} onChangeText={setDivemaster} />
               </View>
-              <View className="flex-1">
-                <Text className={label}>{t.diveBoat}</Text>
-                <TextInput className={inputClass} value={boat} onChangeText={setBoat} />
-              </View>
             </View>
             <View>
-              <Text className={label}>{t.diveWeight}</Text>
-              <TextInput className={inputClass} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
+              <Text className={label}>{t.diveBoat}</Text>
+              <TextInput className={inputClass} value={boat} onChangeText={setBoat} />
             </View>
             <View>
               <Text className={label}>{t.diveRating}</Text>

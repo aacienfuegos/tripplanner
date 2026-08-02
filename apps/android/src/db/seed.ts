@@ -399,20 +399,23 @@ export async function seedDevData(): Promise<void> {
   });
   // Perfil real (no sintetizado) para mostrar cómo se ve una curva de
   // ordenador de buceo de verdad frente a la aproximación automática.
+  // ndlMinutes es ilustrativo (no modela deco real) — solo para que la
+  // pestaña de NDL tenga algo que enseñar en el seed: cae a 0 al entrar
+  // en la zona de descompresión y se recupera al ascender.
   setProfileSamples(blueHoleDiveId, [
-    { seconds: 30, depth: 11, temp: 26 },
-    { seconds: 60, depth: 22, temp: 26 },
-    { seconds: 90, depth: 29, temp: 26 },
-    { seconds: 120, depth: 32, temp: 25 },
-    { seconds: 240, depth: 31, temp: 25 },
-    { seconds: 360, depth: 32, temp: 25 },
-    { seconds: 480, depth: 29, temp: 25 },
-    { seconds: 600, depth: 24, temp: 26 },
-    { seconds: 700, depth: 14, temp: 26 },
-    { seconds: 760, depth: 8, temp: 26 },
-    { seconds: 790, depth: 5, temp: 26 },
-    { seconds: 1090, depth: 5, temp: 26 },
-    { seconds: 1130, depth: 0, temp: 26 },
+    { seconds: 30, depth: 11, temp: 26, ndlMinutes: 20 },
+    { seconds: 60, depth: 22, temp: 26, ndlMinutes: 10 },
+    { seconds: 90, depth: 29, temp: 26, ndlMinutes: 4 },
+    { seconds: 120, depth: 32, temp: 25, ndlMinutes: 0 },
+    { seconds: 240, depth: 31, temp: 25, ndlMinutes: 0 },
+    { seconds: 360, depth: 32, temp: 25, ndlMinutes: 0 },
+    { seconds: 480, depth: 29, temp: 25, ndlMinutes: 0 },
+    { seconds: 600, depth: 24, temp: 26, ndlMinutes: 0 },
+    { seconds: 700, depth: 14, temp: 26, ndlMinutes: 5 },
+    { seconds: 760, depth: 8, temp: 26, ndlMinutes: 12 },
+    { seconds: 790, depth: 5, temp: 26, ndlMinutes: 20 },
+    { seconds: 1090, depth: 5, temp: 26, ndlMinutes: 35 },
+    { seconds: 1130, depth: 0, temp: 26, ndlMinutes: 45 },
   ]);
   createDiveLog({
     trip_id: null, dive_site_id: thistlegorm.id, date: iso(-38, "09:00:00"),

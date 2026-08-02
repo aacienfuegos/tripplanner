@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Waves, Pencil, Trash2, MapPin, Star, Thermometer, ArrowDownToLine, Timer, X, LineChart } from "lucide-react";
-import Link from "next/link";
+import { Plus, Waves, Pencil, Trash2, MapPin, Star, Thermometer, ArrowDownToLine, Timer, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ export function DiveLogList({
   equipment: DiveEquipment[];
 }) {
   const { t } = useT();
+  const router = useRouter();
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DiveLogWithSite | null>(null);
@@ -181,7 +182,17 @@ export function DiveLogList({
       ) : (
         <div className="space-y-3">
           {filteredDives.map((dive) => (
-            <Card key={dive.id} id={dive.id} className="scroll-mt-16 target:ring-2 target:ring-primary/40">
+            <Card
+              key={dive.id}
+              id={dive.id}
+              className="scroll-mt-16 target:ring-2 target:ring-primary/40 cursor-pointer hover:bg-accent/40 transition-colors"
+              role="link"
+              tabIndex={0}
+              onClick={() => router.push(`/dives/${dive.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") router.push(`/dives/${dive.id}`);
+              }}
+            >
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1.5 flex-1">
@@ -217,20 +228,25 @@ export function DiveLogList({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Link href={`/dives/${dive.id}`} className={buttonVariants({ variant: "ghost", size: "icon" })}>
-                      <LineChart className="h-4 w-4" />
-                    </Link>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditing(dive);
                         setOpen(true);
                       }}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(dive.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(dive.id);
+                      }}
+                    >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

@@ -96,9 +96,9 @@ describe("parseDivingLogDatabase", () => {
   it("decodes Profile+ProfileInt into depth/time samples", () => {
     const dive1 = result.entries.find((e) => e.depthMax === "18");
     expect(dive1?.profileSamples).toEqual([
-      { seconds: 60, depth: 5 },
-      { seconds: 120, depth: 15 },
-      { seconds: 180, depth: 18 },
+      { seconds: 60, depth: 5, temp: 28.2, ndlMinutes: 45 },
+      { seconds: 120, depth: 15, temp: 26, ndlMinutes: 30 },
+      { seconds: 180, depth: 18, temp: null, ndlMinutes: null },
     ]);
   });
 

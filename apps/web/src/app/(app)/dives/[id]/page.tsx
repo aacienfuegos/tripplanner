@@ -10,24 +10,14 @@ import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DiveProfileChart } from "@/components/dives/DiveProfileChart";
+import { DiveChartsSection } from "@/components/dives/DiveChartsSection";
 import { DiveLogDetailActions } from "@/components/dives/dive-log-detail-actions";
+import { DiveTechnicalStats } from "@/components/dives/DiveTechnicalStats";
+import { DASH, Stat, StatGroup } from "@/components/dives/DiveStat";
 import { resolveDiveProfile } from "@/lib/dive-profile";
 import { formatDiveDate } from "@/lib/dive-date";
 import { diveTypeLabel } from "@/lib/dive-type";
 import { getT } from "@/lib/locale";
-
-function Stat({ icon: Icon, label, value }: { icon: typeof ArrowDownToLine; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium">{value}</p>
-      </div>
-    </div>
-  );
-}
 
 export default async function DiveLogDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -95,56 +85,62 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
         <DiveLogDetailActions dive={dive} sites={sites} equipment={equipment} />
       </div>
 
-      <Card>
-        <CardContent className="pt-5">
-          <DiveProfileChart samples={profile} />
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-5">
+      <StatGroup label={t.diveGroupProfile}>
         <Stat icon={ArrowDownToLine} label={t.diveDepthMax} value={`${dive.depthMax} m`} />
-        {avgDepth != null && <Stat icon={Gauge} label={t.diveStatsAvgDepth} value={`${avgDepth.toFixed(1)} m`} />}
+        <Stat icon={Gauge} label={t.diveStatsAvgDepth} value={avgDepth != null ? `${avgDepth.toFixed(1)} m` : DASH} />
         <Stat icon={Timer} label={t.diveBottomTime} value={`${dive.bottomTime} min`} />
-        {dive.waterTemp != null && <Stat icon={Thermometer} label={t.diveWaterTemp} value={`${dive.waterTemp}°C`} />}
-        {dive.airTemp != null && <Stat icon={Thermometer} label={t.diveAirTemp} value={`${dive.airTemp}°C`} />}
-        {dive.visibility != null && <Stat icon={Eye} label={t.diveVisibility} value={`${dive.visibility} m`} />}
-        {dive.visibilityHorizontal != null && (
-          <Stat icon={Eye} label={t.diveVisibilityHorizontal} value={`${dive.visibilityHorizontal} m`} />
-        )}
-        {dive.current && <Stat icon={Waves} label={t.diveCurrent} value={currentLabels[dive.current]} />}
-        {(dive.pressureStart != null || dive.pressureEnd != null) && (
-          <Stat
-            icon={Wind}
-            label={`${t.divePressureStart} → ${t.divePressureEnd}`}
-            value={`${dive.pressureStart ?? "—"} → ${dive.pressureEnd ?? "—"} bar`}
-          />
-        )}
-        {dive.gasMix !== "AIR" && dive.o2Percentage != null && (
-          <Stat icon={Wind} label={t.diveO2Percentage} value={`${dive.o2Percentage}%`} />
-        )}
-        {dive.heliumPercentage != null && dive.heliumPercentage > 0 && (
-          <Stat icon={Wind} label={t.diveHeliumPercentage} value={`${dive.heliumPercentage}%`} />
-        )}
-        {dive.weight != null && <Stat icon={Anchor} label={t.diveWeight} value={`${dive.weight} kg`} />}
-        {dive.suitType && <Stat icon={Waves} label={t.diveSuitType} value={dive.suitType} />}
-        {dive.buddyName && <Stat icon={Users} label={t.diveBuddyName} value={dive.buddyName} />}
-        {dive.divemaster && <Stat icon={Users} label={t.diveDivemaster} value={dive.divemaster} />}
-        {dive.boat && <Stat icon={Anchor} label={t.diveBoat} value={dive.boat} />}
-        {dive.entryType && <Stat icon={Waves} label={t.diveEntryType} value={entryTypeLabels[dive.entryType]} />}
-        {dive.safetyStopMinutes != null && (
-          <Stat icon={Timer} label={t.diveSafetyStopMinutes} value={`${dive.safetyStopMinutes} min`} />
-        )}
-        {dive.minPpo2 != null && <Stat icon={Gauge} label={t.diveMinPpo2} value={`${dive.minPpo2} bar`} />}
-        {dive.maxPpo2 != null && <Stat icon={Gauge} label={t.diveMaxPpo2} value={`${dive.maxPpo2} bar`} />}
-        {dive.cnsPercent != null && <Stat icon={Gauge} label={t.diveCnsPercent} value={`${dive.cnsPercent}%`} />}
-      </div>
+        <Stat icon={Timer} label={t.diveSurfaceInterval} value={dive.surfaceInterval != null ? `${dive.surfaceInterval} min` : DASH} />
+      </StatGroup>
+
+      <StatGroup label={t.diveGroupGas}>
+        <Stat icon={Wind} label={t.diveGasMix} value={gasMixLabels[dive.gasMix]} />
+        <Stat icon={Wind} label={t.diveO2Percentage} value={dive.o2Percentage != null ? `${dive.o2Percentage}%` : DASH} />
+        <Stat icon={Wind} label={t.diveHeliumPercentage} value={dive.heliumPercentage != null ? `${dive.heliumPercentage}%` : DASH} />
+        <Stat icon={Wind} label={t.divePressureStart} value={dive.pressureStart != null ? `${dive.pressureStart} bar` : DASH} />
+        <Stat icon={Wind} label={t.divePressureEnd} value={dive.pressureEnd != null ? `${dive.pressureEnd} bar` : DASH} />
+      </StatGroup>
+
+      <StatGroup label={t.diveGroupConditions}>
+        <Stat icon={Thermometer} label={t.diveWaterTemp} value={dive.waterTemp != null ? `${dive.waterTemp}°C` : DASH} />
+        <Stat icon={Thermometer} label={t.diveAirTemp} value={dive.airTemp != null ? `${dive.airTemp}°C` : DASH} />
+        <Stat icon={Eye} label={t.diveVisibility} value={dive.visibility != null ? `${dive.visibility} m` : DASH} />
+        <Stat icon={Eye} label={t.diveVisibilityHorizontal} value={dive.visibilityHorizontal != null ? `${dive.visibilityHorizontal} m` : DASH} />
+        <Stat icon={Waves} label={t.diveCurrent} value={dive.current ? currentLabels[dive.current] : DASH} />
+        <Stat icon={Waves} label={t.diveEntryType} value={dive.entryType ? entryTypeLabels[dive.entryType] : DASH} />
+        <Stat icon={Waves} label={t.diveSuitType} value={dive.suitType ?? DASH} />
+        <Stat icon={Anchor} label={t.diveWeight} value={dive.weight != null ? `${dive.weight} kg` : DASH} />
+      </StatGroup>
+
+      <DiveTechnicalStats
+        groupLabel={t.diveGroupTechnical}
+        showLabel={t.diveShowTechnicalData}
+        hideLabel={t.diveHideTechnicalData}
+        hasData={
+          dive.safetyStopMinutes != null || dive.minPpo2 != null || dive.maxPpo2 != null || dive.cnsPercent != null || dive.decoRequired
+        }
+      >
+        <Stat icon={Timer} label={t.diveSafetyStopMinutes} value={dive.safetyStopMinutes != null ? `${dive.safetyStopMinutes} min` : DASH} />
+        <Stat icon={Gauge} label={t.diveMinPpo2} value={dive.minPpo2 != null ? `${dive.minPpo2} bar` : DASH} />
+        <Stat icon={Gauge} label={t.diveMaxPpo2} value={dive.maxPpo2 != null ? `${dive.maxPpo2} bar` : DASH} />
+        <Stat icon={Gauge} label={t.diveCnsPercent} value={dive.cnsPercent != null ? `${dive.cnsPercent}%` : DASH} />
+      </DiveTechnicalStats>
+
+      <StatGroup label={t.diveGroupNotes}>
+        <Stat icon={Users} label={t.diveBuddyName} value={dive.buddyName ?? DASH} />
+        <Stat icon={Users} label={t.diveDivemaster} value={dive.divemaster ?? DASH} />
+        <Stat icon={Anchor} label={t.diveBoat} value={dive.boat ?? DASH} />
+      </StatGroup>
 
       {dive.equipment.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground">{t.diveEquipmentUsed}</h4>
           <div className="flex flex-wrap gap-2">
             {dive.equipment.map((eq) => (
-              <Badge key={eq.id} variant="outline">{eq.name}</Badge>
+              <Link key={eq.id} href={`/dives/equipment/${eq.id}`}>
+                <Badge variant="outline" className="hover:bg-accent cursor-pointer transition-colors">
+                  {eq.name}
+                </Badge>
+              </Link>
             ))}
           </div>
         </div>
@@ -156,6 +152,12 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
           <p className="text-sm italic">{dive.notes}</p>
         </div>
       )}
+
+      <Card>
+        <CardContent className="pt-5">
+          <DiveChartsSection samples={profile} site={dive.diveSite} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

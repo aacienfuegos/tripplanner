@@ -216,6 +216,12 @@ export function DiveLogForm({ dive: d, sites, equipment, tripId, onSuccess }: Pr
             <Label htmlFor="surfaceInterval">{t.diveSurfaceInterval}</Label>
             <Input id="surfaceInterval" name="surfaceInterval" type="number" min="0" defaultValue={d?.surfaceInterval ?? ""} />
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupGas}</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="gasMix">{t.diveGasMix}</Label>
             <Select name="gasMix" defaultValue={d?.gasMix ?? "AIR"}>

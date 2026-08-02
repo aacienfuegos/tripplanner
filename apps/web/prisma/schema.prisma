@@ -432,11 +432,12 @@ model DiveLog {
 }
 
 model DiveProfileSample {
-  id        String @id @default(cuid())
-  diveLogId String
-  seconds   Int
-  depth     Float
-  temp      Float?
+  id         String @id @default(cuid())
+  diveLogId  String
+  seconds    Int
+  depth      Float
+  temp       Float?
+  ndlMinutes Int?
 
   diveLog DiveLog @relation(fields: [diveLogId], references: [id], onDelete: Cascade)
 

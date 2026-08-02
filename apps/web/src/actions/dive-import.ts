@@ -170,7 +170,9 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
       const diveLogId = logIdByExternalId.get(log.externalId);
       if (!diveLogId) continue;
       diveLogIds.push(diveLogId);
-      for (const s of log.profileSamples) sampleRows.push({ diveLogId, seconds: s.seconds, depth: s.depth });
+      for (const s of log.profileSamples) {
+        sampleRows.push({ diveLogId, seconds: s.seconds, depth: s.depth, temp: s.temp, ndlMinutes: s.ndlMinutes });
+      }
     }
 
     if (diveLogIds.length > 0) {
