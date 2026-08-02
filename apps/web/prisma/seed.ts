@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { normalizeCountryName } from "../src/lib/country-names";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -538,7 +539,7 @@ async function main() {
     data: {
       userId: DEV_USER_ID,
       name: "Costa Brava",
-      country: "España",
+      country: normalizeCountryName("Spain"),
       notes: "Zona habitual de fin de semana, a un par de horas de Madrid en coche.",
     },
   });
@@ -547,7 +548,7 @@ async function main() {
     data: {
       userId: DEV_USER_ID,
       name: "Mar Rojo - Sinaí",
-      country: "Egipto",
+      country: normalizeCountryName("Egypt"),
       notes: "Liveaboard de una semana, mayo 2026.",
     },
   });
@@ -558,7 +559,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: costaBrava.id,
       name: "Cala Montgó",
-      country: "España",
+      country: normalizeCountryName("Spain"),
       region: "L'Escala, Girona",
       latitude: 42.1207,
       longitude: 3.1583,
@@ -571,7 +572,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: costaBrava.id,
       name: "Islas Medas",
-      country: "España",
+      country: normalizeCountryName("Spain"),
       region: "L'Estartit, Girona",
       latitude: 42.0486,
       longitude: 3.2189,
@@ -584,7 +585,7 @@ async function main() {
     data: {
       userId: DEV_USER_ID,
       name: "Cantera de Alcázar de San Juan",
-      country: "España",
+      country: normalizeCountryName("Spain"),
       region: "Ciudad Real",
       notes: "Cantera inundada de agua dulce, entrenamiento en frío. Sin coordenadas registradas todavía.",
     },
@@ -595,7 +596,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: marRojoSinai.id,
       name: "Ras Mohammed - Shark & Yolanda Reef",
-      country: "Egipto",
+      country: normalizeCountryName("Egypt"),
       region: "Sinaí, Mar Rojo",
       latitude: 27.7167,
       longitude: 34.25,
@@ -608,7 +609,7 @@ async function main() {
       userId: DEV_USER_ID,
       diveAreaId: marRojoSinai.id,
       name: "Pecio SS Thistlegorm",
-      country: "Egipto",
+      country: normalizeCountryName("Egypt"),
       region: "Mar Rojo",
       latitude: 27.8135,
       longitude: 33.92,
