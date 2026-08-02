@@ -5,17 +5,21 @@ import {
 import { Tabs, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
-import { getTrip } from "@/db/trips";
+import { getTrip, isTripLocked } from "@/db/trips";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useT } from "@/contexts/I18nContext";
+import { usePro } from "@/contexts/ProContext";
+import { TripLockProvider } from "@/contexts/TripLockContext";
 
 export default function TripTabsLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t } = useT();
+  const { isPro } = usePro();
   const { colorScheme } = useColorScheme();
   const [tripName, setTripName] = useState("Viaje");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
   const isDark = colorScheme === "dark";
   const headerBg = isDark ? "#18181b" : "#ffffff";
@@ -28,13 +32,15 @@ export default function TripTabsLayout() {
     { name: "packing",   label: t.packingFull,   icon: "briefcase-outline",         color: "#4f46e5" },
     { name: "documents", label: t.documentsFull, icon: "document-text-outline",     color: "#0e7490" },
     { name: "tasks",     label: t.tasksFull,     icon: "checkmark-circle-outline",  color: "#7c3aed" },
+    { name: "dives",     label: t.dives,         icon: "water-outline",             color: "#0e7490" },
   ] as const;
 
   useFocusEffect(
     useCallback(() => {
       const trip = getTrip(Number(id));
       if (trip) setTripName(trip.name);
-    }, [id])
+      setIsLocked(isTripLocked(Number(id), isPro));
+    }, [id, isPro])
   );
 
   function openSection(name: string) {
@@ -43,7 +49,14 @@ export default function TripTabsLayout() {
   }
 
   return (
-    <>
+    <TripLockProvider isLocked={isLocked}>
+      <View style={{ flex: 1 }}>
+      {isLocked && (
+        <View className="flex-row items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950 border-b border-amber-200 dark:border-amber-900">
+          <Ionicons name="lock-closed" size={14} color="#b45309" />
+          <Text className="text-xs font-medium text-amber-700 dark:text-amber-400 flex-1">{t.tripLockedBanner}</Text>
+        </View>
+      )}
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: "#2563eb",
@@ -107,8 +120,11 @@ export default function TripTabsLayout() {
         <Tabs.Screen name="packing"        options={{ href: null }} />
         <Tabs.Screen name="documents"      options={{ href: null }} />
         <Tabs.Screen name="tasks"          options={{ href: null }} />
+        <Tabs.Screen name="dives"          options={{ href: null }} />
+        <Tabs.Screen name="map"            options={{ href: null }} />
         <Tabs.Screen name="edit"           options={{ href: null }} />
       </Tabs>
+      </View>
 
       <Modal
         visible={sheetOpen}
@@ -146,6 +162,6 @@ export default function TripTabsLayout() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </>
+    </TripLockProvider>
   );
 }

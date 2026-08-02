@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
-import { listTrips, deleteTrip, countTrips, getTripSummary, Trip } from "@/db/trips";
+import { listTrips, deleteTrip, countTrips, getTripSummary, lockedTripIds, Trip } from "@/db/trips";
 import { usePro, FREE_TRIP_LIMIT } from "@/contexts/ProContext";
 import { useT } from "@/contexts/I18nContext";
 
@@ -33,10 +33,10 @@ function StatusChip({ status, daysUntil, t }: { status: string; daysUntil: numbe
 }
 
 function TripCard({
-  item, onPress, onLongPress, lang, t,
+  item, onPress, onLongPress, lang, t, locked,
 }: {
   item: Trip; onPress: () => void; onLongPress: () => void;
-  lang: string; t: ReturnType<typeof useT>["t"];
+  lang: string; t: ReturnType<typeof useT>["t"]; locked: boolean;
 }) {
   const summary = getTripSummary(item.id, item.currency);
   const { colorScheme } = useColorScheme();
@@ -59,6 +59,12 @@ function TripCard({
           </Text>
         )}
         <StatusChip status={summary.tripStatus} daysUntil={summary.daysUntil} t={t} />
+        {locked && (
+          <View className="absolute top-4 right-4 flex-row items-center gap-1 bg-black/30 rounded-full px-2.5 py-1">
+            <Ionicons name="lock-closed" size={11} color="white" />
+            <Text className="text-white text-xs font-medium">{t.tripLockedBadge}</Text>
+          </View>
+        )}
       </LinearGradient>
 
       <View className={`px-5 py-3 flex-row items-center ${colorScheme === "dark" ? "bg-zinc-900" : "bg-white"}`}>
@@ -115,8 +121,12 @@ export default function TripsListScreen() {
   const { isPro } = usePro();
   const { t, lang } = useT();
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [locked, setLocked] = useState<Set<number>>(new Set());
 
-  useFocusEffect(useCallback(() => { setTrips(listTrips()); }, []));
+  useFocusEffect(useCallback(() => {
+    setTrips(listTrips());
+    setLocked(lockedTripIds(isPro));
+  }, [isPro]));
 
   function handleNew() {
     if (!isPro && countTrips() >= FREE_TRIP_LIMIT) {
@@ -157,6 +167,7 @@ export default function TripsListScreen() {
             onLongPress={() => handleDelete(item.id, item.name)}
             lang={lang}
             t={t}
+            locked={locked.has(item.id)}
           />
         )}
       />

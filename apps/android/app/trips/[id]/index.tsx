@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getTrip, getTripSummary, getTimelineData, TimelineFlight, TimelineAccommodation, TimelineActivity } from "@/db/trips";
 import { useT } from "@/contexts/I18nContext";
 import { useColorScheme } from "nativewind";
+import { useTripLock } from "@/contexts/TripLockContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -188,6 +189,7 @@ export default function TripOverviewScreen() {
   const tripId = Number(id);
   const router = useRouter();
   const { t, lang } = useT();
+  const { guard } = useTripLock();
   const { colorScheme } = useColorScheme();
 
   const [trip, setTrip] = useState(() => getTrip(tripId));
@@ -235,7 +237,14 @@ export default function TripOverviewScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
-      <Tabs.Screen options={{ title: t.overview }} />
+      <Tabs.Screen options={{
+        title: t.overview,
+        headerRight: () => (
+          <TouchableOpacity onPress={() => router.push(`/trips/${id}/map`)} className="mr-3">
+            <Ionicons name="map-outline" size={20} color={colorScheme === "dark" ? "#94a3b8" : "#374151"} />
+          </TouchableOpacity>
+        ),
+      }} />
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -249,7 +258,7 @@ export default function TripOverviewScreen() {
                 {trip.name}
               </Text>
               <TouchableOpacity
-                onPress={() => router.push(`/trips/${id}/edit`)}
+                onPress={() => guard(() => router.push(`/trips/${id}/edit`))}
                 className="bg-slate-100 dark:bg-zinc-800 rounded-xl p-2"
               >
                 <Ionicons name="pencil-outline" size={16} color={colorScheme === "dark" ? "#94a3b8" : "#64748b"} />

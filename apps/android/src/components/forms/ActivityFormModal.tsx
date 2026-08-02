@@ -6,6 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { createActivity, updateActivity, Activity } from "@/db/activities";
 import DatePickerInput from "@/components/DatePickerInput";
+import { geocodeQuery, activityGeocodeQuery } from "@/lib/geocode";
 
 type ActivityType = Activity["type"];
 type ActivityStatus = Activity["status"];
@@ -60,6 +61,15 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved, o
 
   async function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
+
+    let latitude = initialData?.latitude ?? null;
+    let longitude = initialData?.longitude ?? null;
+    if (latitude === null || longitude === null) {
+      const query = activityGeocodeQuery({ name: name.trim(), location: location.trim() || null, city: city.trim() || null });
+      const geocoded = query ? await geocodeQuery(query) : null;
+      if (geocoded) { latitude = geocoded.latitude; longitude = geocoded.longitude; }
+    }
+
     const data = {
       name: name.trim(),
       type,
@@ -71,6 +81,8 @@ export default function ActivityFormModal({ tripId, visible, onClose, onSaved, o
       booking_ref: null,
       confirmation_url: null,
       price: price ? parseFloat(price) : null,
+      latitude,
+      longitude,
       description: null,
       notes: null,
     };

@@ -130,4 +130,155 @@ export function initDatabase(): void {
       PRAGMA user_version = 2;
     `);
   }
+
+  if (user_version < 3) {
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS dive_areas (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL,
+        country    TEXT,
+        notes      TEXT,
+        created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS dive_sites (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        dive_area_id INTEGER REFERENCES dive_areas(id) ON DELETE SET NULL,
+        name         TEXT    NOT NULL,
+        address      TEXT,
+        country      TEXT,
+        region       TEXT,
+        latitude     REAL,
+        longitude    REAL,
+        notes        TEXT,
+        source       TEXT    NOT NULL DEFAULT 'MANUAL',
+        external_id  TEXT,
+        created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+        updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS dive_equipment (
+        id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+        name                     TEXT    NOT NULL,
+        category                 TEXT    NOT NULL,
+        brand                    TEXT,
+        model                    TEXT,
+        size                     TEXT,
+        serial_number            TEXT,
+        purchase_date            TEXT,
+        purchase_price           REAL,
+        status                   TEXT    NOT NULL DEFAULT 'OWNED',
+        last_service_date        TEXT,
+        service_interval_months  INTEGER,
+        notes                    TEXT,
+        created_at               TEXT    NOT NULL DEFAULT (datetime('now')),
+        updated_at               TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS dive_equipment_service (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        equipment_id INTEGER NOT NULL REFERENCES dive_equipment(id) ON DELETE CASCADE,
+        date        TEXT    NOT NULL,
+        description TEXT    NOT NULL,
+        cost        REAL,
+        notes       TEXT,
+        created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS dive_certifications (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        agency          TEXT    NOT NULL,
+        level           TEXT    NOT NULL,
+        cert_number     TEXT,
+        issue_date      TEXT,
+        instructor_name TEXT,
+        notes           TEXT,
+        source          TEXT    NOT NULL DEFAULT 'MANUAL',
+        external_id     TEXT,
+        created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+        updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS dive_logs (
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        trip_id           INTEGER REFERENCES trips(id) ON DELETE SET NULL,
+        dive_site_id      INTEGER REFERENCES dive_sites(id) ON DELETE SET NULL,
+        date              TEXT    NOT NULL,
+        dive_number       INTEGER NOT NULL,
+        depth_max         REAL    NOT NULL,
+        bottom_time       INTEGER NOT NULL,
+        surface_interval  INTEGER,
+        gas_mix           TEXT    NOT NULL DEFAULT 'AIR',
+        o2_percentage     INTEGER,
+        helium_percentage INTEGER,
+        pressure_start    INTEGER,
+        pressure_end      INTEGER,
+        water_temp        REAL,
+        air_temp          REAL,
+        visibility        REAL,
+        dive_type         TEXT,
+        buddy_name        TEXT,
+        suit_type         TEXT,
+        weight            REAL,
+        notes             TEXT,
+        rating            INTEGER,
+        source            TEXT    NOT NULL DEFAULT 'MANUAL',
+        external_id       TEXT,
+        created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+        updated_at        TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS dive_log_equipment (
+        dive_log_id  INTEGER NOT NULL REFERENCES dive_logs(id) ON DELETE CASCADE,
+        equipment_id INTEGER NOT NULL REFERENCES dive_equipment(id) ON DELETE CASCADE,
+        PRIMARY KEY (dive_log_id, equipment_id)
+      );
+
+      PRAGMA user_version = 3;
+    `);
+  }
+
+  if (user_version < 4) {
+    db.execSync(`
+      ALTER TABLE dive_logs ADD COLUMN current TEXT;
+      ALTER TABLE dive_logs ADD COLUMN visibility_horizontal REAL;
+      ALTER TABLE dive_logs ADD COLUMN divemaster TEXT;
+      ALTER TABLE dive_logs ADD COLUMN boat TEXT;
+      ALTER TABLE dive_logs ADD COLUMN entry_type TEXT;
+      ALTER TABLE dive_logs ADD COLUMN deco_required INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE dive_logs ADD COLUMN safety_stop_minutes INTEGER;
+      ALTER TABLE dive_logs ADD COLUMN min_ppo2 REAL;
+      ALTER TABLE dive_logs ADD COLUMN max_ppo2 REAL;
+      ALTER TABLE dive_logs ADD COLUMN cns_percent INTEGER;
+
+      CREATE TABLE IF NOT EXISTS dive_log_profile_samples (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        dive_log_id INTEGER NOT NULL REFERENCES dive_logs(id) ON DELETE CASCADE,
+        seconds     INTEGER NOT NULL,
+        depth       REAL    NOT NULL,
+        temp        REAL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_dive_log_profile_samples_dive
+        ON dive_log_profile_samples(dive_log_id, seconds);
+
+      PRAGMA user_version = 4;
+    `);
+  }
+
+  if (user_version < 5) {
+    db.execSync(`
+      ALTER TABLE accommodations ADD COLUMN latitude REAL;
+      ALTER TABLE accommodations ADD COLUMN longitude REAL;
+      ALTER TABLE activities ADD COLUMN latitude REAL;
+      ALTER TABLE activities ADD COLUMN longitude REAL;
+      ALTER TABLE flights ADD COLUMN origin_lat REAL;
+      ALTER TABLE flights ADD COLUMN origin_lng REAL;
+      ALTER TABLE flights ADD COLUMN destination_lat REAL;
+      ALTER TABLE flights ADD COLUMN destination_lng REAL;
+
+      PRAGMA user_version = 5;
+    `);
+  }
 }

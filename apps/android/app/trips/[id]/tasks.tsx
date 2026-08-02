@@ -9,6 +9,7 @@ import SectionHeaderRight from "@/components/SectionHeaderRight";
 import ImportWizard from "@/components/import/ImportWizard";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
+import { useTripLock } from "@/contexts/TripLockContext";
 
 const COLOR = "#7c3aed";
 const COLOR_BG = "#7c3aed18";
@@ -28,6 +29,7 @@ export default function TasksScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const { t } = useT();
+  const { isLocked, guard } = useTripLock();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
@@ -58,15 +60,15 @@ export default function TasksScreen() {
     const pStyle = PRIORITY_STYLES[item.priority as Task["priority"]];
     return (
       <TouchableOpacity
-        onPress={() => { setEditingTask(item); setFormOpen(true); }}
-        onLongPress={() => handleLongPress(item)}
+        onPress={() => guard(() => { setEditingTask(item); setFormOpen(true); })}
+        onLongPress={() => guard(() => handleLongPress(item))}
         className="bg-white dark:bg-zinc-900 rounded-2xl mb-2 overflow-hidden shadow-sm"
         style={{ borderLeftWidth: 3, borderLeftColor: item.done ? "#d1fae5" : COLOR }}
         activeOpacity={0.75}
       >
         <View className="px-4 py-3.5 flex-row items-start gap-3">
           <TouchableOpacity
-            onPress={() => { toggleTaskDone(item.id, !item.done); refresh(); }}
+            onPress={() => guard(() => { toggleTaskDone(item.id, !item.done); refresh(); })}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             className={`mt-0.5 w-5 h-5 rounded border-2 items-center justify-center flex-shrink-0 ${item.done ? "bg-emerald-500 border-emerald-500" : "border-slate-300 dark:border-zinc-600"}`}
           >
@@ -101,7 +103,12 @@ export default function TasksScreen() {
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
         title: t.tasks,
-        headerRight: () => <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />,
+        headerRight: () => (
+          <SectionHeaderRight
+            tripId={id!} onImportPress={() => setImportOpen(true)}
+            locked={isLocked} onLockedPress={() => guard(() => {})}
+          />
+        ),
       }} />
 
       {tasks.length > 0 && done.length > 0 && (
@@ -140,7 +147,7 @@ export default function TasksScreen() {
         renderItem={renderTask}
       />
 
-      <SectionFAB onPress={openAdd} color={COLOR} />
+      <SectionFAB onPress={() => guard(openAdd)} color={COLOR} locked={isLocked} />
 
       <TaskFormModal
         tripId={tripId} visible={formOpen} initialData={editingTask}

@@ -9,6 +9,7 @@ import AccommodationFormModal from "@/components/forms/AccommodationFormModal";
 import SectionHeaderRight from "@/components/SectionHeaderRight";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
+import { useTripLock } from "@/contexts/TripLockContext";
 
 const COLOR = "#0d9488";
 const COLOR_BG = "#0d948818";
@@ -29,6 +30,7 @@ export default function AccommodationsScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const { t, lang } = useT();
+  const { isLocked, guard } = useTripLock();
   const [items, setItems] = useState<Accommodation[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -49,7 +51,12 @@ export default function AccommodationsScreen() {
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
         title: t.accommodations,
-        headerRight: () => <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />,
+        headerRight: () => (
+          <SectionHeaderRight
+            tripId={id!} onImportPress={() => setImportOpen(true)}
+            locked={isLocked} onLockedPress={() => guard(() => {})}
+          />
+        ),
       }} />
 
       <FlatList
@@ -67,12 +74,12 @@ export default function AccommodationsScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => openEdit(item)}
-            onLongPress={() => Alert.alert(item.name, undefined, [
+            onPress={() => guard(() => openEdit(item))}
+            onLongPress={() => guard(() => Alert.alert(item.name, undefined, [
               { text: t.edit, onPress: () => openEdit(item) },
               { text: t.delete, style: "destructive", onPress: () => { deleteAccommodation(item.id); refresh(); } },
               { text: t.cancel, style: "cancel" },
-            ])}
+            ]))}
             className="bg-white dark:bg-zinc-900 rounded-2xl mb-3 overflow-hidden shadow-sm"
             style={{ borderLeftWidth: 3, borderLeftColor: COLOR }}
             activeOpacity={0.75}
@@ -124,7 +131,7 @@ export default function AccommodationsScreen() {
         )}
       />
 
-      <SectionFAB onPress={openAdd} color={COLOR} />
+      <SectionFAB onPress={() => guard(openAdd)} color={COLOR} locked={isLocked} />
 
       <ImportWizard tripId={tripId} visible={importOpen} onClose={() => { setImportOpen(false); refresh(); }} />
       <AccommodationFormModal

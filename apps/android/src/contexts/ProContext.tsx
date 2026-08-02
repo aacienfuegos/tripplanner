@@ -11,6 +11,9 @@
  *   3. El resto de la app (ProGate, TripsListScreen) no necesita cambios
  */
 import React, { createContext, useContext, useState } from "react";
+import { FREE_TRIP_LIMIT } from "@/lib/pro-limits";
+
+export { FREE_TRIP_LIMIT };
 
 interface ProContextValue {
   isPro: boolean;
@@ -35,5 +38,3 @@ export function usePro(): ProContextValue {
   if (!ctx) throw new Error("usePro must be used within ProProvider");
   return ctx;
 }
-
-export const FREE_TRIP_LIMIT = 1;

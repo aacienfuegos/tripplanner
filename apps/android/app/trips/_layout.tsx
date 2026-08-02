@@ -3,6 +3,7 @@ import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { useT } from "@/contexts/I18nContext";
+import ModuleSwitcherHeader from "@/components/ModuleSwitcherHeader";
 
 export default function TripsLayout() {
   const router = useRouter();
@@ -23,8 +24,8 @@ export default function TripsLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: t.trips,
           headerShown: true,
+          headerTitle: () => <ModuleSwitcherHeader current="trips" />,
           headerRight: () => (
             <TouchableOpacity onPress={() => router.push("/settings")} className="mr-1 p-1">
               <Ionicons name="settings-outline" size={22} color={headerTint} />

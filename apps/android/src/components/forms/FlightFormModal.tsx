@@ -6,6 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { createFlight, updateFlight, Flight } from "@/db/flights";
 import DatePickerInput from "@/components/DatePickerInput";
+import { geocodeAirportText } from "@/lib/geocode";
 
 type FlightClass = Flight["class"];
 const CLASSES: FlightClass[] = ["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"];
@@ -61,6 +62,20 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved, onD
   async function handleSave() {
     if (!origin.trim()) { setError("El origen es obligatorio"); return; }
     if (!destination.trim()) { setError("El destino es obligatorio"); return; }
+
+    let originLat = initialData?.origin_lat ?? null;
+    let originLng = initialData?.origin_lng ?? null;
+    if (originLat === null || originLng === null) {
+      const geocoded = await geocodeAirportText(origin.trim());
+      if (geocoded) { originLat = geocoded.latitude; originLng = geocoded.longitude; }
+    }
+    let destinationLat = initialData?.destination_lat ?? null;
+    let destinationLng = initialData?.destination_lng ?? null;
+    if (destinationLat === null || destinationLng === null) {
+      const geocoded = await geocodeAirportText(destination.trim());
+      if (geocoded) { destinationLat = geocoded.latitude; destinationLng = geocoded.longitude; }
+    }
+
     const data = {
       origin: origin.trim(),
       destination: destination.trim(),
@@ -73,6 +88,10 @@ export default function FlightFormModal({ tripId, visible, onClose, onSaved, onD
       confirmation_url: null,
       seat_number: seatNumber.trim() || null,
       price: price ? parseFloat(price) : null,
+      origin_lat: originLat,
+      origin_lng: originLng,
+      destination_lat: destinationLat,
+      destination_lng: destinationLng,
       notes: null,
     };
     if (initialData) {

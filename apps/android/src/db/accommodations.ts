@@ -15,6 +15,8 @@ export interface Accommodation {
   confirmation_url: string | null;
   price: number | null;
   price_per_night: number | null;
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
   created_at: string;
 }
@@ -46,12 +48,12 @@ export async function createAccommodation(
   db.runSync(
     `INSERT INTO accommodations
        (trip_id, name, type, address, city, check_in, check_out,
-        booking_ref, confirmation_url, price, price_per_night, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        booking_ref, confirmation_url, price, price_per_night, latitude, longitude, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tripId, data.name, data.type, data.address, data.city,
       data.check_in, data.check_out, bookingRef, confirmationUrl,
-      data.price, data.price_per_night, notes,
+      data.price, data.price_per_night, data.latitude, data.longitude, notes,
     ]
   );
 }
@@ -65,10 +67,11 @@ export async function updateAccommodation(
   const notes = data.notes ? await encryptText(data.notes) : null;
   db.runSync(
     `UPDATE accommodations SET name=?, type=?, address=?, city=?, check_in=?, check_out=?,
-     booking_ref=?, confirmation_url=?, price=?, price_per_night=?, notes=? WHERE id=?`,
+     booking_ref=?, confirmation_url=?, price=?, price_per_night=?, latitude=?, longitude=?, notes=? WHERE id=?`,
     [
       data.name, data.type, data.address, data.city, data.check_in, data.check_out,
-      bookingRef, confirmationUrl, data.price, data.price_per_night, notes, id,
+      bookingRef, confirmationUrl, data.price, data.price_per_night,
+      data.latitude, data.longitude, notes, id,
     ]
   );
 }

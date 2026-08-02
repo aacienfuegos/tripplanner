@@ -6,6 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { createAccommodation, updateAccommodation, Accommodation } from "@/db/accommodations";
 import DatePickerInput from "@/components/DatePickerInput";
+import { geocodeQuery, accommodationGeocodeQuery } from "@/lib/geocode";
 
 type AccomType = Accommodation["type"];
 const TYPES: AccomType[] = ["HOTEL", "HOSTEL", "AIRBNB", "APARTMENT", "RESORT", "OTHER"];
@@ -56,6 +57,15 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
   async function handleSave() {
     if (!name.trim()) { setError("El nombre es obligatorio"); return; }
     if (!city.trim()) { setError("La ciudad es obligatoria"); return; }
+
+    let latitude = initialData?.latitude ?? null;
+    let longitude = initialData?.longitude ?? null;
+    if (latitude === null || longitude === null) {
+      const query = accommodationGeocodeQuery({ name: name.trim(), address: address.trim() || null, city: city.trim() });
+      const geocoded = await geocodeQuery(query);
+      if (geocoded) { latitude = geocoded.latitude; longitude = geocoded.longitude; }
+    }
+
     const data = {
       name: name.trim(),
       city: city.trim(),
@@ -67,6 +77,8 @@ export default function AccommodationFormModal({ tripId, visible, onClose, onSav
       confirmation_url: null,
       price: null,
       price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
+      latitude,
+      longitude,
       notes: null,
     };
     if (initialData) {

@@ -10,6 +10,7 @@ import ExpenseFormModal from "@/components/forms/ExpenseFormModal";
 import SectionHeaderRight from "@/components/SectionHeaderRight";
 import SectionFAB from "@/components/SectionFAB";
 import { useT } from "@/contexts/I18nContext";
+import { useTripLock } from "@/contexts/TripLockContext";
 
 const COLOR = "#059669";
 const COLOR_BG = "#05966918";
@@ -24,6 +25,7 @@ export default function ExpensesScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const { t } = useT();
+  const { isLocked, guard } = useTripLock();
   const [items, setItems] = useState<Expense[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -49,7 +51,12 @@ export default function ExpensesScreen() {
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["bottom"]}>
       <Tabs.Screen options={{
         title: t.expenses,
-        headerRight: () => <SectionHeaderRight tripId={id!} onImportPress={() => setImportOpen(true)} />,
+        headerRight: () => (
+          <SectionHeaderRight
+            tripId={id!} onImportPress={() => setImportOpen(true)}
+            locked={isLocked} onLockedPress={() => guard(() => {})}
+          />
+        ),
       }} />
 
       {items.length > 0 && (
@@ -84,12 +91,12 @@ export default function ExpensesScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => openEdit(item)}
-            onLongPress={() => Alert.alert(item.description, undefined, [
+            onPress={() => guard(() => openEdit(item))}
+            onLongPress={() => guard(() => Alert.alert(item.description, undefined, [
               { text: t.edit, onPress: () => openEdit(item) },
               { text: t.delete, style: "destructive", onPress: () => { deleteExpense(item.id); refresh(); } },
               { text: t.cancel, style: "cancel" },
-            ])}
+            ]))}
             className="bg-white dark:bg-zinc-900 rounded-2xl mb-3 overflow-hidden shadow-sm"
             style={{ borderLeftWidth: 3, borderLeftColor: COLOR }}
             activeOpacity={0.75}
@@ -107,7 +114,7 @@ export default function ExpensesScreen() {
                   {item.amount.toFixed(2)} <Text className="text-xs font-normal text-slate-400 dark:text-slate-500">{item.currency}</Text>
                 </Text>
                 <TouchableOpacity
-                  onPress={() => { toggleExpensePaid(item.id, !item.paid); refresh(); }}
+                  onPress={() => guard(() => { toggleExpensePaid(item.id, !item.paid); refresh(); })}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   className="flex-row items-center gap-1"
                 >
@@ -124,7 +131,7 @@ export default function ExpensesScreen() {
         )}
       />
 
-      <SectionFAB onPress={openAdd} color={COLOR} />
+      <SectionFAB onPress={() => guard(openAdd)} color={COLOR} locked={isLocked} />
 
       <ImportWizard tripId={tripId} visible={importOpen} onClose={() => { setImportOpen(false); refresh(); }} />
       <ExpenseFormModal
