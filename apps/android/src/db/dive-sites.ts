@@ -10,6 +10,8 @@ export interface DiveSite {
   latitude: number | null;
   longitude: number | null;
   notes: string | null;
+  max_depth: number | null;
+  water_type: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED" | null;
   source: "MANUAL" | "IMPORTED";
   external_id: string | null;
   created_at: string;
@@ -25,6 +27,8 @@ export interface DiveSiteInput {
   latitude: number | null;
   longitude: number | null;
   notes: string | null;
+  max_depth?: number | null;
+  water_type?: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED" | null;
 }
 
 export function listDiveSites(): DiveSite[] {
@@ -44,11 +48,12 @@ export function getDiveSite(id: number): DiveSite | null {
 
 export function createDiveSite(data: DiveSiteInput): DiveSite {
   const result = db.runSync(
-    `INSERT INTO dive_sites (dive_area_id, name, address, country, region, latitude, longitude, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO dive_sites (dive_area_id, name, address, country, region, latitude, longitude, notes, max_depth, water_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.dive_area_id, data.name, data.address, data.country, data.region,
       data.latitude, data.longitude, data.notes,
+      data.max_depth ?? null, data.water_type ?? null,
     ]
   );
   return getDiveSite(result.lastInsertRowId)!;
@@ -57,10 +62,11 @@ export function createDiveSite(data: DiveSiteInput): DiveSite {
 export function updateDiveSite(id: number, data: DiveSiteInput): void {
   db.runSync(
     `UPDATE dive_sites SET dive_area_id=?, name=?, address=?, country=?, region=?,
-     latitude=?, longitude=?, notes=?, updated_at=datetime('now') WHERE id=?`,
+     latitude=?, longitude=?, notes=?, max_depth=?, water_type=?, updated_at=datetime('now') WHERE id=?`,
     [
       data.dive_area_id, data.name, data.address, data.country, data.region,
-      data.latitude, data.longitude, data.notes, id,
+      data.latitude, data.longitude, data.notes,
+      data.max_depth ?? null, data.water_type ?? null, id,
     ]
   );
 }

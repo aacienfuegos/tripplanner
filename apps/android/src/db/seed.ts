@@ -285,23 +285,27 @@ export async function seedDevData(): Promise<void> {
     address: null, country: country("Spain"), region: "L'Estartit",
     latitude: 42.0463, longitude: 3.2205,
     notes: "Reserva marina, gran biodiversidad",
+    max_depth: 30, water_type: "SALT",
   });
   const capDeCreus = createDiveSite({
     dive_area_id: costaBrava.id, name: "Cap de Creus",
     address: null, country: country("Spain"), region: "Cadaqués",
     latitude: 42.3182, longitude: 3.3189, notes: null,
+    max_depth: 35, water_type: "SALT",
   });
   const blueHole = createDiveSite({
     dive_area_id: redSea.id, name: "Blue Hole",
     address: null, country: country("Egypt"), region: "Dahab",
     latitude: 28.5661, longitude: 34.5389,
     notes: "Entrada famosa por el arco a 56m, solo con formación técnica",
+    max_depth: 56, water_type: "SALT",
   });
   const thistlegorm = createDiveSite({
     dive_area_id: redSea.id, name: "SS Thistlegorm",
     address: null, country: country("Egypt"), region: "Sharm el-Sheij",
     latitude: 27.8125, longitude: 33.9200,
     notes: "Pecio de la Segunda Guerra Mundial",
+    max_depth: 30, water_type: "SALT",
   });
 
   const wetsuit = createDiveEquipment({

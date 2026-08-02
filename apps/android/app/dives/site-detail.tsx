@@ -20,6 +20,19 @@ function formatDate(iso: string, lang: string): string {
   return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
 }
 
+function waterTypeLabel(waterType: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED", t: ReturnType<typeof useT>["t"]): string {
+  switch (waterType) {
+    case "SALT":
+      return t.waterTypeSalt;
+    case "FRESH":
+      return t.waterTypeFresh;
+    case "BRACKISH":
+      return t.waterTypeBrackish;
+    case "CHLORINATED":
+      return t.waterTypeChlorinated;
+  }
+}
+
 export default function DiveSiteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const siteId = Number(id);
@@ -95,6 +108,25 @@ export default function DiveSiteDetailScreen() {
               <Ionicons name="open-outline" size={13} color={COLOR} />
             </TouchableOpacity>
           )}
+          {(site.max_depth != null || site.water_type) && (
+            <View className="flex-row flex-wrap gap-2 mt-2">
+              {site.max_depth != null && (
+                <View className="rounded-full px-2.5 py-1 bg-slate-100 dark:bg-zinc-800">
+                  <Text className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                    {t.diveSiteMaxDepth(site.max_depth)}
+                  </Text>
+                </View>
+              )}
+              {site.water_type && (
+                <View className="rounded-full px-2.5 py-1 bg-slate-100 dark:bg-zinc-800">
+                  <Text className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                    {waterTypeLabel(site.water_type, t)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {site.notes && (
             <Text className="text-sm text-slate-600 dark:text-slate-300 mt-3 italic">{site.notes}</Text>
           )}

@@ -74,6 +74,10 @@ export default function DiveSiteFormModal({ visible, onClose, onSaved, onDelete,
       latitude,
       longitude,
       notes: notes.trim() || null,
+      // max_depth/water_type no son editables aquí (igual que en la web,
+      // solo llegan vía importación) — se preservan al editar.
+      max_depth: initialData?.max_depth ?? null,
+      water_type: initialData?.water_type ?? null,
     };
     const site = initialData
       ? (updateDiveSite(initialData.id, data), { ...initialData, ...data })
