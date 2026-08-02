@@ -5,6 +5,7 @@ import { useColorScheme } from "nativewind";
 import { DiveSite } from "@/db/dive-sites";
 import { listDiveLogsForSite } from "@/db/dive-logs";
 import { useT } from "@/contexts/I18nContext";
+import { countryCodeToName } from "@tripplanner/shared";
 
 interface Props {
   visible: boolean;
@@ -111,7 +112,7 @@ export function buildMapHtml(points: MapPoint[], viewDetailLabel: string): strin
 }
 
 export default function DiveSitesMapModal({ visible, onClose, sites, onViewSite }: Props) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -120,7 +121,7 @@ export default function DiveSitesMapModal({ visible, onClose, sites, onViewSite 
     .map((s) => ({
       id: s.id,
       name: s.name,
-      subtitle: [s.region, s.country].filter(Boolean).join(", ") || null,
+      subtitle: [s.region, s.country && countryCodeToName(s.country, lang)].filter(Boolean).join(", ") || null,
       diveCountLabel: t.diveSiteMapDiveCount(listDiveLogsForSite(s.id).length),
       lat: s.latitude,
       lng: s.longitude,

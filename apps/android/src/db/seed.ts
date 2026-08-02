@@ -12,6 +12,7 @@ import { createDiveSite } from "./dive-sites";
 import { createDiveEquipment } from "./dive-equipment";
 import { createDiveCertification } from "./dive-certifications";
 import { createDiveLog, setProfileSamples } from "./dive-logs";
+import { countryNameToCode } from "@tripplanner/shared";
 
 function iso(daysFromToday: number, time = "00:00:00"): string {
   const d = new Date();
@@ -20,6 +21,12 @@ function iso(daysFromToday: number, time = "00:00:00"): string {
 }
 function day(daysFromToday: number): string {
   return iso(daysFromToday).slice(0, 10);
+}
+
+function country(name: string): string {
+  const code = countryNameToCode(name);
+  if (!code) throw new Error(`countryNameToCode no reconoce "${name}" — revisa el seed`);
+  return code;
 }
 
 // trip_id en dive_logs es ON DELETE SET NULL (una inmersión sobrevive a su
@@ -268,31 +275,31 @@ export async function seedDevData(): Promise<void> {
   createTask(rome.id, { title: "Imprimir entradas del Coliseo", notes: null, due_date: day(-121), priority: "MEDIUM", done: 1 });
 
   // ─── Módulo de buceo: histórico propio, sin viaje asociado ────────────
-  const redSea = createDiveArea({ name: "Mar Rojo", country: "Egipto", notes: null });
-  const costaBrava = createDiveArea({ name: "Costa Brava", country: "España", notes: null });
+  const redSea = createDiveArea({ name: "Mar Rojo", country: country("Egypt"), notes: null });
+  const costaBrava = createDiveArea({ name: "Costa Brava", country: country("Spain"), notes: null });
 
   // Coordenadas reales fijas en vez de geocodificarlas en cada arranque —
   // el seed debe ser rápido, determinista y no depender de la red.
   const illesMedes = createDiveSite({
     dive_area_id: costaBrava.id, name: "Illes Medes",
-    address: null, country: "España", region: "L'Estartit",
+    address: null, country: country("Spain"), region: "L'Estartit",
     latitude: 42.0463, longitude: 3.2205,
     notes: "Reserva marina, gran biodiversidad",
   });
   const capDeCreus = createDiveSite({
     dive_area_id: costaBrava.id, name: "Cap de Creus",
-    address: null, country: "España", region: "Cadaqués",
+    address: null, country: country("Spain"), region: "Cadaqués",
     latitude: 42.3182, longitude: 3.3189, notes: null,
   });
   const blueHole = createDiveSite({
     dive_area_id: redSea.id, name: "Blue Hole",
-    address: null, country: "Egipto", region: "Dahab",
+    address: null, country: country("Egypt"), region: "Dahab",
     latitude: 28.5661, longitude: 34.5389,
     notes: "Entrada famosa por el arco a 56m, solo con formación técnica",
   });
   const thistlegorm = createDiveSite({
     dive_area_id: redSea.id, name: "SS Thistlegorm",
-    address: null, country: "Egipto", region: "Sharm el-Sheij",
+    address: null, country: country("Egypt"), region: "Sharm el-Sheij",
     latitude: 27.8125, longitude: 33.9200,
     notes: "Pecio de la Segunda Guerra Mundial",
   });

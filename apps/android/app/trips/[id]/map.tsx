@@ -10,6 +10,7 @@ import { listFlights } from "@/db/flights";
 import { listDiveLogsForTrip } from "@/db/dive-logs";
 import { getDiveSite } from "@/db/dive-sites";
 import { useT } from "@/contexts/I18nContext";
+import { countryCodeToName } from "@tripplanner/shared";
 
 // Mismos colores/glifos que el mapa de viaje de la web
 // (apps/web/src/components/map/TripMap.tsx, icons de lucide-react v1.27.0).
@@ -300,7 +301,7 @@ export default function TripMapScreen() {
       if (!site || site.latitude == null || site.longitude == null) continue;
       newPoints.push({
         id: `dive-${d.id}`, kind: "dive", name: site.name,
-        subtitle: [site.region, site.country].filter(Boolean).join(", ") || null,
+        subtitle: [site.region, site.country && countryCodeToName(site.country, lang)].filter(Boolean).join(", ") || null,
         date: d.date,
         dateLabel: `#${d.dive_number} · ${new Date(d.date).toLocaleDateString(locale, { day: "numeric", month: "short" })}`,
         lat: site.latitude, lng: site.longitude, navTarget: "dives", siteId: site.id,

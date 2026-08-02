@@ -8,8 +8,10 @@ import { useColorScheme } from "nativewind";
 import { createDiveSite, updateDiveSite, DiveSite } from "@/db/dive-sites";
 import { listDiveAreas, DiveArea } from "@/db/dive-areas";
 import { geocodeQuery } from "@/lib/geocode";
+import { countryCodeToName } from "@tripplanner/shared";
 import { useT } from "@/contexts/I18nContext";
 import DiveAreaFormModal from "./DiveAreaFormModal";
+import CountryPickerInput from "@/components/CountryPickerInput";
 
 interface Props {
   visible: boolean;
@@ -20,13 +22,13 @@ interface Props {
 }
 
 export default function DiveSiteFormModal({ visible, onClose, onSaved, onDelete, initialData }: Props) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const [name, setName] = useState("");
   const [diveAreaId, setDiveAreaId] = useState<number | null>(null);
   const [address, setAddress] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState<string | null>(null);
   const [region, setRegion] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
@@ -39,7 +41,7 @@ export default function DiveSiteFormModal({ visible, onClose, onSaved, onDelete,
       setName(initialData?.name ?? "");
       setDiveAreaId(initialData?.dive_area_id ?? null);
       setAddress(initialData?.address ?? "");
-      setCountry(initialData?.country ?? "");
+      setCountry(initialData?.country ?? null);
       setRegion(initialData?.region ?? "");
       setNotes(initialData?.notes ?? "");
       setError("");
@@ -54,7 +56,8 @@ export default function DiveSiteFormModal({ visible, onClose, onSaved, onDelete,
     let latitude = initialData?.latitude ?? null;
     let longitude = initialData?.longitude ?? null;
     if (latitude === null || longitude === null) {
-      const query = [name, address, region, country].map((v) => v.trim()).filter(Boolean).join(", ");
+      const countryName = country ? countryCodeToName(country, lang) : null;
+      const query = [name, address, region, countryName].map((v) => v?.trim()).filter(Boolean).join(", ");
       const geocoded = await geocodeQuery(query);
       if (geocoded) {
         latitude = geocoded.latitude;
@@ -66,7 +69,7 @@ export default function DiveSiteFormModal({ visible, onClose, onSaved, onDelete,
       dive_area_id: diveAreaId,
       name: name.trim(),
       address: address.trim() || null,
-      country: country.trim() || null,
+      country,
       region: region.trim() || null,
       latitude,
       longitude,
@@ -137,7 +140,7 @@ export default function DiveSiteFormModal({ visible, onClose, onSaved, onDelete,
             <View className="flex-row gap-3">
               <View className="flex-1">
                 <Text className={label}>{t.diveSiteCountry}</Text>
-                <TextInput className={inputClass} value={country} onChangeText={setCountry} />
+                <CountryPickerInput value={country} onChange={setCountry} />
               </View>
               <View className="flex-1">
                 <Text className={label}>{t.diveSiteRegion}</Text>

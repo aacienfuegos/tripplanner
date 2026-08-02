@@ -345,6 +345,8 @@ export const es = {
   diveAreaCreateNew: "+ Nueva zona",
   diveAreaName: "Nombre de la zona",
   diveAreaCountry: "País",
+  countryNone: "Sin país",
+  countrySearchPlaceholder: "Buscar país...",
   addDiveArea: "Añadir zona",
   editDiveArea: "Editar zona",
   confirmDeleteDiveArea: "¿Eliminar esta zona? Los puntos de inmersión no se borran, quedan sin zona.",

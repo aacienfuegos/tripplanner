@@ -1,4 +1,5 @@
 import * as SQLite from "expo-sqlite";
+import { countryNameToCode } from "@tripplanner/shared";
 
 export const db = SQLite.openDatabaseSync("tripplanner.db");
 
@@ -288,5 +289,24 @@ export function initDatabase(): void {
 
       PRAGMA user_version = 6;
     `);
+  }
+
+  if (user_version < 7) {
+    // country pasa de texto libre a código ISO 3166-1 (ver #264) — se
+    // traducen los valores ya guardados en vez de perderlos. No es una
+    // ALTER de columna: sigue siendo TEXT, solo cambia lo que contiene.
+    for (const table of ["dive_areas", "dive_sites"] as const) {
+      const rows = db.getAllSync<{ id: number; country: string | null }>(
+        `SELECT id, country FROM ${table} WHERE country IS NOT NULL`
+      );
+      for (const row of rows) {
+        const code = countryNameToCode(row.country!);
+        if (code && code !== row.country) {
+          db.runSync(`UPDATE ${table} SET country = ? WHERE id = ?`, [code, row.id]);
+        }
+      }
+    }
+
+    db.execSync("PRAGMA user_version = 7");
   }
 }
