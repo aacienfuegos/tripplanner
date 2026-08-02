@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { MapPin, Waves, Award, AlertTriangle, Loader2, Plane } from "lucide-react";
+import { countryCodeToName } from "@tripplanner/shared";
 import { DivingLogImportPayload } from "@/lib/schemas";
 import {
   bulkImportDivingLog,
@@ -306,7 +307,9 @@ function ItemSummary({
         <div className="text-xs space-y-0.5">
           <p className="font-medium">{s.name}</p>
           {(s.region || s.country) && (
-            <p className="text-muted-foreground">{[s.region, s.country].filter(Boolean).join(", ")}</p>
+            <p className="text-muted-foreground">
+              {[s.region, s.country && countryCodeToName(s.country, t.locale)].filter(Boolean).join(", ")}
+            </p>
           )}
         </div>
       );

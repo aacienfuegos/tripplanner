@@ -465,6 +465,7 @@ export const en: WebTKeys = {
   diveSitesTab: "Dive sites",
   diveAreaLabel: "Area",
   diveAreaNone: "No area",
+  countryNone: "No country",
   diveAreaCreateNew: "+ Create new area",
   diveAreaName: "Area name",
   diveAreaCountry: "Country",

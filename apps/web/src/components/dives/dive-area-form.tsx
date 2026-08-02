@@ -1,11 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CountrySelect } from "@/components/dives/country-select";
 import { createDiveArea, updateDiveArea } from "@/actions/dive-sites";
 import type { DiveArea } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
@@ -16,8 +17,9 @@ interface Props {
 }
 
 export function DiveAreaForm({ area: a, onSuccess }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [isPending, startTransition] = useTransition();
+  const [country, setCountry] = useState<string | undefined>(a?.country ?? undefined);
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -44,7 +46,7 @@ export function DiveAreaForm({ area: a, onSuccess }: Props) {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="country">{t.diveAreaCountry}</Label>
-        <Input id="country" name="country" defaultValue={a?.country ?? ""} />
+        <CountrySelect name="country" value={country} onValueChange={setCountry} locale={locale} noneLabel={t.countryNone} />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="notes">{t.notes}</Label>

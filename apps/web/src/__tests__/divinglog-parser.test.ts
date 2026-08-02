@@ -32,9 +32,9 @@ describe("parseDivingLogDatabase", () => {
     });
   });
 
-  it("resolves country via the Logbook.Country fallback when Place.CountryID is empty, normalized to Spanish", () => {
+  it("resolves country via the Logbook.Country fallback when Place.CountryID is empty, normalized to an ISO code", () => {
     const wreckReef = result.sites.find((s) => s.name === "Wreck Reef");
-    expect(wreckReef?.country).toBe("España");
+    expect(wreckReef?.country).toBe("ES");
   });
 
   it("resolves region via the Logbook.CityID -> City join, first non-empty value wins", () => {

@@ -5,6 +5,7 @@ import {
   ArrowLeft, ArrowDownToLine, Timer, Thermometer, Eye, Star, MapPin,
   Waves, Gauge, Wind, Users, Anchor, ShieldAlert,
 } from "lucide-react";
+import { countryCodeToName } from "@tripplanner/shared";
 import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
@@ -72,7 +73,9 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
             {dive.diveSite && (dive.diveSite.region || dive.diveSite.country) && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5" />
-                {[dive.diveSite.region, dive.diveSite.country].filter(Boolean).join(", ")}
+                {[dive.diveSite.region, dive.diveSite.country && countryCodeToName(dive.diveSite.country, t.locale)]
+                  .filter(Boolean)
+                  .join(", ")}
               </span>
             )}
             {dive.rating != null && (

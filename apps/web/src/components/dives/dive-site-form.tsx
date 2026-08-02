@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CountrySelect } from "@/components/dives/country-select";
 import { createDiveSite } from "@/actions/dives";
 import { createDiveArea, updateDiveSite } from "@/actions/dive-sites";
 import type { DiveArea, DiveSiteWithArea } from "@/types";
@@ -22,10 +23,11 @@ interface Props {
 }
 
 export function DiveSiteForm({ site: s, areas, onSuccess }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [isPending, startTransition] = useTransition();
   const [areaId, setAreaId] = useState<string>(s?.diveArea?.id ?? NONE_AREA_VALUE);
   const [newAreaName, setNewAreaName] = useState("");
+  const [country, setCountry] = useState<string | undefined>(s?.country ?? undefined);
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -99,7 +101,7 @@ export function DiveSiteForm({ site: s, areas, onSuccess }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="country">{t.diveSiteCountry}</Label>
-          <Input id="country" name="country" defaultValue={s?.country ?? ""} />
+          <CountrySelect name="country" value={country} onValueChange={setCountry} locale={locale} noneLabel={t.countryNone} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="region">{t.diveSiteRegion}</Label>

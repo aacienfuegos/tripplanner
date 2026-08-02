@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { Plus, Waves, Pencil, Trash2, MapPin, Star, Thermometer, ArrowDownToLine, Timer, X } from "lucide-react";
+import { countryCodeToName } from "@tripplanner/shared";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -211,7 +212,12 @@ export function DiveLogList({
                       {(dive.diveSite?.region || dive.diveSite?.country) && (
                         <p className="flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5" />
-                          {[dive.diveSite?.region, dive.diveSite?.country].filter(Boolean).join(", ")}
+                          {[
+                            dive.diveSite?.region,
+                            dive.diveSite?.country && countryCodeToName(dive.diveSite.country, t.locale),
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
                         </p>
                       )}
                       {dive.waterTemp != null && (

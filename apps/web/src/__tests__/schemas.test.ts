@@ -385,11 +385,16 @@ describe("diveSiteSchema", () => {
     const result = diveSiteSchema.safeParse({
       name: "Cueva del Diablo",
       address: "Cala del Diablo s/n",
-      country: "España",
+      country: "ES",
       region: "Murcia",
       notes: "Corriente fuerte en marea baja",
     });
     expect(result.success).toBe(true);
+  });
+
+  it("rejects a country that isn't a valid ISO 3166-1 alpha-2 code", () => {
+    const result = diveSiteSchema.safeParse({ name: "Cueva del Diablo", country: "España" });
+    expect(result.success).toBe(false);
   });
 });
 
