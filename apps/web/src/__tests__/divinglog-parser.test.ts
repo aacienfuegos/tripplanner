@@ -48,6 +48,22 @@ describe("parseDivingLogDatabase", () => {
     expect(piles1?.region).toBe("Cabo de Palos");
   });
 
+  it("maps Place.MaxDepth when present, undefined otherwise", () => {
+    const wreckReef = result.sites.find((s) => s.name === "Wreck Reef");
+    const blueCave = result.sites.find((s) => s.name === "Blue Cave");
+    expect(wreckReef?.maxDepth).toBe(18);
+    expect(blueCave?.maxDepth).toBeNull();
+  });
+
+  it("maps Place.Water 1/2 to waterType SALT/FRESH, treating 0 as unset (not Salt)", () => {
+    const wreckReef = result.sites.find((s) => s.name === "Wreck Reef");
+    const blueCave = result.sites.find((s) => s.name === "Blue Cave");
+    const piles1 = result.sites.find((s) => s.name === "Piles 1");
+    expect(wreckReef?.waterType).toBe("SALT");
+    expect(blueCave?.waterType).toBe("FRESH");
+    expect(piles1?.waterType).toBeUndefined();
+  });
+
   it("classifies gas mix from Logbook's own O2/He (single-tank air dive, Tank agrees)", () => {
     const dive1 = result.entries.find((e) => e.depthMax === "18");
     expect(dive1?.gasMix).toBe("AIR");

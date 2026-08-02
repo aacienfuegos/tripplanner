@@ -92,14 +92,35 @@ export async function bulkImportDivingLog(payload: DivingLogImportPayload): Prom
       }
 
       const toCreate = data.sites.filter((s) => !siteIdByExternalId.has(s.externalId));
+
+      // El área extraída de "{Sitio} - {Área}" (ver splitPlaceName en el
+      // parser) solo se guardaba como texto libre en `region` — la app tiene
+      // una entidad DiveArea real que agrupa sitios en la lista y el import
+      // nunca la usaba, así que sitios de la misma zona aparecían sueltos.
+      // Se resuelve/crea por nombre (case-insensitive) para agruparlos.
+      const existingAreas = await tx.diveArea.findMany({ where: { userId }, select: { id: true, name: true } });
+      const areaIdByName = new Map(existingAreas.map((a) => [a.name.trim().toLowerCase(), a.id]));
+      async function resolveOrCreateDiveArea(name: string, country: string | null): Promise<string> {
+        const key = name.trim().toLowerCase();
+        const existingId = areaIdByName.get(key);
+        if (existingId) return existingId;
+        const created = await tx.diveArea.create({ data: { userId, name, country } });
+        areaIdByName.set(key, created.id);
+        return created.id;
+      }
+
       const needsGeocoding: string[] = [];
       for (const s of toCreate) {
+        const diveAreaId = s.region ? await resolveOrCreateDiveArea(s.region, s.country || null) : null;
         const created = await tx.diveSite.create({
           data: {
             userId,
+            diveAreaId,
             name: s.name,
             country: s.country || null,
             region: s.region || null,
+            maxDepth: s.maxDepth ?? null,
+            waterType: s.waterType ?? null,
             notes: s.notes || null,
             latitude: s.latitude ?? null,
             longitude: s.longitude ?? null,
