@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CURRENCIES } from "./currencies";
+import { CURRENCIES } from "./currencies.ts";
 
 // ─── Per-section import schemas ───────────────────────────────────────────────
 // Intentionally lenient: prices are numbers, dates are ISO 8601 strings,
