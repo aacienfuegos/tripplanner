@@ -40,17 +40,17 @@ export default function DivesTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="certifications"
-        options={{
-          title: t.diveCertificationsTab,
-          tabBarIcon: ({ color, size }) => <Ionicons name="ribbon-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="equipment"
         options={{
           title: t.diveEquipmentTab,
           tabBarIcon: ({ color, size }) => <Ionicons name="briefcase-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="certifications"
+        options={{
+          title: t.diveCertificationsTab,
+          tabBarIcon: ({ color, size }) => <Ionicons name="ribbon-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

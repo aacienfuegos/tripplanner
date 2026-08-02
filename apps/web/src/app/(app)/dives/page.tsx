@@ -12,7 +12,7 @@ import { Waves, Award, MapPin, Anchor, BarChart3 } from "lucide-react";
 import { getT } from "@/lib/locale";
 import { computeDiveStats } from "@/lib/dive-stats";
 
-const TAB_VALUES = ["log", "certifications", "sites", "equipment", "stats"] as const;
+const TAB_VALUES = ["log", "sites", "equipment", "certifications", "stats"] as const;
 
 export default async function DivesPage({
   searchParams,
@@ -90,14 +90,14 @@ export default async function DivesPage({
           <TabsTrigger value="log" className="gap-1.5">
             <Waves className="h-3.5 w-3.5" /> {t.diveLogsTab}
           </TabsTrigger>
-          <TabsTrigger value="certifications" className="gap-1.5">
-            <Award className="h-3.5 w-3.5" /> {t.diveCertificationsTab}
-          </TabsTrigger>
           <TabsTrigger value="sites" className="gap-1.5">
             <MapPin className="h-3.5 w-3.5" /> {t.diveSitesTab}
           </TabsTrigger>
           <TabsTrigger value="equipment" className="gap-1.5">
             <Anchor className="h-3.5 w-3.5" /> {t.diveEquipmentTab}
+          </TabsTrigger>
+          <TabsTrigger value="certifications" className="gap-1.5">
+            <Award className="h-3.5 w-3.5" /> {t.diveCertificationsTab}
           </TabsTrigger>
           <TabsTrigger value="stats" className="gap-1.5">
             <BarChart3 className="h-3.5 w-3.5" /> {t.diveStatsTab}
@@ -106,14 +106,14 @@ export default async function DivesPage({
         <TabsContent value="log" className="mt-4">
           <DiveLogList dives={dives} sites={sites} equipment={equipment} />
         </TabsContent>
-        <TabsContent value="certifications" className="mt-4">
-          <CertificationList certifications={certifications} />
-        </TabsContent>
         <TabsContent value="sites" className="mt-4">
           <DiveSiteList areas={areas} sites={sitesWithCount} sitePoints={sitePoints} />
         </TabsContent>
         <TabsContent value="equipment" className="mt-4">
           <EquipmentList equipment={allEquipment} />
+        </TabsContent>
+        <TabsContent value="certifications" className="mt-4">
+          <CertificationList certifications={certifications} />
         </TabsContent>
         <TabsContent value="stats" className="mt-4">
           <DiveStatsView stats={diveStats} t={t} />
