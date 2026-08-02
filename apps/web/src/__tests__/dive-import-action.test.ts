@@ -67,8 +67,8 @@ describe("checkDivingLogDuplicates", () => {
     const flags = await checkDivingLogDuplicates({
       sites: [{ name: "Wreck Reef", externalId: "site-ext-1" }, { name: "New Site", externalId: "site-ext-2" }],
       logs: [
-        { date: "2024-06-01", depthMax: "18", bottomTime: "45", gasMix: "AIR", externalId: "log-ext-1", diveSiteExternalId: null },
-        { date: "2024-06-02", depthMax: "20", bottomTime: "40", gasMix: "AIR", externalId: "log-ext-2", diveSiteExternalId: null },
+        { date: "2024-06-01", depthMax: "18", bottomTime: "45", gasMix: "AIR", externalId: "log-ext-1", diveSiteExternalId: null, profileSamples: [] },
+        { date: "2024-06-02", depthMax: "20", bottomTime: "40", gasMix: "AIR", externalId: "log-ext-2", diveSiteExternalId: null, profileSamples: [] },
       ],
       certifications: [],
     });
@@ -84,7 +84,7 @@ describe("bulkImportDivingLog", () => {
     const result = await bulkImportDivingLog({
       sites: [{ name: "Wreck Reef", externalId: "site-ext-1" }],
       logs: [
-        { date: "2024-06-01", depthMax: "18", bottomTime: "45", gasMix: "AIR", externalId: "log-ext-1", diveSiteExternalId: "site-ext-1" },
+        { date: "2024-06-01", depthMax: "18", bottomTime: "45", gasMix: "AIR", externalId: "log-ext-1", diveSiteExternalId: "site-ext-1", profileSamples: [] },
       ],
       certifications: [{ agency: "PADI", level: "OW", externalId: "cert-ext-1" }],
     });
@@ -119,8 +119,8 @@ describe("bulkImportDivingLog", () => {
     await bulkImportDivingLog({
       sites: [],
       logs: [
-        { date: "2024-06-01", depthMax: "18", bottomTime: "45", gasMix: "AIR", externalId: "log-ext-1", diveSiteExternalId: null },
-        { date: "2024-06-02", depthMax: "20", bottomTime: "40", gasMix: "AIR", externalId: "log-ext-2", diveSiteExternalId: null },
+        { date: "2024-06-01", depthMax: "18", bottomTime: "45", gasMix: "AIR", externalId: "log-ext-1", diveSiteExternalId: null, profileSamples: [] },
+        { date: "2024-06-02", depthMax: "20", bottomTime: "40", gasMix: "AIR", externalId: "log-ext-2", diveSiteExternalId: null, profileSamples: [] },
       ],
       certifications: [],
     });

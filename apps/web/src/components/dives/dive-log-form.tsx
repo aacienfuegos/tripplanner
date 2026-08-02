@@ -50,6 +50,16 @@ export function DiveLogForm({ dive: d, sites, equipment, tripId, onSuccess }: Pr
     TRIMIX: t.gasMixTrimix,
     OXYGEN: t.gasMixOxygen,
   };
+  const currentLabels: Record<string, string> = {
+    NONE: t.diveCurrentNone,
+    LIGHT: t.diveCurrentLight,
+    MODERATE: t.diveCurrentModerate,
+    STRONG: t.diveCurrentStrong,
+  };
+  const entryTypeLabels: Record<string, string> = {
+    SHORE: t.diveEntryTypeShore,
+    BOAT: t.diveEntryTypeBoat,
+  };
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -206,6 +216,12 @@ export function DiveLogForm({ dive: d, sites, equipment, tripId, onSuccess }: Pr
             <Label htmlFor="surfaceInterval">{t.diveSurfaceInterval}</Label>
             <Input id="surfaceInterval" name="surfaceInterval" type="number" min="0" defaultValue={d?.surfaceInterval ?? ""} />
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupGas}</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="gasMix">{t.diveGasMix}</Label>
             <Select name="gasMix" defaultValue={d?.gasMix ?? "AIR"}>
@@ -255,6 +271,39 @@ export function DiveLogForm({ dive: d, sites, equipment, tripId, onSuccess }: Pr
             <Input id="visibility" name="visibility" type="number" step="0.1" min="0" defaultValue={d?.visibility ?? ""} />
           </div>
           <div className="space-y-1.5">
+            <Label htmlFor="visibilityHorizontal">{t.diveVisibilityHorizontal}</Label>
+            <Input
+              id="visibilityHorizontal" name="visibilityHorizontal" type="number" step="0.1" min="0"
+              defaultValue={d?.visibilityHorizontal ?? ""}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="current">{t.diveCurrent}</Label>
+            <Select name="current" defaultValue={d?.current ?? ""}>
+              <SelectTrigger id="current">
+                <SelectValue>{(value: string) => (value ? currentLabels[value] : t.diveTypeNone)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">{t.diveCurrentNone}</SelectItem>
+                <SelectItem value="LIGHT">{t.diveCurrentLight}</SelectItem>
+                <SelectItem value="MODERATE">{t.diveCurrentModerate}</SelectItem>
+                <SelectItem value="STRONG">{t.diveCurrentStrong}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="entryType">{t.diveEntryType}</Label>
+            <Select name="entryType" defaultValue={d?.entryType ?? ""}>
+              <SelectTrigger id="entryType">
+                <SelectValue>{(value: string) => (value ? entryTypeLabels[value] : t.diveTypeNone)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SHORE">{t.diveEntryTypeShore}</SelectItem>
+                <SelectItem value="BOAT">{t.diveEntryTypeBoat}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="suitType">{t.diveSuitType}</Label>
             <Input id="suitType" name="suitType" defaultValue={d?.suitType ?? ""} />
           </div>
@@ -266,11 +315,47 @@ export function DiveLogForm({ dive: d, sites, equipment, tripId, onSuccess }: Pr
       </div>
 
       <div className="space-y-3">
+        <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupTechnical}</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="safetyStopMinutes">{t.diveSafetyStopMinutes}</Label>
+            <Input id="safetyStopMinutes" name="safetyStopMinutes" type="number" min="0" defaultValue={d?.safetyStopMinutes ?? ""} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="minPpo2">{t.diveMinPpo2}</Label>
+            <Input id="minPpo2" name="minPpo2" type="number" step="0.01" min="0" defaultValue={d?.minPpo2 ?? ""} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="maxPpo2">{t.diveMaxPpo2}</Label>
+            <Input id="maxPpo2" name="maxPpo2" type="number" step="0.01" min="0" defaultValue={d?.maxPpo2 ?? ""} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cnsPercent">{t.diveCnsPercent}</Label>
+            <Input id="cnsPercent" name="cnsPercent" type="number" min="0" defaultValue={d?.cnsPercent ?? ""} />
+          </div>
+          <div className="space-y-1.5 flex items-end pb-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="decoRequired" defaultChecked={d?.decoRequired ?? false} className="accent-primary" />
+              {t.diveDecoRequired}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
         <h4 className="text-sm font-medium text-muted-foreground">{t.diveGroupNotes}</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="buddyName">{t.diveBuddyName}</Label>
             <Input id="buddyName" name="buddyName" defaultValue={d?.buddyName ?? ""} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="divemaster">{t.diveDivemaster}</Label>
+            <Input id="divemaster" name="divemaster" defaultValue={d?.divemaster ?? ""} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="boat">{t.diveBoat}</Label>
+            <Input id="boat" name="boat" defaultValue={d?.boat ?? ""} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="rating">{t.diveRating}</Label>

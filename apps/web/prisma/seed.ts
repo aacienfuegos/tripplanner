@@ -835,6 +835,36 @@ async function main() {
       diveType: "DEEP",
       rating: 5,
       notes: "Inmersión técnica a la pared norte. Parada de descompresión de 6 min a 5m.",
+      decoRequired: true,
+      safetyStopMinutes: 6,
+      minPpo2: 1.1,
+      maxPpo2: 1.4,
+      cnsPercent: 38,
+      // Perfil real (no sintetizado) para mostrar cómo se ve una curva de
+      // ordenador de buceo de verdad frente a la aproximación automática.
+      // ndlMinutes es ilustrativo (no modela deco real) — solo para que la
+      // pestaña de NDL tenga algo que enseñar en el seed: cae a 0 al entrar
+      // en la zona de descompresión y se recupera al ascender.
+      profileSamples: {
+        create: [
+          { seconds: 30, depth: 12, temp: 20, ndlMinutes: 25 },
+          { seconds: 60, depth: 24, temp: 18, ndlMinutes: 15 },
+          { seconds: 90, depth: 36, temp: 16, ndlMinutes: 8 },
+          { seconds: 120, depth: 43, temp: 15, ndlMinutes: 3 },
+          { seconds: 150, depth: 45, temp: 14, ndlMinutes: 0 },
+          { seconds: 300, depth: 44, temp: 14, ndlMinutes: 0 },
+          { seconds: 450, depth: 43, temp: 14, ndlMinutes: 0 },
+          { seconds: 600, depth: 45, temp: 14, ndlMinutes: 0 },
+          { seconds: 750, depth: 42, temp: 14, ndlMinutes: 0 },
+          { seconds: 900, depth: 38, temp: 15, ndlMinutes: 0 },
+          { seconds: 1000, depth: 25, temp: 16, ndlMinutes: 3 },
+          { seconds: 1080, depth: 15, temp: 17, ndlMinutes: 8 },
+          { seconds: 1116, depth: 9, temp: 18, ndlMinutes: 12 },
+          { seconds: 1152, depth: 5, temp: 19, ndlMinutes: 18 },
+          { seconds: 1512, depth: 5, temp: 19, ndlMinutes: 22 },
+          { seconds: 1560, depth: 0, temp: 20, ndlMinutes: 30 },
+        ],
+      },
     },
     {
       diveNumber: 6,
@@ -867,6 +897,10 @@ async function main() {
       diveType: "DRIFT",
       rating: 5,
       notes: "Tiburones punta blanca y bancos de barracudas en la pared de Shark Reef.",
+      current: "MODERATE" as const,
+      divemaster: "Ahmed Hassan",
+      boat: "M/Y Blue Melody",
+      entryType: "BOAT" as const,
     },
     {
       diveNumber: 8,
@@ -887,6 +921,9 @@ async function main() {
       diveType: "WRECK",
       rating: 5,
       notes: "Pecio de la Segunda Guerra Mundial. Motos y camiones todavía visibles en las bodegas.",
+      divemaster: "Ahmed Hassan",
+      boat: "M/Y Blue Melody",
+      entryType: "BOAT" as const,
     },
     {
       diveNumber: 9,

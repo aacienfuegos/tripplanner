@@ -18,7 +18,7 @@ interface Props {
 const SITE_COLOR = "#06b6d4";
 const SITE_GLYPH = `<path d="M2 12q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0"/>`;
 
-interface MapPoint {
+export interface MapPoint {
   id: number;
   name: string;
   subtitle: string | null;
@@ -32,7 +32,7 @@ interface MapPoint {
 // desde CDN, compatible con Expo Go (react-native-webview no requiere dev
 // client). El popup manda un postMessage a RN para navegar al detalle,
 // ya que el WebView no puede usar expo-router directamente.
-function buildMapHtml(points: MapPoint[], viewDetailLabel: string): string {
+export function buildMapHtml(points: MapPoint[], viewDetailLabel: string): string {
   const pointsJson = JSON.stringify(points);
   return `<!DOCTYPE html>
 <html>

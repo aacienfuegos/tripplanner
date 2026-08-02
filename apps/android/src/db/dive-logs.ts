@@ -17,17 +17,30 @@ export interface DiveLog {
   water_temp: number | null;
   air_temp: number | null;
   visibility: number | null;
+  visibility_horizontal: number | null;
   dive_type: string | null;
   buddy_name: string | null;
   suit_type: string | null;
   weight: number | null;
   notes: string | null;
   rating: number | null;
+  current: DiveCurrent | null;
+  divemaster: string | null;
+  boat: string | null;
+  entry_type: DiveEntryType | null;
+  deco_required: 0 | 1;
+  safety_stop_minutes: number | null;
+  min_ppo2: number | null;
+  max_ppo2: number | null;
+  cns_percent: number | null;
   source: "MANUAL" | "IMPORTED";
   external_id: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type DiveCurrent = "NONE" | "LIGHT" | "MODERATE" | "STRONG";
+export type DiveEntryType = "SHORE" | "BOAT";
 
 export interface DiveLogInput {
   trip_id: number | null;
@@ -44,12 +57,22 @@ export interface DiveLogInput {
   water_temp: number | null;
   air_temp: number | null;
   visibility: number | null;
+  visibility_horizontal: number | null;
   dive_type: string | null;
   buddy_name: string | null;
   suit_type: string | null;
   weight: number | null;
   notes: string | null;
   rating: number | null;
+  current: DiveCurrent | null;
+  divemaster: string | null;
+  boat: string | null;
+  entry_type: DiveEntryType | null;
+  deco_required: 0 | 1;
+  safety_stop_minutes: number | null;
+  min_ppo2: number | null;
+  max_ppo2: number | null;
+  cns_percent: number | null;
   equipmentIds: number[];
 }
 
@@ -138,35 +161,45 @@ export function getDiveLog(id: number): DiveLog | null {
   return db.getFirstSync<DiveLog>("SELECT * FROM dive_logs WHERE id = ?", [id]) ?? null;
 }
 
-export function createDiveLog(data: DiveLogInput): void {
+export function createDiveLog(data: DiveLogInput): number {
   const result = db.runSync(
     `INSERT INTO dive_logs
        (trip_id, dive_site_id, date, dive_number, depth_max, bottom_time, surface_interval,
         gas_mix, o2_percentage, helium_percentage, pressure_start, pressure_end, water_temp,
-        air_temp, visibility, dive_type, buddy_name, suit_type, weight, notes, rating)
-     VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        air_temp, visibility, visibility_horizontal, dive_type, buddy_name, suit_type, weight,
+        notes, rating, current, divemaster, boat, entry_type, deco_required, safety_stop_minutes,
+        min_ppo2, max_ppo2, cns_percent)
+     VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.trip_id, data.dive_site_id, data.date, data.depth_max, data.bottom_time,
       data.surface_interval, data.gas_mix, data.o2_percentage, data.helium_percentage,
       data.pressure_start, data.pressure_end, data.water_temp, data.air_temp, data.visibility,
-      data.dive_type, data.buddy_name, data.suit_type, data.weight, data.notes, data.rating,
+      data.visibility_horizontal, data.dive_type, data.buddy_name, data.suit_type, data.weight,
+      data.notes, data.rating, data.current, data.divemaster, data.boat, data.entry_type,
+      data.deco_required, data.safety_stop_minutes, data.min_ppo2, data.max_ppo2, data.cns_percent,
     ]
   );
   setEquipment(result.lastInsertRowId, data.equipmentIds);
   renumberDives();
+  return result.lastInsertRowId;
 }
 
 export function updateDiveLog(id: number, data: DiveLogInput): void {
   db.runSync(
     `UPDATE dive_logs SET trip_id=?, dive_site_id=?, date=?, depth_max=?, bottom_time=?,
      surface_interval=?, gas_mix=?, o2_percentage=?, helium_percentage=?, pressure_start=?,
-     pressure_end=?, water_temp=?, air_temp=?, visibility=?, dive_type=?, buddy_name=?,
-     suit_type=?, weight=?, notes=?, rating=?, updated_at=datetime('now') WHERE id=?`,
+     pressure_end=?, water_temp=?, air_temp=?, visibility=?, visibility_horizontal=?, dive_type=?,
+     buddy_name=?, suit_type=?, weight=?, notes=?, rating=?, current=?, divemaster=?, boat=?,
+     entry_type=?, deco_required=?, safety_stop_minutes=?, min_ppo2=?, max_ppo2=?, cns_percent=?,
+     updated_at=datetime('now') WHERE id=?`,
     [
       data.trip_id, data.dive_site_id, data.date, data.depth_max, data.bottom_time,
       data.surface_interval, data.gas_mix, data.o2_percentage, data.helium_percentage,
       data.pressure_start, data.pressure_end, data.water_temp, data.air_temp, data.visibility,
-      data.dive_type, data.buddy_name, data.suit_type, data.weight, data.notes, data.rating, id,
+      data.visibility_horizontal, data.dive_type, data.buddy_name, data.suit_type, data.weight,
+      data.notes, data.rating, data.current, data.divemaster, data.boat, data.entry_type,
+      data.deco_required, data.safety_stop_minutes, data.min_ppo2, data.max_ppo2, data.cns_percent,
+      id,
     ]
   );
   setEquipment(id, data.equipmentIds);
@@ -178,6 +211,42 @@ export function updateDiveLog(id: number, data: DiveLogInput): void {
 export function deleteDiveLog(id: number): void {
   db.runSync("DELETE FROM dive_logs WHERE id = ?", [id]);
   renumberDives();
+}
+
+export interface DiveProfileSample {
+  seconds: number;
+  depth: number;
+  temp: number | null;
+  ndlMinutes: number | null;
+}
+
+interface DiveProfileSampleRow {
+  seconds: number;
+  depth: number;
+  temp: number | null;
+  ndl_minutes: number | null;
+}
+
+export function getProfileSamples(diveLogId: number): DiveProfileSample[] {
+  const rows = db.getAllSync<DiveProfileSampleRow>(
+    "SELECT seconds, depth, temp, ndl_minutes FROM dive_log_profile_samples WHERE dive_log_id = ? ORDER BY seconds ASC",
+    [diveLogId]
+  );
+  return rows.map((r) => ({ seconds: r.seconds, depth: r.depth, temp: r.temp, ndlMinutes: r.ndl_minutes }));
+}
+
+// Perfiles reales importados desde un ordenador de buceo (o el seed de
+// desarrollo). Los buceos introducidos a mano no tienen filas aquí — su
+// curva se sintetiza en tiempo real a partir de depth_max/bottom_time
+// (ver src/lib/dive-profile.ts).
+export function setProfileSamples(diveLogId: number, samples: DiveProfileSample[]): void {
+  db.runSync("DELETE FROM dive_log_profile_samples WHERE dive_log_id = ?", [diveLogId]);
+  for (const s of samples) {
+    db.runSync(
+      "INSERT INTO dive_log_profile_samples (dive_log_id, seconds, depth, temp, ndl_minutes) VALUES (?, ?, ?, ?, ?)",
+      [diveLogId, s.seconds, s.depth, s.temp, s.ndlMinutes]
+    );
+  }
 }
 
 export function linkDiveToTrip(diveId: number, tripId: number): void {

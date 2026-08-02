@@ -93,6 +93,33 @@ describe("parseDivingLogDatabase", () => {
     expect(dive1?.diveType).toBe("2,5");
   });
 
+  it("decodes Profile+ProfileInt into depth/time samples", () => {
+    const dive1 = result.entries.find((e) => e.depthMax === "18");
+    expect(dive1?.profileSamples).toEqual([
+      { seconds: 60, depth: 5, temp: 28.2, ndlMinutes: 45 },
+      { seconds: 120, depth: 15, temp: 26, ndlMinutes: 30 },
+      { seconds: 180, depth: 18, temp: null, ndlMinutes: null },
+    ]);
+  });
+
+  it("returns no samples when Profile or ProfileInt is missing", () => {
+    const dive2 = result.entries.find((e) => e.depthMax === "22");
+    expect(dive2?.profileSamples).toEqual([]);
+  });
+
+  it("carries Divemaster and Boat as free text", () => {
+    const dive1 = result.entries.find((e) => e.depthMax === "18");
+    expect(dive1?.divemaster).toBe("Jane Master");
+    expect(dive1?.boat).toBe("MV Explorer");
+  });
+
+  it("maps Deco=1 to decoRequired, Deco=0/null to undefined", () => {
+    const dive1 = result.entries.find((e) => e.depthMax === "18");
+    const dive3 = result.entries.find((e) => e.depthMax === "30");
+    expect(dive1?.decoRequired).toBeUndefined();
+    expect(dive3?.decoRequired).toBe("1");
+  });
+
   it("carries externalId from each source table's UUID", () => {
     expect(result.sites.every((s) => s.externalId.length > 0)).toBe(true);
     expect(result.entries.every((e) => e.externalId.length > 0)).toBe(true);

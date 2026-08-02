@@ -62,6 +62,7 @@ export default function DivesTabsLayout() {
       />
       <Tabs.Screen name="equipment-detail" options={{ href: null }} />
       <Tabs.Screen name="site-detail" options={{ href: null }} />
+      <Tabs.Screen name="dive-detail" options={{ href: null }} />
     </Tabs>
   );
 }

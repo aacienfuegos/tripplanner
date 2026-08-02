@@ -22,6 +22,13 @@ export interface DivingLogParsedSite {
   notes: string | undefined;
 }
 
+export interface DivingLogParsedProfileSample {
+  seconds: number;
+  depth: number;
+  temp: number | null;
+  ndlMinutes: number | null;
+}
+
 export interface DivingLogParsedEntry {
   externalId: string;
   date: string;
@@ -43,7 +50,11 @@ export interface DivingLogParsedEntry {
   weight: string | undefined;
   notes: string | undefined;
   rating: string | undefined;
+  divemaster: string | undefined;
+  boat: string | undefined;
+  decoRequired: string | undefined;
   diveSiteExternalId: string | null;
+  profileSamples: DivingLogParsedProfileSample[];
 }
 
 export interface DivingLogParsedCertification {
@@ -115,6 +126,13 @@ interface LogbookRow {
   Divesuit: string | null;
   Rating: number | null;
   UUID: string | null;
+  Divemaster: string | null;
+  Boat: string | null;
+  Deco: number | null;
+  Profile: string | null;
+  ProfileInt: number | null;
+  Profile2: string | null;
+  Profile4: string | null;
 }
 
 // Caps every table read at the SQL level (not just post-parse Zod validation)
@@ -188,6 +206,57 @@ function pluralize(count: number, singular: string, plural: string): string {
   return count === 1 ? singular : plural;
 }
 
+// Profile/Profile2/Profile4 guardan muestras concatenadas sin separador, un
+// canal por columna, todos al mismo ProfileInt. Cada canal usa un ancho de
+// chunk distinto pero el mismo patrón: los primeros dígitos son el valor,
+// el resto queda sin usar en los exports verificados hasta ahora (issue de
+// perfil de buceo, verificado contra un export real de 65 inmersiones):
+//   Profile  (profundidad): 12 chars, 5 dígitos = cm
+//   Profile2 (temperatura): 11 chars, 3 dígitos = décimas de °C
+//   Profile4 (NDL restante): 9 chars, 3 dígitos = minutos (598 = sin límite / superficie)
+// Profile2/Profile4 traen una muestra menos que Profile (falta la última,
+// de superficie) — se alinean por índice y se ignora el resto si sobra.
+const PROFILE_SAMPLE_CHARS = 12;
+const PROFILE_DEPTH_CHARS = 5;
+const TEMP_SAMPLE_CHARS = 11;
+const TEMP_VALUE_CHARS = 3;
+const NDL_SAMPLE_CHARS = 9;
+const NDL_VALUE_CHARS = 3;
+const MAX_PROFILE_SAMPLES = 4000;
+
+function decodeChannel(raw: string | null, sampleChars: number, valueChars: number): number[] {
+  if (!raw) return [];
+  const count = Math.min(Math.floor(raw.length / sampleChars), MAX_PROFILE_SAMPLES);
+  const values: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const chunk = raw.slice(i * sampleChars, i * sampleChars + valueChars);
+    const value = parseInt(chunk, 10);
+    values.push(Number.isFinite(value) ? value : NaN);
+  }
+  return values;
+}
+
+function decodeProfile(
+  profile: string | null,
+  intervalSeconds: number | null,
+  profile2: string | null,
+  profile4: string | null,
+): DivingLogParsedProfileSample[] {
+  if (!profile || !intervalSeconds || intervalSeconds <= 0) return [];
+  const depthCm = decodeChannel(profile, PROFILE_SAMPLE_CHARS, PROFILE_DEPTH_CHARS);
+  const tempDeci = decodeChannel(profile2, TEMP_SAMPLE_CHARS, TEMP_VALUE_CHARS);
+  const ndl = decodeChannel(profile4, NDL_SAMPLE_CHARS, NDL_VALUE_CHARS);
+
+  const samples: DivingLogParsedProfileSample[] = [];
+  for (let i = 0; i < depthCm.length; i++) {
+    if (!Number.isFinite(depthCm[i])) continue;
+    const temp = Number.isFinite(tempDeci[i]) ? round1(tempDeci[i] / 10) : null;
+    const ndlMinutes = Number.isFinite(ndl[i]) ? ndl[i] : null;
+    samples.push({ seconds: (i + 1) * intervalSeconds, depth: round1(depthCm[i] / 100), temp, ndlMinutes });
+  }
+  return samples;
+}
+
 export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
   let db: Database.Database;
   try {
@@ -215,7 +284,7 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
       db,
       `SELECT ID, Divedate, Entrytime, Surfint, Country, Place, PlaceID, Divetime, Depth,
               Buddy, Comments, Divetype, Airtemp, Watertemp, Visibility, Weight, Divesuit,
-              Rating, UUID
+              Rating, UUID, Divemaster, Boat, Deco, Profile, ProfileInt, Profile2, Profile4
        FROM Logbook`,
     );
 
@@ -313,7 +382,11 @@ export function parseDivingLogDatabase(filePath: string): DivingLogParseResult {
         weight: row.Weight != null ? String(round1(row.Weight)) : undefined,
         notes,
         rating,
+        divemaster: nonEmpty(row.Divemaster),
+        boat: nonEmpty(row.Boat),
+        decoRequired: row.Deco === 1 ? "1" : undefined,
         diveSiteExternalId: row.PlaceID ? (placeExternalIdById.get(row.PlaceID) ?? null) : null,
+        profileSamples: decodeProfile(row.Profile, row.ProfileInt, row.Profile2, row.Profile4),
       });
     }
 

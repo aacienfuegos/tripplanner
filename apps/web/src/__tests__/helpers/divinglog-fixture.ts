@@ -21,7 +21,8 @@ export function buildDivingLogFixture(): string {
       'ID' INTEGER PRIMARY KEY, 'Number' INTEGER, 'Divedate' TEXT, 'Entrytime' TEXT, 'Surfint' TEXT,
       'Country' TEXT, 'CountryID' INTEGER, 'Place' TEXT, 'PlaceID' INTEGER, 'Divetime' REAL, 'Depth' REAL,
       'Buddy' TEXT, 'Comments' TEXT, 'Divetype' TEXT, 'Airtemp' REAL, 'Watertemp' REAL, 'Visibility' INTEGER,
-      'Weight' REAL, 'Divesuit' TEXT, 'Rating' INTEGER, 'UUID' TEXT
+      'Weight' REAL, 'Divesuit' TEXT, 'Rating' INTEGER, 'UUID' TEXT, 'Divemaster' TEXT, 'Boat' TEXT,
+      'Deco' INTEGER, 'Profile' TEXT, 'ProfileInt' INTEGER, 'Profile2' TEXT, 'Profile4' TEXT
     );
   `);
 
@@ -50,38 +51,47 @@ export function buildDivingLogFixture(): string {
   const tankInsert = db.prepare(
     "INSERT INTO Tank (LogID, SortOrd, PresS, PresE, O2, He) VALUES (?, ?, ?, ?, ?, ?)",
   );
-  // Dive 1: single tank, air.
   tankInsert.run(1, 1, 200, 60, 21, 0);
-  // Dive 2: two tanks (twinset) — primary is SortOrd 1, extra should be summarized in notes.
   tankInsert.run(2, 1, 220, 80, 32, 0);
   tankInsert.run(2, 2, 220, 90, 32, 0);
-  // Dive 3: trimix.
   tankInsert.run(3, 1, 210, 70, 18, 35);
 
   const logInsert = db.prepare(`
     INSERT INTO Logbook (
       ID, Number, Divedate, Entrytime, Surfint, Country, CountryID, Place, PlaceID, Divetime, Depth,
-      Buddy, Comments, Divetype, Airtemp, Watertemp, Visibility, Weight, Divesuit, Rating, UUID
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      Buddy, Comments, Divetype, Airtemp, Watertemp, Visibility, Weight, Divesuit, Rating, UUID,
+      Divemaster, Boat, Deco, Profile, ProfileInt, Profile2, Profile4
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const logUuids = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  // 3 samples @ 60s: 5m, 15m, 18m — exercises decodeProfile's 12-char chunking
+  // (5-digit depth in cm + 7 unused filler chars per sample).
+  const sampleProfile = "005000000000015000000000018000000000";
+  // Temp/NDL channels bring one fewer sample than Profile in real exports
+  // (missing the trailing surface sample) — mirrored here on purpose.
+  const sampleTemp = "28200000000" + "26000000000"; // 28.2°C, 26.0°C
+  const sampleNdl = "045000000" + "030000000"; // 45min, 30min
   logInsert.run(
     1, 1, "2024-06-01", "10:00", "01:00", "Spain", null, "Wreck Reef", 1, 45, 18,
     null, "First dive of the trip", "2,5", 28, 21, 15, 6, "5mm", 4, logUuids[0],
+    "Jane Master", "MV Explorer", 0, sampleProfile, 60, sampleTemp, sampleNdl,
   );
   logInsert.run(
     2, 2, "2024-06-02", "09:30", "00:45", "Spain", null, "Blue Cave", 2, 38, 22,
     null, null, null, 27, 20, 10, 6, "5mm", 0, logUuids[1],
+    null, null, null, null, null, null, null,
   );
   logInsert.run(
     3, 3, "2024-06-03", "11:00", null, "Spain", null, "Wreck Reef", 1, 40, 30,
     null, null, null, 26, 15, 12, 8, "7mm", 5, logUuids[2],
+    null, null, 1, null, null, null, null,
   );
   // No PlaceID (0 = "no site", matches the sentinel found in the real export)
   // and no Divetime (missing bottom time, also found in the real export).
   logInsert.run(
     4, 4, "2024-06-04", "08:00", null, null, null, null, 0, null, 12,
     null, null, null, 24, 18, 8, 4, null, 0, logUuids[3],
+    null, null, null, null, null, null, null,
   );
 
   db.close();

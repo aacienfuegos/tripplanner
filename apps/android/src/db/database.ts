@@ -281,4 +281,12 @@ export function initDatabase(): void {
       PRAGMA user_version = 5;
     `);
   }
+
+  if (user_version < 6) {
+    db.execSync(`
+      ALTER TABLE dive_log_profile_samples ADD COLUMN ndl_minutes INTEGER;
+
+      PRAGMA user_version = 6;
+    `);
+  }
 }

@@ -15,6 +15,8 @@ import DiveSiteFormModal from "./DiveSiteFormModal";
 const DIVE_TYPES = ["RECREATIONAL", "TRAINING", "NIGHT", "WRECK", "DRIFT", "DEEP", "CAVE", "FREEDIVE"] as const;
 type DiveTypeKey = (typeof DIVE_TYPES)[number];
 const GAS_MIXES: DiveLog["gas_mix"][] = ["AIR", "NITROX", "TRIMIX", "OXYGEN"];
+const CURRENTS: NonNullable<DiveLog["current"]>[] = ["NONE", "LIGHT", "MODERATE", "STRONG"];
+const ENTRY_TYPES: NonNullable<DiveLog["entry_type"]>[] = ["SHORE", "BOAT"];
 
 interface Props {
   visible: boolean;
@@ -44,11 +46,21 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
   const [waterTemp, setWaterTemp] = useState("");
   const [airTemp, setAirTemp] = useState("");
   const [visibility, setVisibility] = useState("");
+  const [visibilityHorizontal, setVisibilityHorizontal] = useState("");
+  const [current, setCurrent] = useState<DiveLog["current"]>(null);
+  const [entryType, setEntryType] = useState<DiveLog["entry_type"]>(null);
   const [diveType, setDiveType] = useState<DiveTypeKey | null>(null);
   const [buddyName, setBuddyName] = useState("");
+  const [divemaster, setDivemaster] = useState("");
+  const [boat, setBoat] = useState("");
   const [suitType, setSuitType] = useState("");
   const [weight, setWeight] = useState("");
   const [rating, setRating] = useState(0);
+  const [decoRequired, setDecoRequired] = useState(false);
+  const [safetyStopMinutes, setSafetyStopMinutes] = useState("");
+  const [minPpo2, setMinPpo2] = useState("");
+  const [maxPpo2, setMaxPpo2] = useState("");
+  const [cnsPercent, setCnsPercent] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
@@ -64,6 +76,12 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
   };
   const gasMixLabels: Record<DiveLog["gas_mix"], string> = {
     AIR: t.gasMixAir, NITROX: t.gasMixNitrox, TRIMIX: t.gasMixTrimix, OXYGEN: t.gasMixOxygen,
+  };
+  const currentLabels: Record<NonNullable<DiveLog["current"]>, string> = {
+    NONE: t.diveCurrentNone, LIGHT: t.diveCurrentLight, MODERATE: t.diveCurrentModerate, STRONG: t.diveCurrentStrong,
+  };
+  const entryTypeLabels: Record<NonNullable<DiveLog["entry_type"]>, string> = {
+    SHORE: t.diveEntryTypeShore, BOAT: t.diveEntryTypeBoat,
   };
 
   useEffect(() => {
@@ -86,11 +104,21 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
       setWaterTemp(initialData.water_temp != null ? String(initialData.water_temp) : "");
       setAirTemp(initialData.air_temp != null ? String(initialData.air_temp) : "");
       setVisibility(initialData.visibility != null ? String(initialData.visibility) : "");
+      setVisibilityHorizontal(initialData.visibility_horizontal != null ? String(initialData.visibility_horizontal) : "");
+      setCurrent(initialData.current);
+      setEntryType(initialData.entry_type);
       setDiveType((initialData.dive_type as DiveTypeKey) ?? null);
       setBuddyName(initialData.buddy_name ?? "");
+      setDivemaster(initialData.divemaster ?? "");
+      setBoat(initialData.boat ?? "");
       setSuitType(initialData.suit_type ?? "");
       setWeight(initialData.weight != null ? String(initialData.weight) : "");
       setRating(initialData.rating ?? 0);
+      setDecoRequired(initialData.deco_required === 1);
+      setSafetyStopMinutes(initialData.safety_stop_minutes != null ? String(initialData.safety_stop_minutes) : "");
+      setMinPpo2(initialData.min_ppo2 != null ? String(initialData.min_ppo2) : "");
+      setMaxPpo2(initialData.max_ppo2 != null ? String(initialData.max_ppo2) : "");
+      setCnsPercent(initialData.cns_percent != null ? String(initialData.cns_percent) : "");
       setNotes(initialData.notes ?? "");
       setSelectedEquipment(new Set(listDiveLogEquipmentIds(initialData.id)));
     } else {
@@ -100,7 +128,11 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
       setDepthMax(""); setBottomTime(""); setSurfaceInterval("");
       setGasMix("AIR"); setO2Percentage(""); setHeliumPercentage("");
       setPressureStart(""); setPressureEnd(""); setWaterTemp(""); setAirTemp(""); setVisibility("");
-      setDiveType(null); setBuddyName(""); setSuitType(""); setWeight(""); setRating(0); setNotes("");
+      setVisibilityHorizontal(""); setCurrent(null); setEntryType(null);
+      setDiveType(null); setBuddyName(""); setDivemaster(""); setBoat("");
+      setSuitType(""); setWeight(""); setRating(0);
+      setDecoRequired(false); setSafetyStopMinutes(""); setMinPpo2(""); setMaxPpo2(""); setCnsPercent("");
+      setNotes("");
       setSelectedEquipment(new Set());
     }
     setError("");
@@ -134,12 +166,22 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
       water_temp: waterTemp ? parseFloat(waterTemp) : null,
       air_temp: airTemp ? parseFloat(airTemp) : null,
       visibility: visibility ? parseFloat(visibility) : null,
+      visibility_horizontal: visibilityHorizontal ? parseFloat(visibilityHorizontal) : null,
       dive_type: diveType,
       buddy_name: buddyName.trim() || null,
       suit_type: suitType.trim() || null,
       weight: weight ? parseFloat(weight) : null,
       notes: notes.trim() || null,
       rating: rating || null,
+      current,
+      divemaster: divemaster.trim() || null,
+      boat: boat.trim() || null,
+      entry_type: entryType,
+      deco_required: decoRequired ? 1 : 0,
+      safety_stop_minutes: safetyStopMinutes ? parseInt(safetyStopMinutes, 10) : null,
+      min_ppo2: minPpo2 ? parseFloat(minPpo2) : null,
+      max_ppo2: maxPpo2 ? parseFloat(maxPpo2) : null,
+      cns_percent: cnsPercent ? parseInt(cnsPercent, 10) : null,
       equipmentIds: Array.from(selectedEquipment),
     };
 
@@ -217,6 +259,12 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
 
             <Text className={groupLabel}>{t.diveGroupProfile}</Text>
             <View>
+              <Text className={label}>{t.diveSurfaceInterval}</Text>
+              <TextInput className={inputClass} value={surfaceInterval} onChangeText={setSurfaceInterval} keyboardType="number-pad" />
+            </View>
+
+            <Text className={groupLabel}>{t.diveGroupGas}</Text>
+            <View>
               <Text className={label}>{t.diveGasMix}</Text>
               <View className="flex-row gap-2 flex-wrap">
                 {GAS_MIXES.map((g) => (
@@ -248,10 +296,6 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
                 <TextInput className={inputClass} value={pressureEnd} onChangeText={setPressureEnd} keyboardType="number-pad" />
               </View>
             </View>
-            <View>
-              <Text className={label}>{t.diveSurfaceInterval}</Text>
-              <TextInput className={inputClass} value={surfaceInterval} onChangeText={setSurfaceInterval} keyboardType="number-pad" />
-            </View>
 
             <Text className={groupLabel}>{t.diveGroupConditions}</Text>
             <View className="flex-row gap-3">
@@ -264,9 +308,43 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
                 <TextInput className={inputClass} value={airTemp} onChangeText={setAirTemp} keyboardType="decimal-pad" />
               </View>
             </View>
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Text className={label}>{t.diveVisibility}</Text>
+                <TextInput className={inputClass} value={visibility} onChangeText={setVisibility} keyboardType="decimal-pad" />
+              </View>
+              <View className="flex-1">
+                <Text className={label}>{t.diveVisibilityHorizontal}</Text>
+                <TextInput className={inputClass} value={visibilityHorizontal} onChangeText={setVisibilityHorizontal} keyboardType="decimal-pad" />
+              </View>
+            </View>
             <View>
-              <Text className={label}>{t.diveVisibility}</Text>
-              <TextInput className={inputClass} value={visibility} onChangeText={setVisibility} keyboardType="decimal-pad" />
+              <Text className={label}>{t.diveCurrent}</Text>
+              <View className="flex-row gap-2 flex-wrap">
+                <Chip selected={current === null} label={t.diveTypeNone} onPress={() => setCurrent(null)} />
+                {CURRENTS.map((c) => (
+                  <Chip key={c} selected={current === c} label={currentLabels[c]} onPress={() => setCurrent(c)} />
+                ))}
+              </View>
+            </View>
+            <View>
+              <Text className={label}>{t.diveEntryType}</Text>
+              <View className="flex-row gap-2 flex-wrap">
+                <Chip selected={entryType === null} label={t.diveTypeNone} onPress={() => setEntryType(null)} />
+                {ENTRY_TYPES.map((et) => (
+                  <Chip key={et} selected={entryType === et} label={entryTypeLabels[et]} onPress={() => setEntryType(et)} />
+                ))}
+              </View>
+            </View>
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Text className={label}>{t.diveSuitType}</Text>
+                <TextInput className={inputClass} value={suitType} onChangeText={setSuitType} />
+              </View>
+              <View className="flex-1">
+                <Text className={label}>{t.diveWeight}</Text>
+                <TextInput className={inputClass} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
+              </View>
             </View>
             <View>
               <Text className={label}>{t.diveType}</Text>
@@ -278,6 +356,35 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
               </View>
             </View>
 
+            <Text className={groupLabel}>{t.diveGroupTechnical}</Text>
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Text className={label}>{t.diveSafetyStopMinutes}</Text>
+                <TextInput className={inputClass} value={safetyStopMinutes} onChangeText={setSafetyStopMinutes} keyboardType="number-pad" />
+              </View>
+              <View className="flex-1">
+                <Text className={label}>{t.diveMinPpo2}</Text>
+                <TextInput className={inputClass} value={minPpo2} onChangeText={setMinPpo2} keyboardType="decimal-pad" />
+              </View>
+              <View className="flex-1">
+                <Text className={label}>{t.diveMaxPpo2}</Text>
+                <TextInput className={inputClass} value={maxPpo2} onChangeText={setMaxPpo2} keyboardType="decimal-pad" />
+              </View>
+            </View>
+            <View className="flex-row gap-3 items-end">
+              <View className="flex-1">
+                <Text className={label}>{t.diveCnsPercent}</Text>
+                <TextInput className={inputClass} value={cnsPercent} onChangeText={setCnsPercent} keyboardType="number-pad" />
+              </View>
+              <TouchableOpacity
+                onPress={() => setDecoRequired((prev) => !prev)}
+                className="flex-1 flex-row items-center gap-2 py-2.5"
+              >
+                <Ionicons name={decoRequired ? "checkbox" : "square-outline"} size={22} color={decoRequired ? "#0e7490" : (isDark ? "#52525b" : "#9ca3af")} />
+                <Text className="text-sm text-gray-700 dark:text-slate-300 flex-1">{t.diveDecoRequired}</Text>
+              </TouchableOpacity>
+            </View>
+
             <Text className={groupLabel}>{t.diveGroupNotes}</Text>
             <View className="flex-row gap-3">
               <View className="flex-1">
@@ -285,13 +392,13 @@ export default function DiveLogFormModal({ visible, tripId, onClose, onSaved, on
                 <TextInput className={inputClass} value={buddyName} onChangeText={setBuddyName} />
               </View>
               <View className="flex-1">
-                <Text className={label}>{t.diveSuitType}</Text>
-                <TextInput className={inputClass} value={suitType} onChangeText={setSuitType} />
+                <Text className={label}>{t.diveDivemaster}</Text>
+                <TextInput className={inputClass} value={divemaster} onChangeText={setDivemaster} />
               </View>
             </View>
             <View>
-              <Text className={label}>{t.diveWeight}</Text>
-              <TextInput className={inputClass} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
+              <Text className={label}>{t.diveBoat}</Text>
+              <TextInput className={inputClass} value={boat} onChangeText={setBoat} />
             </View>
             <View>
               <Text className={label}>{t.diveRating}</Text>
