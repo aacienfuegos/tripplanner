@@ -35,7 +35,8 @@
     "build:web": "npm run build --workspace=apps/web",
     "test:web": "npm run test --workspace=apps/web",
     "typecheck:web": "npm run typecheck --workspace=apps/web",
-    "dev:android": "npm run start --workspace=apps/android"
+    "dev:android": "npm run start --workspace=apps/android",
+    "postinstall": "patch-package"
   },
   "allowScripts": {
     "@prisma/engines@7.9.1": true,
@@ -43,5 +44,8 @@
     "esbuild@0.28.1": true,
     "prisma@7.9.1": true,
     "unrs-resolver@1.12.2": true
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }
