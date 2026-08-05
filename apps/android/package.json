@@ -6,8 +6,11 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "build:android": "eas build --platform android --profile production",
-    "build:android:preview": "eas build --platform android --profile preview"
+    "android:full": "APP_VARIANT=full SYNC_ENABLED=false expo run:android",
+    "android:dive-public": "APP_VARIANT=dive-public SYNC_ENABLED=false expo run:android",
+    "build:android:full-sync": "eas build --platform android --profile full-sync",
+    "build:android:full-nosync": "eas build --platform android --profile full-nosync",
+    "build:android:dive-public": "eas build --platform android --profile dive-public"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

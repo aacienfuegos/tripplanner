@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "full-sync": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_VARIANT": "full",
+        "SYNC_ENABLED": "true"
+      }
+    },
+    "full-nosync": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "full",
+        "SYNC_ENABLED": "false"
+      }
+    },
+    "dive-public": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_VARIANT": "dive-public",
+        "SYNC_ENABLED": "false"
+      }
+    }
+  },
+  "submit": {
+    "full-sync": {},
+    "dive-public": {}
+  }
+}
