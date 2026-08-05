@@ -36,7 +36,7 @@
     "test:web": "npm run test --workspace=apps/web",
     "typecheck:web": "npm run typecheck --workspace=apps/web",
     "dev:android": "npm run start --workspace=apps/android",
-    "postinstall": "patch-package"
+    "postinstall": "node -e \"try{require.resolve('patch-package')}catch(e){process.exit(0)};require('child_process').execSync('npx patch-package',{stdio:'inherit'})\""
   },
   "allowScripts": {
     "@prisma/engines@7.9.1": true,
