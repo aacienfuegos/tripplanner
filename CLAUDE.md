@@ -226,10 +226,16 @@ cd apps/android
 npx expo start          # QR para Expo Go en el móvil
 npx expo start --android  # abre emulador Android directamente
 
-# Build para distribución (necesita cuenta EAS)
-cd apps/android
-npx eas build --platform android --profile production
-npx eas build --platform android --profile preview   # APK para pruebas
+# Build nativo real contra un emulador/dispositivo (no Expo Go) — variante
+# full por defecto (APP_VARIANT sin definir cae a "full", ver más abajo)
+npm run android
+npm run android:full          # equivalente, explícito
+npm run android:dive-public   # variante Sub
+
+# Build para distribución (necesita cuenta EAS) — perfiles en eas.json
+npm run build:android:full-sync     # store, con sync
+npm run build:android:full-nosync   # interno, sin sync
+npm run build:android:dive-public   # store, app "Sub"
 ```
 
 ### Arquitectura de archivos clave (apps/android)
@@ -238,7 +244,7 @@ npx eas build --platform android --profile preview   # APK para pruebas
 apps/android/
 ├── app/                        # expo-router: rutas basadas en ficheros (como Next.js)
 │   ├── _layout.tsx             # Root: inicializa SQLite + ProContext + SafeAreaProvider
-│   ├── index.tsx               # Redirect → /trips
+│   ├── index.tsx               # Redirect → /trips o /dives según APP_VARIANT
 │   ├── settings.tsx            # Ajustes + toggle isPro (DEV) + botón "Actualizar a Pro"
 │   └── trips/
 │       ├── _layout.tsx         # Stack navigator para trips
@@ -271,7 +277,11 @@ apps/android/
 │           ├── PromptStep.tsx   # Paso 1: genera prompt + botón copiar portapapeles
 │           ├── PasteStep.tsx    # Paso 2: pegar JSON + validar con Zod
 │           └── ReviewStep.tsx   # Paso 3: preview checkboxes + detección duplicados + import
-├── app.json                    # Config Expo (nombre, package, scheme, plugins)
+├── app.config.ts                # Config Expo dinámica — resuelve APP_VARIANT/SYNC_ENABLED
+├── eas.json                     # Perfiles de build: full-sync, full-nosync, dive-public
+├── assets/
+│   ├── full/                   # icon.png, adaptive-icon.png, splash-icon.png de TripPlanner
+│   └── sub/                    # mismo set para la variante pública Sub (buceo)
 ├── babel.config.js             # NativeWind + JSX source
 ├── metro.config.js             # Monorepo support: watchFolders + nodeModulesPaths
 ├── tailwind.config.js          # Content paths para NativeWind
@@ -289,6 +299,40 @@ apps/android/
     1. Instalar `expo-in-app-purchases`
     2. Reemplazar el `useState(false)` en `ProContext.tsx` por verificación del estado de compra
     3. El resto de la app (gate en `trips/index.tsx`, botón en `settings.tsx`) no necesita cambios
+
+### Variantes de build (APP_VARIANT / SYNC_ENABLED)
+
+TripPlanner Android tiene dos módulos integrados (Trips + Dives, con `ModuleSwitcherHeader`
+para cambiar entre ambos). Se compilan **3 variantes** de la misma base de código sin
+duplicarla, resueltas en build time por `app.config.ts` a partir de dos variables de entorno:
+
+- `APP_VARIANT`: `full` | `dive-public` — controla nombre, `android.package`, icono/adaptive-icon/
+  splash (identidad de store) y el módulo por defecto en `app/index.tsx` (`/trips` vs `/dives`).
+- `SYNC_ENABLED`: `true` | `false` — controla si el código de sync con la web (aún no existe) se
+  importa/renderiza. No afecta identidad ni build variant de Android, solo comportamiento en runtime
+  vía `Constants.expoConfig.extra.syncEnabled`.
+
+Los dos módulos (Trips y Dives) se compilan siempre en las tres variantes — la diferencia es solo
+identidad + ruta por defecto + sync, no scope de features:
+
+| Variante          | `APP_VARIANT`  | `SYNC_ENABLED` | Nombre      | Package                      | Ruta por defecto | Perfil EAS       |
+|-------------------|----------------|----------------|-------------|-------------------------------|-------------------|-------------------|
+| Full, con sync     | `full`         | `true`         | TripPlanner | `com.aacienfuegos.tripplanner`| `/trips`          | `full-sync`       |
+| Full, sin sync      | `full`         | `false`        | TripPlanner | `com.aacienfuegos.tripplanner`| `/trips`          | `full-nosync`     |
+| Pública (buceo)     | `dive-public`  | `false`        | Sub         | `com.aacienfuegos.sub`        | `/dives`          | `dive-public`     |
+
+`full` se usa como nombre de variante (en vez de `personal`) para quedar abierto a que en el
+futuro haya más de una variante completa. Ambos package IDs son provisionales — la app aún no
+está publicada en Play Store, se pueden renombrar sin coste.
+
+Assets por variante en `apps/android/assets/<variant>/` (`full/` o `sub/`), generados desde SVG
+fuente con un pipeline de composición (fondo con gradiente + glyph blanco embebido) — no se
+generan a mano en cada cambio, ver histórico de PRs de #290.
+
+Local: `npm run android:full` / `npm run android:dive-public` (equivalen a
+`APP_VARIANT=... expo run:android`, cada uno regenera el proyecto nativo con `expo prebuild`
+porque cambia `android.package`). Build de distribución: `npm run build:android:<perfil>`
+(usa los perfiles de `eas.json`).
 
 ### Base de datos SQLite (Android)
 
