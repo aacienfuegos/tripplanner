@@ -16,7 +16,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@formatjs/intl-displaynames": "^7.3.13",
     "@formatjs/intl-locale": "^5.3.10",
-    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-async-storage/async-storage": "3.1.1",
     "@react-native-community/datetimepicker": "9.1.0",
     "@tripplanner/shared": "*",
     "crypto-js": "^4.2.0",
