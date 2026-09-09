@@ -1,0 +1,76 @@
+import { db } from "./database";
+
+export interface DiveSite {
+  id: number;
+  dive_area_id: number | null;
+  name: string;
+  address: string | null;
+  country: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  notes: string | null;
+  max_depth: number | null;
+  water_type: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED" | null;
+  source: "MANUAL" | "IMPORTED";
+  external_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DiveSiteInput {
+  dive_area_id: number | null;
+  name: string;
+  address: string | null;
+  country: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  notes: string | null;
+  max_depth?: number | null;
+  water_type?: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED" | null;
+}
+
+export function listDiveSites(): DiveSite[] {
+  return db.getAllSync<DiveSite>("SELECT * FROM dive_sites ORDER BY name ASC");
+}
+
+export function listDiveSitesByArea(diveAreaId: number): DiveSite[] {
+  return db.getAllSync<DiveSite>(
+    "SELECT * FROM dive_sites WHERE dive_area_id = ? ORDER BY name ASC",
+    [diveAreaId]
+  );
+}
+
+export function getDiveSite(id: number): DiveSite | null {
+  return db.getFirstSync<DiveSite>("SELECT * FROM dive_sites WHERE id = ?", [id]) ?? null;
+}
+
+export function createDiveSite(data: DiveSiteInput): DiveSite {
+  const result = db.runSync(
+    `INSERT INTO dive_sites (dive_area_id, name, address, country, region, latitude, longitude, notes, max_depth, water_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      data.dive_area_id, data.name, data.address, data.country, data.region,
+      data.latitude, data.longitude, data.notes,
+      data.max_depth ?? null, data.water_type ?? null,
+    ]
+  );
+  return getDiveSite(result.lastInsertRowId)!;
+}
+
+export function updateDiveSite(id: number, data: DiveSiteInput): void {
+  db.runSync(
+    `UPDATE dive_sites SET dive_area_id=?, name=?, address=?, country=?, region=?,
+     latitude=?, longitude=?, notes=?, max_depth=?, water_type=?, updated_at=datetime('now') WHERE id=?`,
+    [
+      data.dive_area_id, data.name, data.address, data.country, data.region,
+      data.latitude, data.longitude, data.notes,
+      data.max_depth ?? null, data.water_type ?? null, id,
+    ]
+  );
+}
+
+export function deleteDiveSite(id: number): void {
+  db.runSync("DELETE FROM dive_sites WHERE id = ?", [id]);
+}

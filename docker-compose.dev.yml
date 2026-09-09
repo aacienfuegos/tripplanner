@@ -19,14 +19,14 @@ services:
 
   app:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: .                        # monorepo root (needed for packages/shared)
+      dockerfile: apps/web/Dockerfile.dev
     restart: unless-stopped
-    env_file: .env.dev
+    env_file: apps/web/.env.dev
     volumes:
-      - .:/app                          # código fuente (hot reload)
+      - .:/app                              # monorepo root (hot reload)
       - node_modules_dev:/app/node_modules  # node_modules del contenedor
-      - next_cache_dev:/app/.next           # caché de Next.js
+      - next_cache_dev:/app/apps/web/.next  # caché de Next.js
     ports:
       - "${APP_PORT:-3000}:3000"
     depends_on:
