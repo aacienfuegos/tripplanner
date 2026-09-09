@@ -450,7 +450,27 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 ```
 
 - Nunca trabajar directo en `develop` ni en `main` — branch protection activa.
-- **Merge strategy: squash obligatorio.** Usar prefijo convencional en el título del PR (`feat:`, `fix:`, `refactor:`).
+- Usar prefijo convencional en el título del PR (`feat:`, `fix:`, `refactor:`): es lo que
+  acaba como mensaje del commit.
+
+**Estrategia de merge — depende del PR:**
+
+| PR | Estrategia |
+|---|---|
+| `feat/*` → `develop` | **Squash** |
+| `develop` → `main` (release) | **Merge commit** |
+| `main` → `develop` (tras un hotfix o cherry-pick en main) | **Merge commit** |
+
+Squash en las features mantiene `develop` a un commit por feature. En los PRs entre
+ramas largas hace justo lo contrario de lo que hace falta: al aplanar la historia,
+`main` nunca llega a ser descendiente de `develop`, así que cada release vuelve a
+divergir y los conflictos reaparecen — pasó en septiembre de 2026 con `CLAUDE.md`,
+que llevaba tres bloques divergentes desde cherry-picks que nunca volvieron a
+`develop`. Con merge commit, `main` contiene la historia de `develop` y el release
+siguiente no puede entrar en conflicto.
+
+Corolario: si algo entra directo en `main` (hotfix, cherry-pick), devolverlo a
+`develop` con un PR `main → develop` **en el momento**, no "cuando toque".
 
 ### Pasos para cada feature (web)
 
@@ -463,7 +483,7 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 7. Commit con prefijo convencional
 8. PR hacia `develop` con `Closes #N`
 9. Esperar CI (`Type check, tests y build`) — gate obligatorio
-10. Merge → staging → revisar → PR develop→main → deploy vía Dockhand
+10. Merge con squash → staging → revisar → PR `develop → main` **con merge commit** → deploy vía Dockhand
 
 **Project board:** https://github.com/users/aacienfuegos/projects/1
 
