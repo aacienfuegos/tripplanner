@@ -18,6 +18,8 @@ tripplanner/
 │   └── shared/          # @tripplanner/shared — fuente de verdad para:
 │       ├── import-schemas.ts   # Zod schemas de las 6 secciones
 │       ├── import-prompt.ts    # Generador de prompts para la IA
+│       ├── country-names.ts    # Códigos ISO 3166-1 ↔ nombre, en ES y EN
+│       ├── currencies.ts       # Catálogo de monedas
 │       └── index.ts            # Re-exporta todo
 ├── docker/              # Entrypoints Docker (web)
 ├── docker-compose.*.yml # Configs Docker (web)
@@ -49,10 +51,10 @@ Los alias TypeScript están configurados en `tsconfig.json` de cada app:
 
 | Tecnología | Versión | Breaking changes relevantes |
 |---|---|---|
-| Next.js | 16.2.6 | `middleware.ts` → `proxy.ts`, export `proxy` no `middleware` |
+| Next.js | 16.3.x | `middleware.ts` → `proxy.ts`, export `proxy` no `middleware` |
 | Prisma | 7.x | `url` eliminado de `schema.prisma`; va en `prisma.config.ts`. Requiere driver adapter (`@prisma/adapter-pg`) |
 | NextAuth | v5 beta | Split edge/node: `auth.config.ts` (edge-safe) + `auth.ts` (Node+Prisma) |
-| shadcn/ui | 4.7.0 | Usa `@base-ui/react` en vez de Radix. **`asChild` NO existe**. Usar `buttonVariants()` + `<Link>` |
+| shadcn/ui | 4.21.x | Usa `@base-ui/react` en vez de Radix. **`asChild` NO existe**. Usar `buttonVariants()` + `<Link>` |
 
 ### Comandos de desarrollo (ejecutar desde la raíz del repo)
 
@@ -93,10 +95,15 @@ apps/web/
 │   ├── app/
 │   │   ├── (app)/          # Rutas protegidas (layout con navbar + guard de auth)
 │   │   │   ├── dashboard/
-│   │   │   └── trips/[id]/ # Secciones: flights, accommodations, activities,
-│   │   │                   # expenses, packing, documents
-│   │   └── auth/           # signin, error (rutas públicas)
-│   ├── actions/            # Server Actions para CRUD. Todos hacen requireTripOwner()
+│   │   │   ├── admin/, profile/, onboarding/
+│   │   │   ├── dives/      # Módulo de buceo: inmersiones, sites (+areas),
+│   │   │   │               # equipment, certificaciones, stats
+│   │   │   └── trips/[tripId]/ # Secciones: flights, accommodations, activities,
+│   │   │                       # expenses, packing, documents, destinations,
+│   │   │                       # dives, tasks, map, edit
+│   │   ├── api/            # auth/[...nextauth], dives/import
+│   │   └── auth/           # signin, error, pending (rutas públicas)
+│   ├── actions/            # Server Actions para CRUD. Los de viaje hacen requireTripOwner()
 │   ├── components/
 │   │   ├── import/         # Wizard de importación vía IA
 │   │   │   ├── ImportTrigger.tsx
@@ -104,6 +111,8 @@ apps/web/
 │   │   │   ├── PromptStep.tsx
 │   │   │   ├── UploadStep.tsx
 │   │   │   └── ReviewStep.tsx
+│   │   ├── dive-import/    # Import de logbook desde Diving Log (SQLite)
+│   │   ├── dives/, map/    # Módulo de buceo y mapas (Leaflet + MapLibre)
 │   │   ├── layout/         # Navbar
 │   │   ├── trips/          # Formularios de viaje
 │   │   └── ui/             # shadcn/ui components
@@ -111,16 +120,24 @@ apps/web/
 │   │   ├── auth.config.ts  # Configuración NextAuth edge-safe (sin Prisma)
 │   │   ├── auth.ts         # NextAuth completo con PrismaAdapter + dev credentials
 │   │   ├── prisma.ts       # Singleton PrismaClient con PrismaPg adapter
-│   │   └── schemas.ts      # Schemas Zod compartidos entre actions y tests
+│   │   ├── schemas.ts      # Schemas Zod compartidos entre actions y tests
+│   │   ├── divinglog-parser.ts  # Lectura del SQLite de Diving Log
+│   │   ├── dive-*.ts       # Numeración, estadísticas, perfil y tipos de inmersión
+│   │   ├── geocoding.ts    # Geocodificación de items del viaje para el mapa
+│   │   └── locale.ts       # i18n español/inglés
 │   └── proxy.ts            # Next.js 16: reemplaza middleware.ts
 ├── prisma/
-│   ├── schema.prisma       # Modelos: Trip, Flight, Accommodation, Activity, Expense, PackingItem, Document, Task
+│   ├── schema.prisma       # Trip, Destination, Flight, Accommodation, Activity,
+│   │                       # Document, Expense, Task, PackingItem, DiveArea,
+│   │                       # DiveSite, DiveLog, DiveProfileSample, DiveEquipment,
+│   │                       # DiveEquipmentService, DiveCertification, User, Settings
 │   └── migrations/         # Historial de migraciones SQL
 ├── Dockerfile              # Build context = monorepo root; incluye packages/shared
 └── Dockerfile.dev          # Dev con hot-reload
 
 # Infraestructura (en la raíz del monorepo)
 .github/workflows/
+├── ci.yml                  # PRs a develop/main: type check, tests, audit, build, smoke test
 ├── deploy-staging.yml      # Push a develop → build + push ghcr.io/.../tripplanner:staging
 └── deploy-production.yml   # Push a main → build + push ghcr.io/.../tripplanner:latest
 docker/
@@ -133,7 +150,7 @@ docker-compose.staging.yml  # Staging: imagen :staging, puerto 3001
 
 ### Patrones importantes (web)
 
-#### Links con estilos de botón (shadcn 4.7)
+#### Links con estilos de botón (shadcn 4.x)
 ```tsx
 // CORRECTO — @base-ui no tiene asChild
 import { buttonVariants } from "@/components/ui/button";
@@ -144,7 +161,7 @@ import Link from "next/link";
 <Button asChild><Link>...</Link></Button>
 ```
 
-#### Select — onValueChange (shadcn 4.7 / @base-ui/react)
+#### Select — onValueChange (shadcn 4.x / @base-ui/react)
 ```tsx
 // CORRECTO — @base-ui pasa string | null, hay que filtrar el null
 <Select value={value} onValueChange={(v) => v !== null && setValue(v)}>
@@ -200,20 +217,25 @@ Siempre ejecutar también `npx prisma generate` — la migración actualiza la D
 
 ### Stack
 
+Los paquetes `expo-*` van versionados con el número del SDK, así que todos son
+`~57.0.x` — no son versiones independientes que se puedan subir por separado.
+
 | Tecnología | Versión |
 |---|---|
-| Expo SDK | 54 |
-| expo-router | 6.x (file-based routing, como Next.js) |
-| expo-sqlite | 16.x (DB local; usa WebAssembly en web — solo Android) |
-| react-native-reanimated | 4.x (babel plugin: `react-native-worklets/plugin`) |
-| react-native-worklets | 0.5.x (nuevo en reanimated v4 — no el de reanimated v3) |
-| NativeWind | 4.x (Tailwind para React Native) |
-| React | 19.1.0 exacto (pinned — debe coincidir con react-native-renderer interno) |
-| React Native | 0.81.5 |
+| Expo SDK | 57 |
+| expo-router | ~57.0.x (file-based routing, como Next.js) |
+| expo-sqlite | ~57.0.x (DB local; usa WebAssembly en web — solo Android) |
+| react-native-reanimated | 4.5.1 (babel plugin: `react-native-worklets/plugin`) |
+| react-native-worklets | 0.10.1 (nuevo en reanimated v4 — no el de reanimated v3) |
+| NativeWind | 4.2.x (Tailwind para React Native) |
+| React | 19.2.3 exacto (pinned — debe coincidir con react-native-renderer interno) |
+| React Native | 0.86.2 |
 
-**Nota crítica:** `react@19.1.0` está pinned exacto en el root `package.json` via `overrides` + dep directa. react-native@0.81.5 bundlea react-native-renderer@19.1.0 internamente — si la versión de React instalada difiere, la app arranca en negro sin error claro.
+**Nota crítica:** `react@19.2.3` está pinned exacto en el root `package.json` via `overrides` + dep directa. react-native@0.86.2 bundlea su propio react-native-renderer — si la versión de React instalada difiere, la app arranca en negro sin error claro.
 
-**Web no soportada:** expo-sqlite v16 usa `Atomics.wait()` en el hilo principal, bloqueado por W3C en navegadores. `src/db/database.web.ts` es un stub que no-op; `app/_layout.tsx` muestra un mensaje informativo en web. La app está diseñada para Android únicamente.
+**Las versiones las manda el SDK, no Dependabot:** `node_modules/expo/bundledNativeModules.json` fija gesture-handler, reanimated, webview, async-storage, screens y safe-area-context. Comprobar con `npx expo install --check` antes de tocar cualquiera de esos paquetes; se actualizan con `npx expo install --fix` al subir de SDK. Ojo: hoy ese `--fix` deja dos copias de react-native en el árbol (ver issue #304).
+
+**Web no soportada:** expo-sqlite usa `Atomics.wait()` en el hilo principal, bloqueado por W3C en navegadores. `src/db/database.web.ts` es un stub que no-op; `app/_layout.tsx` muestra un mensaje informativo en web. La app está diseñada para Android únicamente.
 
 ### Comandos
 
@@ -246,18 +268,31 @@ apps/android/
 │   ├── _layout.tsx             # Root: inicializa SQLite + ProContext + SafeAreaProvider
 │   ├── index.tsx               # Redirect → /trips o /dives según APP_VARIANT
 │   ├── settings.tsx            # Ajustes + toggle isPro (DEV) + botón "Actualizar a Pro"
+│   ├── dives/                  # Módulo de buceo (paridad con la web)
+│   │   ├── _layout.tsx         # Stack navigator del módulo
+│   │   ├── index.tsx           # Lista de inmersiones
+│   │   ├── dive-detail.tsx     # Detalle con perfil, temperatura y NDL
+│   │   ├── sites.tsx, site-detail.tsx        # Dive sites agrupados por área
+│   │   ├── equipment.tsx, equipment-detail.tsx  # Inventario + mantenimiento
+│   │   ├── certifications.tsx
+│   │   └── stats.tsx
 │   └── trips/
 │       ├── _layout.tsx         # Stack navigator para trips
 │       ├── index.tsx           # Lista de viajes (con gate free/pro)
 │       ├── new.tsx             # Formulario crear viaje
 │       └── [id]/
-│           ├── _layout.tsx     # Tabs con las 6 secciones del viaje
+│           ├── _layout.tsx     # Tabs de las secciones del viaje (el resto, en more)
 │           ├── index.tsx       # Vuelos (tab por defecto)
 │           ├── accommodations.tsx
 │           ├── activities.tsx
 │           ├── expenses.tsx
 │           ├── packing.tsx
-│           └── documents.tsx
+│           ├── documents.tsx
+│           ├── dives.tsx
+│           ├── tasks.tsx
+│           ├── map.tsx
+│           ├── edit.tsx
+│           └── more.tsx
 ├── src/
 │   ├── db/                     # Capa de datos SQLite (sin ORM, SQL directo)
 │   │   ├── database.ts         # Inicialización + migraciones versionadas (PRAGMA user_version)
@@ -268,10 +303,19 @@ apps/android/
 │   │   ├── expenses.ts         # CRUD gastos + togglePaid() + sumExpenses()
 │   │   ├── packing.ts          # CRUD maleta + togglePacked() + bulk
 │   │   ├── documents.ts        # CRUD documentos + bulk
+│   │   ├── tasks.ts            # CRUD tareas del viaje
+│   │   ├── dive-logs.ts, dive-sites.ts, dive-areas.ts,
+│   │   ├── dive-equipment.ts, dive-certifications.ts   # Módulo de buceo
+│   │   ├── seed.ts             # Dataset de prueba en cada arranque dev
 │   │   └── import.ts           # bulkImport() + checkDuplicates() — port del web action
 │   ├── contexts/
 │   │   └── ProContext.tsx      # isPro flag + FREE_TRIP_LIMIT = 1
+│   ├── i18n/                   # Traducciones ES/EN
+│   ├── crypto/, lib/           # Utilidades compartidas de la app
 │   └── components/
+│       ├── ModuleSwitcherHeader.tsx  # Cambio entre módulos Trips y Dives
+│       ├── DiveProfileChart.tsx, DiveSitesMapModal.tsx
+│       ├── forms/              # Inputs compartidos (fecha, país)
 │       └── import/             # Wizard de importación IA (3 pasos)
 │           ├── ImportWizard.tsx # Modal contenedor (step state + payload)
 │           ├── PromptStep.tsx   # Paso 1: genera prompt + botón copiar portapapeles
@@ -291,7 +335,7 @@ apps/android/
 
 ### Modelo free/pro
 
-- **Free:** máx. 1 viaje (controlado por `FREE_TRIP_LIMIT` en `ProContext.tsx`)
+- **Free:** máx. 1 viaje (`FREE_TRIP_LIMIT` en `src/lib/pro-limits.ts`, reexportado por `ProContext.tsx`)
 - **Pro:** viajes ilimitados
 - **Activación:** `isPro` flag en `ProContext.tsx`
   - En DEV: toggle visible en `settings.tsx` (solo cuando `__DEV__ === true`)
@@ -345,9 +389,13 @@ const { user_version } = db.getFirstSync('PRAGMA user_version')!;
 if (user_version < 1) {
   db.execSync(`CREATE TABLE IF NOT EXISTS trips (...); PRAGMA user_version = 1;`);
 }
-// Para añadir una nueva migración:
-// if (user_version < 2) { db.execSync(`ALTER TABLE ...; PRAGMA user_version = 2;`); }
+// Para añadir una nueva migración, encadenar con la siguiente versión:
+// if (user_version < 9) { db.execSync(`ALTER TABLE ...; PRAGMA user_version = 9;`); }
 ```
+
+La DB va por la **versión 8** (la 5 añade coordenadas a los alojamientos para el
+mapa; el resto de la 4 a la 8 son del módulo de buceo). Nunca editar una migración
+ya publicada: las instalaciones existentes no la vuelven a ejecutar.
 
 **Convención de columnas:** snake_case (`trip_id`, `start_date`, `flight_number`). Los tipos TypeScript usan el mismo snake_case para mantenerse alineados con SQLite.
 
@@ -410,7 +458,7 @@ feat/nombre-N  ──PR──►  develop  ──PR──►  main
 2. Crear rama desde `develop`: `feat/nombre-issue-N`
 3. Implementar los cambios
 4. `cd apps/web && npx tsc --noEmit` — sin errores de tipos
-5. `npm test --workspace=apps/web` — 100 tests pasando
+5. `npm test --workspace=apps/web` — 327 tests pasando
 6. Probar visualmente en `http://localhost:3000`
 7. Commit con prefijo convencional
 8. PR hacia `develop` con `Closes #N`
