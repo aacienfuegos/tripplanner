@@ -15,6 +15,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Next 16.3 escribe AGENTS.md/CLAUDE.md en apps/web en cada `next dev`; el
+  // AGENTS.md de la raíz del monorepo ya lleva ese mismo texto y CLAUDE.md lo
+  // incluye, así que la copia solo ensucia el árbol.
+  agentRules: false,
   async headers() {
     return [
       {
