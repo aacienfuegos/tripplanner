@@ -12,10 +12,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DiveChartsSection } from "@/components/dives/DiveChartsSection";
+import { DiveMedia } from "@/components/dives/DiveMedia";
 import { DiveLogDetailActions } from "@/components/dives/dive-log-detail-actions";
 import { DiveTechnicalStats } from "@/components/dives/DiveTechnicalStats";
 import { DASH, Stat, StatGroup } from "@/components/dives/DiveStat";
 import { resolveDiveProfile } from "@/lib/dive-profile";
+import { getDiveMedia } from "@/lib/dive-media";
 import { formatDiveDate } from "@/lib/dive-date";
 import { diveTypeLabel } from "@/lib/dive-type";
 import { getT } from "@/lib/locale";
@@ -24,7 +26,7 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const userId = await requireUser();
 
-  const [t, dive, sites, equipment, samples] = await Promise.all([
+  const [t, dive, sites, equipment, samples, media, user] = await Promise.all([
     getT(),
     prisma.diveLog.findUnique({
       where: { id, userId },
@@ -33,10 +35,21 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
     prisma.diveSite.findMany({ where: { userId }, orderBy: { name: "asc" } }),
     prisma.diveEquipment.findMany({ where: { userId, status: "OWNED" }, orderBy: { name: "asc" } }),
     prisma.diveProfileSample.findMany({ where: { diveLogId: id }, orderBy: { seconds: "asc" } }),
+    getDiveMedia(userId, id),
+    prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } }),
   ]);
   if (!dive) notFound();
 
   const profile = resolveDiveProfile(dive, samples);
+  // Los clips asociados, situados sobre el eje temporal del perfil. El desfase
+  // del reloj ya está aplicado en el emparejamiento, así que hay que restarlo
+  // también aquí para que el marcador caiga donde de verdad se grabó.
+  const diveEnd = dive.date.getTime() + dive.bottomTime * 60_000;
+  const clipSeconds = (media?.clips ?? [])
+    .filter((clip) => clip.attached)
+    .map((clip) => clip.capturedAt.getTime() - (media?.offsetMinutes ?? 0) * 60_000)
+    .filter((at) => at >= dive.date.getTime() && at <= diveEnd)
+    .map((at) => (at - dive.date.getTime()) / 1000);
   const avgDepth = profile.length > 0 ? profile.reduce((sum, s) => sum + s.depth, 0) / profile.length : null;
 
   const gasMixLabels: Record<string, string> = {
@@ -158,9 +171,22 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
 
       <Card>
         <CardContent className="pt-5">
-          <DiveChartsSection samples={profile} site={dive.diveSite} />
+          <DiveChartsSection samples={profile} site={dive.diveSite} clipSeconds={clipSeconds} />
         </CardContent>
       </Card>
+
+      {media && (
+        <Card>
+          <CardContent className="pt-5">
+            <DiveMedia
+              diveLogId={dive.id}
+              dive={{ date: dive.date.toISOString(), bottomTime: dive.bottomTime }}
+              media={media}
+              canRescan={user?.isAdmin ?? false}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { countryCodeToName } from "@tripplanner/shared";
 import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { DiveLogList } from "@/components/dives/dive-log-list";
+import { getDiveClipCounts } from "@/lib/dive-media";
 import { CertificationList } from "@/components/dives/certification-list";
 import { DiveSiteList } from "@/components/dives/dive-site-list";
 import { EquipmentList } from "@/components/dives/equipment-list";
@@ -23,7 +24,7 @@ export default async function DivesPage({
   const { tab } = await searchParams;
   const defaultTab = TAB_VALUES.includes(tab as (typeof TAB_VALUES)[number]) ? tab! : "log";
 
-  const [t, dives, sites, certifications, equipment, areas, sitesWithCount, allEquipment] = await Promise.all([
+  const [t, dives, sites, certifications, equipment, areas, sitesWithCount, allEquipment, clipCountMap] = await Promise.all([
     getT(),
     prisma.diveLog.findMany({
       where: { userId },
@@ -53,7 +54,9 @@ export default async function DivesPage({
       include: { _count: { select: { diveLogs: true } } },
       orderBy: { name: "asc" },
     }),
+    getDiveClipCounts(userId),
   ]);
+  const clipCounts = Object.fromEntries(clipCountMap);
 
   const diveStats = computeDiveStats(
     dives.map((d) => ({
@@ -104,7 +107,7 @@ export default async function DivesPage({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="log" className="mt-4">
-          <DiveLogList dives={dives} sites={sites} equipment={equipment} />
+          <DiveLogList dives={dives} sites={sites} equipment={equipment} clipCounts={clipCounts} />
         </TabsContent>
         <TabsContent value="sites" className="mt-4">
           <DiveSiteList areas={areas} sites={sitesWithCount} sitePoints={sitePoints} />

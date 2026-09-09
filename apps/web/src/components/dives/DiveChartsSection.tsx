@@ -10,9 +10,11 @@ import { useT } from "@/contexts/LanguageContext";
 export function DiveChartsSection({
   samples,
   site,
+  clipSeconds,
 }: {
   samples: ProfileSample[];
   site: { name: string; latitude: number | null; longitude: number | null } | null;
+  clipSeconds?: readonly number[];
 }) {
   const { t } = useT();
 
@@ -46,7 +48,7 @@ export function DiveChartsSection({
         </TabsTrigger>
       </TabsList>
       <TabsContent value="profile" className="mt-4">
-        <DiveProfileChart samples={samples} />
+        <DiveProfileChart samples={samples} clipSeconds={clipSeconds} />
       </TabsContent>
       <TabsContent value="temp" className="mt-4">
         <DiveTempChart samples={samples} />

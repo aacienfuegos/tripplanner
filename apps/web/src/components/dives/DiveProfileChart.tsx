@@ -147,7 +147,14 @@ function LineChart({
   );
 }
 
-export function DiveProfileChart({ samples }: { samples: ProfileSample[] }) {
+export function DiveProfileChart({
+  samples,
+  clipSeconds = [],
+}: {
+  samples: ProfileSample[];
+  // Segundos desde el inicio de la inmersión en los que hay un clip grabado.
+  clipSeconds?: readonly number[];
+}) {
   const { t } = useT();
   if (samples.length < 2) return null;
 
@@ -183,6 +190,21 @@ export function DiveProfileChart({ samples }: { samples: ProfileSample[] }) {
       }}
       extra={
         <>
+          {clipSeconds.map((seconds, index) => (
+            <g key={`${seconds}-${index}`}>
+              <line
+                x1={x(seconds)}
+                x2={x(seconds)}
+                y1={PADDING.top}
+                y2={HEIGHT - PADDING.bottom}
+                stroke={DEPTH_COLOR}
+                strokeWidth={1}
+                strokeDasharray="2 3"
+                opacity={0.35}
+              />
+              <circle cx={x(seconds)} cy={PADDING.top} r={2.5} fill={DEPTH_COLOR} opacity={0.8} />
+            </g>
+          ))}
           {safetyStopSegment && (
             <path d={safetyStopSegment} fill="none" stroke={SAFETY_STOP_COLOR} strokeWidth={3.5} strokeLinecap="round" />
           )}
