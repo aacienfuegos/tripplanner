@@ -1,0 +1,16 @@
+FROM node:26-alpine
+RUN apk add --no-cache libc6-compat
+# Build context is the monorepo root; install deps for all workspaces
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/web/package.json ./apps/web/
+RUN npm ci
+
+# Entrypoint is outside the bind-mount volume so it's never shadowed
+COPY docker/entrypoint.dev.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+EXPOSE 3000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

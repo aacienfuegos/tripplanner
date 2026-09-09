@@ -10,6 +10,9 @@ concurrency:
   group: ci-${{ github.head_ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '26'
 
@@ -17,12 +20,28 @@ jobs:
   ci:
     name: Type check, tests y build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tripplanner
+          POSTGRES_PASSWORD: tripplanner
+          POSTGRES_DB: tripplanner
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tripplanner:tripplanner@localhost:5432/tripplanner
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -31,18 +50,36 @@ jobs:
         run: npm ci
 
       - name: Generar cliente Prisma
+        working-directory: apps/web
         run: npx prisma generate
 
       - name: Type check
+        working-directory: apps/web
         run: npx tsc --noEmit
 
       - name: Tests
+        working-directory: apps/web
         run: npm test
 
       - name: Auditoría de seguridad npm
-        run: npm audit --audit-level=moderate
+        run: npm audit --audit-level=high
 
       - name: Build
+        working-directory: apps/web
         run: npm run build
         env:
           NEXTAUTH_SECRET: ci-placeholder
+
+      # Reproduce el entrypoint real de producción/staging (docker/entrypoint.sh):
+      # migraciones + `node prisma/seed.ts` ejecutado directamente por Node, no
+      # por tsx ni por el bundler de Next. tsc/next build resuelven imports sin
+      # extensión sin problema (son bundlers), pero la resolución ESM nativa de
+      # Node exige extensión explícita en specifiers relativos — un fallo aquí
+      # solo se manifiesta al arrancar el contenedor de verdad (ver #272/#273).
+      - name: Migrar base de datos (smoke test)
+        working-directory: apps/web
+        run: npx prisma migrate deploy
+
+      - name: Smoke test del entrypoint real (node prisma/seed.ts)
+        working-directory: apps/web
+        run: node prisma/seed.ts
