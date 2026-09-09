@@ -1,3 +1,5 @@
+import { readdir, mkdir, writeFile, unlink } from "node:fs/promises";
+import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { countryNameToCode } from "@tripplanner/shared";
@@ -14,6 +16,70 @@ function country(name: string): string {
   const code = countryNameToCode(name);
   if (!code) throw new Error(`countryNameToCode no reconoce "${name}" — revisa el seed`);
   return code;
+}
+
+
+// Biblioteca de media de mentira para staging, donde no hay —ni debe haber—
+// acceso al Jellyfin de producción. Escribe ficheros vacíos con el naming real
+// de la cámara para que el escaneo de verdad tenga algo que indexar.
+//
+// Va en SEED_MEDIA_LIBRARY_PATH y no en MEDIA_LIBRARY_PATH a propósito: en
+// local esa segunda apunta a la tarjeta con el material real, y esta función
+// borra ficheros.
+const GENERATED = /^DJI_\d{14}_\d{4}_D\.(MP4|JPG)$/;
+
+function clipName(at: Date, index: number, extension: "MP4" | "JPG"): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const stamp =
+    `${at.getFullYear()}${pad(at.getMonth() + 1)}${pad(at.getDate())}` +
+    `${pad(at.getHours())}${pad(at.getMinutes())}${pad(at.getSeconds())}`;
+  return `DJI_${stamp}_${String(index).padStart(4, "0")}_D.${extension}`;
+}
+
+async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number }[]) {
+  const target = process.env.SEED_MEDIA_LIBRARY_PATH?.trim();
+  if (!target) return;
+
+  await mkdir(target, { recursive: true });
+  const existing = await readdir(target);
+  const foreign = existing.filter((name) => !GENERATED.test(name));
+  if (foreign.length > 0) {
+    // Si hay algo que este seed no ha creado, la ruta no es un directorio de
+    // pruebas y no se toca.
+    console.log(`   • Media: omitido, ${target} contiene ficheros ajenos al seed`);
+    return;
+  }
+  await Promise.all(existing.map((name) => unlink(path.join(target, name))));
+
+  const minute = 60_000;
+  const files: string[] = [];
+  let index = 1;
+
+  const emit = (at: Date, extension: "MP4" | "JPG" = "MP4") => {
+    files.push(clipName(at, index++, extension));
+  };
+
+  // Ráfaga que cae dentro de la ventana: el emparejamiento automático la coge
+  // con desfase 0.
+  const [aligned, shifted] = dives;
+  if (aligned) {
+    for (let i = 0; i < 6; i += 1) emit(new Date(aligned.date.getTime() + (3 + i * 4) * minute));
+    emit(new Date(aligned.date.getTime() + 10 * minute), "JPG");
+  }
+  // Ráfaga con el reloj de la cámara 90 min adelantado: obliga a que la
+  // deducción del desfase haga su trabajo en vez de acertar por defecto.
+  if (shifted) {
+    for (let i = 0; i < 5; i += 1) {
+      emit(new Date(shifted.date.getTime() + (90 + 5 + i * 6) * minute));
+    }
+  }
+  // Huérfanos: un día sin ninguna inmersión, para que la vista de biblioteca
+  // tenga clips que no reclama nadie.
+  const orphanDay = new Date("2024-09-21T17:40:00");
+  for (let i = 0; i < 3; i += 1) emit(new Date(orphanDay.getTime() + i * 7 * minute));
+
+  await Promise.all(files.map((name) => writeFile(path.join(target, name), "")));
+  console.log(`   • Media: ${files.length} clips de prueba en ${target}`);
 }
 
 async function main() {
@@ -1111,6 +1177,7 @@ async function main() {
   console.log(`   • ${egipto.name} (${egipto.status})`);
   console.log(`   • Buceo: ${diveLogs.length} inmersiones, 5 sitios (2 áreas), 4 certificaciones, 8 piezas de equipo (2 wishlist)`);
   console.log(`   • Tareas: 6 (Marruecos)`);
+  await seedMediaLibrary(diveLogs);
 }
 
 main()
