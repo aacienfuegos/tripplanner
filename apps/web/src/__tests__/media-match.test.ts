@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   clipsNearDives,
   groupIntoSessions,
+  groupIntoTrips,
   dateToDayKey,
   dayKey,
   dayKeyToDate,
@@ -48,6 +49,17 @@ describe("deduceClockOffset", () => {
 
   it("no devuelve nada sin clips", () => {
     expect(deduceClockOffset([], [dive("11:00")])).toBeNull();
+  });
+
+  // Medido sobre el logbook real: el 28 de enero, mirado solo, prefiere -60
+  // porque así se traga el material de superficie grabado media hora antes de
+  // entrar al agua. Con el resto del viaje delante, cero gana de calle. Es la
+  // razón de deducir el desfase por viaje y no por día.
+  it("no inventa un desfase para tragarse material de superficie", () => {
+    const surface = [clip("10:29"), clip("10:41"), clip("10:42"), clip("10:45")];
+    const diving = [clip("11:20"), clip("11:35"), clip("11:50")];
+    const dives = [dive("11:15", 54, "a")];
+    expect(deduceClockOffset([...surface, ...diving], dives)).toBe(0);
   });
 
   // Medido sobre el logbook real: los días en los que el óptimo caía en el tope
@@ -101,6 +113,24 @@ describe("matchClipsToDive", () => {
     const clips = [clip("11:10")];
     expect(matchClipsToDive(midnight, clips, 0, new Map())).toHaveLength(0);
     expect(matchClipsToDive(midnight, clips, 0, new Map([["11:10", true]]))).toHaveLength(1);
+  });
+});
+
+describe("groupIntoTrips", () => {
+  it("mantiene juntos los días de un mismo viaje", () => {
+    const days = ["2026-01-25", "2026-01-26", "2026-01-27", "2026-07-19"];
+    expect(groupIntoTrips(days)).toEqual([
+      ["2026-01-25", "2026-01-26", "2026-01-27"],
+      ["2026-07-19"],
+    ]);
+  });
+
+  it("un día de descanso no parte el viaje", () => {
+    expect(groupIntoTrips(["2026-01-25", "2026-01-27"])).toHaveLength(1);
+  });
+
+  it("ordena los días aunque lleguen desordenados", () => {
+    expect(groupIntoTrips(["2026-01-27", "2026-01-25"])).toEqual([["2026-01-25", "2026-01-27"]]);
   });
 });
 

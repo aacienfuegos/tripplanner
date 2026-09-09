@@ -23,6 +23,12 @@ const MAX_OFFSET_MINUTES = 3 * 60;
 // Con un solo clip dentro de ventana cualquier offset "encaja"; hacen falta dos
 // para que el solapamiento signifique algo.
 const MIN_CLIPS_TO_ACCEPT_OFFSET = 2;
+// Un desfase real desplaza ráfagas enteras, así que sin corregirlo no debería
+// casar casi nada. Si a cero ya casa una parte apreciable de lo que casa el
+// candidato, lo que sobra no es un reloj mal puesto: son clips de superficie
+// grabados junto a la inmersión, y deslizar la ventana para tragárselos mueve
+// también todo lo que ya estaba bien.
+const ZERO_OFFSET_DOMINANCE = 0.5;
 
 const MINUTE = 60_000;
 
@@ -130,11 +136,14 @@ export function deduceClockOffset(
   }
 
   if (!best || best.matched < MIN_CLIPS_TO_ACCEPT_OFFSET) return null;
+  if (best.offset === 0) return 0;
   // Un óptimo pegado al borde del rango explorado no es un óptimo: significa que
   // el desfase real cae fuera y el algoritmo se ha agarrado al último valor que
   // podía probar. Devolver eso emparejaría clips con seguridad injustificada,
   // así que se admite no saberlo y que el usuario ponga el desfase a mano.
-  return Math.abs(best.offset) === MAX_OFFSET_MINUTES ? null : best.offset;
+  if (Math.abs(best.offset) === MAX_OFFSET_MINUTES) return null;
+  const zero = score(clips, timed, 0, toleranceMinutes);
+  return zero.matched >= best.matched * ZERO_OFFSET_DOMINANCE ? 0 : best.offset;
 }
 
 export function matchClipsToDive(
@@ -184,3 +193,30 @@ export function sessionOverlapsDive(
 ): boolean {
   return session.some((clip) => isInsideWindow(clip, dive, offsetMinutes, toleranceMinutes));
 }
+
+// El desfase de un reloj es una propiedad de la cámara durante un periodo, no de
+// un día: si existe, está todos los días del viaje. Deducirlo día a día deja que
+// una jornada floja lo invente para tragarse material de superficie, y sobre el
+// logbook real eso producía −30 y −60 minutos en dos días de un viaje cuyos otros
+// cuatro salían a cero — un reloj no hace eso.
+const TRIP_GAP_DAYS = 2;
+
+export function groupIntoTrips(days: readonly string[]): readonly (readonly string[])[] {
+  const ordered = [...days].sort();
+  const trips: string[][] = [];
+  for (const day of ordered) {
+    const current = trips.at(-1);
+    const previous = current?.at(-1);
+    const gap = previous
+      ? (dayKeyToDate(day).getTime() - dayKeyToDate(previous).getTime()) / 86_400_000
+      : Infinity;
+    if (gap > TRIP_GAP_DAYS) trips.push([day]);
+    else current!.push(day);
+  }
+  return trips;
+}
+
+// `included: null` borra el override y devuelve el clip al automático. Se
+// aplican en bloque: el selector deja hacer decenas de cambios antes de guardar
+// y una action por clip repintaría la ficha entera entre medias.
+export type ClipLinkChange = { readonly clipId: string; readonly included: boolean | null };

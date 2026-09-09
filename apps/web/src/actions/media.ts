@@ -6,7 +6,14 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMediaConfig } from "@/lib/media-config";
 import { scanMediaLibrary } from "@/lib/media-library";
-import { clipsNearDives, dayKey, dayKeyToDate, deduceClockOffset } from "@/lib/media-match";
+import {
+  clipsNearDives,
+  dateToDayKey,
+  dayKey,
+  dayKeyToDate,
+  deduceClockOffset,
+  groupIntoTrips,
+} from "@/lib/media-match";
 
 async function requireMediaOwner(): Promise<string> {
   const session = await auth();
@@ -62,19 +69,22 @@ async function refreshClockOffsets(userId: string) {
     prisma.dayClockOffset.findMany({ where: { userId, source: "MANUAL" }, select: { day: true } }),
   ]);
 
-  const untouchable = new Set(manual.map((offset) => dayKey(offset.day)));
+  const untouchable = new Set(manual.map((offset) => dateToDayKey(offset.day)));
   const divesByDay = Map.groupBy(dives, (dive) => dayKey(dive.date));
 
-  for (const [day, dayDives] of divesByDay) {
-    if (untouchable.has(day)) continue;
-    const offsetMinutes = deduceClockOffset(clipsNearDives(clips, dayDives), dayDives);
+  for (const run of groupIntoTrips([...divesByDay.keys()])) {
+    const runDives = run.flatMap((day) => divesByDay.get(day) ?? []);
+    const offsetMinutes = deduceClockOffset(clipsNearDives(clips, runDives), runDives);
     if (offsetMinutes === null) continue;
-    const date = dayKeyToDate(day);
-    await prisma.dayClockOffset.upsert({
-      where: { userId_day: { userId, day: date } },
-      create: { userId, day: date, offsetMinutes, source: "AUTO" },
-      update: { offsetMinutes, source: "AUTO" },
-    });
+    for (const day of run) {
+      if (untouchable.has(day)) continue;
+      const date = dayKeyToDate(day);
+      await prisma.dayClockOffset.upsert({
+        where: { userId_day: { userId, day: date } },
+        create: { userId, day: date, offsetMinutes, source: "AUTO" },
+        update: { offsetMinutes, source: "AUTO" },
+      });
+    }
   }
 }
 
