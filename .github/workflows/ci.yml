@@ -57,6 +57,13 @@ jobs:
         working-directory: apps/web
         run: npx tsc --noEmit
 
+      # Android no se compila en CI (necesita el SDK nativo), pero el type check
+      # sí corre: sin él, apps/android acumula errores que nadie ve hasta que
+      # alguien intenta un build local.
+      - name: Type check Android
+        working-directory: apps/android
+        run: npx tsc --noEmit
+
       - name: Tests
         working-directory: apps/web
         run: npm test
