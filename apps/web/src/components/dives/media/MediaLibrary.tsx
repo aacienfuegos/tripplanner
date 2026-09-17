@@ -39,16 +39,21 @@ export function MediaLibrary({
     });
   }
 
+  const total = days.reduce((sum, day) => sum + day.clips.length, 0);
+
   return (
     <div className="space-y-6">
-      {canRescan && (
-        <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {t.diveMediaLibraryCount.replace("{n}", String(total))}
+        </p>
+        {canRescan && (
           <Button size="sm" variant="outline" disabled={pending} onClick={rescan}>
             <RefreshCw className={pending ? "animate-spin" : ""} />
             {pending ? t.diveMediaRescanning : t.diveMediaRescan}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       {days.length === 0 && <p className="text-sm text-muted-foreground">{t.diveMediaEmptyLibrary}</p>}
 

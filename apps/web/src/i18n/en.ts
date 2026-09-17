@@ -765,6 +765,7 @@ export const en: WebTKeys = {
   diveMediaChanges: "{added} added · {removed} removed",
   diveMediaVideoAria: "Video",
   diveMediaPhotoAria: "Photo",
+  diveMediaTab: "Media",
   diveMediaLibraryTitle: "Media library",
   diveMediaLibraryOrphans: "No dive",
   diveMediaLibraryCount: "{n} clips indexed",

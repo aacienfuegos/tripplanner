@@ -108,7 +108,7 @@ export function DiveMedia({
                   <RefreshCw className={pending ? "animate-spin" : ""} />
                   {pending ? t.diveMediaRescanning : t.diveMediaRescan}
                 </DropdownMenuItem>
-                <DropdownMenuItem render={<Link href="/dives/media" />}>
+                <DropdownMenuItem render={<Link href="/dives?tab=media" />}>
                   <Library />
                   {t.diveMediaLibraryTitle}
                 </DropdownMenuItem>

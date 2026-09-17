@@ -764,6 +764,7 @@ export const es = {
   diveMediaChanges: "{added} añadidos · {removed} quitados",
   diveMediaVideoAria: "Vídeo",
   diveMediaPhotoAria: "Foto",
+  diveMediaTab: "Media",
   diveMediaLibraryTitle: "Biblioteca de media",
   diveMediaLibraryOrphans: "Sin inmersión",
   diveMediaLibraryCount: "{n} clips indexados",
