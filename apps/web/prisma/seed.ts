@@ -61,7 +61,14 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
 
   // Ráfaga que cae dentro de la ventana: el emparejamiento automático la coge
   // con desfase 0.
-  const [aligned, shifted] = dives;
+  const [aligned] = dives;
+  // La del reloj desfasado tiene que ir en OTRO viaje. El desfase se deduce
+  // sobre los días consecutivos de un viaje, así que con las dos ráfagas juntas
+  // ganaría el desfase cero de la primera y la segunda no se emparejaría nunca.
+  const TRIP_GAP_MS = 2 * 24 * 60 * 60 * 1000;
+  const shifted = aligned
+    ? dives.find((dive) => Math.abs(dive.date.getTime() - aligned.date.getTime()) > TRIP_GAP_MS)
+    : undefined;
   if (aligned) {
     for (let i = 0; i < 6; i += 1) emit(new Date(aligned.date.getTime() + (3 + i * 4) * minute));
     emit(new Date(aligned.date.getTime() + 10 * minute), "JPG");
