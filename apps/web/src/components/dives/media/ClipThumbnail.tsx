@@ -6,14 +6,12 @@ import type { DiveClip } from "@/lib/dive-media";
 
 export type ThumbState = "loading" | "loaded" | "unavailable";
 
-// Un host interno inalcanzable desde fuera de la red no emite `error`: cuelga
-// hasta que expira el timeout de red. Sin este reloj propio la tarjeta se queda
-// en blanco indefinidamente y el estado de "sin miniatura" nunca se renderiza.
-const ATTEMPT_TIMEOUT_MS = [3000, 5000];
-// Con un solo host configurado no hay adónde saltar, y rendirse a los 3 s sería
-// injusto: Jellyfin genera la miniatura la primera vez que se la piden, y la de
-// un vídeo 4K tarda más que eso. Se espera mucho más antes de darla por perdida.
-const FINAL_TIMEOUT_MS = 15000;
+// Un host inalcanzable no emite `error`: cuelga hasta que expira el timeout de
+// red. Sin este reloj propio la tarjeta se queda en blanco indefinidamente y el
+// estado de "sin miniatura" no se renderiza nunca. Es generoso a propósito:
+// Jellyfin genera la miniatura la primera vez que se la piden, y la de un vídeo
+// 4K tarda bastante más que unos pocos segundos.
+const TIMEOUT_MS = 15000;
 
 // Un clip que Jellyfin todavía no ha indexado no tiene ItemId, y sin él no hay
 // adónde enlazar: la tarjeta se pinta igual, pero no es un enlace.
@@ -24,13 +22,13 @@ export function ClipLink({
   ariaLabel,
   children,
 }: {
-  clip: { readonly detailsUrls: readonly string[] };
+  clip: { readonly detailsUrl: string | null };
   className?: string;
   title?: string;
   ariaLabel?: string;
   children: ReactNode;
 }) {
-  const href = clip.detailsUrls[0];
+  const href = clip.detailsUrl;
   if (!href) {
     return (
       <div className={className} title={title} aria-label={ariaLabel}>
@@ -67,11 +65,8 @@ export function ClipThumbnail({
   clip: DiveClip;
   onState?: (state: ThumbState) => void;
 }) {
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<ThumbState>(
-    clip.imageUrls.length === 0 ? "unavailable" : "loading",
-  );
-  const url = clip.imageUrls[attempt];
+  const url = clip.imageUrl;
+  const [state, setState] = useState<ThumbState>(url ? "loading" : "unavailable");
   const boxRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -114,15 +109,9 @@ export function ClipThumbnail({
 
   useEffect(() => {
     if (state !== "loading" || !url || !visible) return;
-    const hasNext = attempt + 1 < clip.imageUrls.length;
-    const delay = hasNext ? (ATTEMPT_TIMEOUT_MS[attempt] ?? 5000) : FINAL_TIMEOUT_MS;
-    const timeout = setTimeout(() => setAttempt((current) => current + 1), delay);
+    const timeout = setTimeout(() => setState("unavailable"), TIMEOUT_MS);
     return () => clearTimeout(timeout);
-  }, [attempt, state, url, visible, clip.imageUrls.length]);
-
-  useEffect(() => {
-    if (!url && state === "loading") setState("unavailable");
-  }, [url, state]);
+  }, [state, url, visible]);
 
   return (
     <>
@@ -151,7 +140,7 @@ export function ClipThumbnail({
             state === "loaded" ? "opacity-100" : "opacity-0"
           }`}
           onLoad={() => setState("loaded")}
-          onError={() => setAttempt((current) => current + 1)}
+          onError={() => setState("unavailable")}
         />
       )}
     </>

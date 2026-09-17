@@ -54,7 +54,7 @@ export function DiveMedia({
   // Un clip que Jellyfin aún no ha indexado no tiene miniatura porque no puede
   // tenerla, así que no entra en la cuenta del aviso de abajo: se avisa aparte.
   const pendingIndex = useMemo(
-    () => attached.filter((clip) => clip.imageUrls.length === 0),
+    () => attached.filter((clip) => clip.imageUrl === null),
     [attached],
   );
   const linkable = attached.length - pendingIndex.length;
@@ -173,13 +173,13 @@ export function DiveMedia({
         </div>
       )}
 
-      {showThumbnailNotice && media.jellyfinUrls.length > 0 && (
+      {showThumbnailNotice && (
         <div className="flex items-start gap-2 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-3.5 shrink-0" />
           <p>
             {t.diveMediaThumbnailFallback}{" "}
             <a
-              href={media.jellyfinUrls[0]}
+              href={media.jellyfinUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-foreground"
