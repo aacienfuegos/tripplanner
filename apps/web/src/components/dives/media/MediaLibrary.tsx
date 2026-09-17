@@ -11,7 +11,7 @@ import { rescanMediaLibrary } from "@/actions/media";
 import { useT } from "@/contexts/LanguageContext";
 import type { LibraryDay } from "@/lib/dive-media";
 import { formatUtcOffset } from "@/lib/media-match";
-import { ClipThumbnail, ClipTypeIcon } from "./ClipThumbnail";
+import { ClipLink, ClipThumbnail, ClipTypeIcon } from "./ClipThumbnail";
 
 export function MediaLibrary({
   days,
@@ -76,10 +76,8 @@ export function MediaLibrary({
           <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8">
             {day.clips.map((clip) => (
               <li key={clip.id} className="space-y-1">
-                <a
-                  href={clip.detailsUrls[0]}
-                  target="_blank"
-                  rel="noreferrer"
+                <ClipLink
+                  clip={clip}
                   title={clip.filename}
                   className="relative block aspect-video overflow-hidden rounded-md"
                 >
@@ -90,7 +88,7 @@ export function MediaLibrary({
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-4 pb-0.5 text-[10px] font-medium text-white tabular-nums">
                     {clip.time}
                   </span>
-                </a>
+                </ClipLink>
                 {clip.diveLogId ? (
                   <Link
                     href={`/dives/${clip.diveLogId}`}

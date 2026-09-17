@@ -745,6 +745,7 @@ export const en: WebTKeys = {
   diveMediaRescanning: "Scanning…",
   diveMediaScanUnreachable: "Could not read the library (disk not mounted?). The previous index is kept.",
   diveMediaScanEmpty: "The library is empty. The previous index is kept.",
+  diveMediaPendingIndex: "{n} clip(s) are not in Jellyfin yet: no thumbnail or link until it scans its library.",
   diveMediaScanInvalidManifest: "The library manifest is malformed. The previous index is kept.",
   diveMediaScanLibraryMismatch: "The manifest belongs to a different library (JELLYFIN_LIBRARY_PATH mismatch). The previous index is kept.",
   diveMediaScanDone: "Library indexed",

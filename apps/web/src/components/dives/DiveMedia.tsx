@@ -51,11 +51,18 @@ export function DiveMedia({
     });
   }, []);
 
+  // Un clip que Jellyfin aún no ha indexado no tiene miniatura porque no puede
+  // tenerla, así que no entra en la cuenta del aviso de abajo: se avisa aparte.
+  const pendingIndex = useMemo(
+    () => attached.filter((clip) => clip.imageUrls.length === 0),
+    [attached],
+  );
+  const linkable = attached.length - pendingIndex.length;
+
   // La causa de que no carguen (sin sesión en Jellyfin, fuera de la red) es
   // global: el aviso va una vez bajo la rejilla, no repetido en cada tarjeta.
   // Que falle una sola es otra cosa — un fichero movido — y no merece aviso.
-  const showThumbnailNotice =
-    attached.length > 0 && unavailable.size >= Math.max(2, Math.ceil(attached.length / 2));
+  const showThumbnailNotice = linkable > 0 && unavailable.size >= Math.max(2, Math.ceil(linkable / 2));
 
   function rescan() {
     startTransition(async () => {
@@ -157,6 +164,13 @@ export function DiveMedia({
             />
           ))}
         </ul>
+      )}
+
+      {pendingIndex.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 size-3.5 shrink-0" />
+          <p>{t.diveMediaPendingIndex.replace("{n}", String(pendingIndex.length))}</p>
+        </div>
       )}
 
       {showThumbnailNotice && media.jellyfinUrls.length > 0 && (

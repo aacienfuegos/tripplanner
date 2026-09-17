@@ -2,11 +2,15 @@ import "server-only";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { jellyfinItemId } from "@/lib/jellyfin";
 
 export type MediaKind = "VIDEO" | "PHOTO";
 
 export type ScannedClip = {
+  // Ruta absoluta tal como la ve Jellyfin: identidad estable del clip.
   readonly path: string;
+  // Nulo mientras Jellyfin no haya indexado el fichero.
+  readonly itemId: string | null;
   readonly kind: MediaKind;
   // Instante absoluto en el que se grabó, no hora de pared.
   readonly capturedAt: Date;
@@ -74,7 +78,12 @@ type Entry = {
   cameraOffset: number | null;
 };
 
-async function scanDirectory(libraryPath: string): Promise<readonly ScannedClip[]> {
+// Sin manifiesto —la tarjeta de la cámara enchufada en local— el ItemId se
+// calcula con el mismo MD5 del que Jellyfin deriva el suyo.
+async function scanDirectory(
+  libraryPath: string,
+  jellyfinLibraryPath: string,
+): Promise<readonly ScannedClip[]> {
   const found = await readdir(libraryPath, { withFileTypes: true });
   const entries: Entry[] = [];
 
@@ -108,69 +117,62 @@ async function scanDirectory(libraryPath: string): Promise<readonly ScannedClip[
     offsetByDay.set(day, Math.round(median(values) / OFFSET_QUANTUM_MINUTES) * OFFSET_QUANTUM_MINUTES);
   }
 
-  return entries.map((entry) => ({
-    path: entry.path,
-    kind: entry.kind,
-    // Sin huso medible se deja la hora de pared tal cual. El emparejamiento
-    // sigue funcionando porque el desfase constante que eso introduce lo
-    // absorbe el huso del viaje; lo único que se pierde es la inmunidad a que
-    // el reloj de la cámara cambie a mitad de viaje.
-    capturedAt: new Date(entry.wallClock.getTime() - (offsetByDay.get(dayOf(entry.wallClock)) ?? 0) * MINUTE),
-    sizeBytes: entry.sizeBytes,
-  }));
+  return entries.map((entry) => {
+    const jellyfinPath = path.posix.join(jellyfinLibraryPath, entry.path);
+    return {
+      path: jellyfinPath,
+      itemId: jellyfinItemId(jellyfinPath, entry.kind),
+      kind: entry.kind,
+      // Sin huso medible se deja la hora de pared tal cual. El emparejamiento
+      // sigue funcionando porque el desfase constante que eso introduce lo
+      // absorbe el huso del viaje; lo único que se pierde es la inmunidad a que
+      // el reloj de la cámara cambie a mitad de viaje.
+      capturedAt: new Date(entry.wallClock.getTime() - (offsetByDay.get(dayOf(entry.wallClock)) ?? 0) * MINUTE),
+      sizeBytes: entry.sizeBytes,
+    };
+  });
 }
 
-// En producción la biblioteca no se monta: el mismo script que genera el
-// espejo emite un manifiesto con el instante ya resuelto. Evita depender de que
-// la fecha de modificación sobreviva a la copia —un `cp` sin `-p` la pone a hoy
-// y todos los clips saltan al día de la copia sin que nada falle a la vista— y
-// deja a esta app sin acceso de lectura al material.
+// En producción la biblioteca no se monta: el mismo script del servidor emite
+// un manifiesto con el instante ya resuelto y el ItemId leído de la base de
+// datos de Jellyfin. Evita depender de que la fecha de modificación sobreviva a
+// la copia —un `cp` sin `-p` la pone a hoy y todos los clips saltan al día de
+// la copia sin que nada falle a la vista— y deja a esta app sin acceso de
+// lectura al material.
 const manifestSchema = z.object({
   version: z.literal(1),
-  generatedAt: z.iso.datetime({ offset: true }),
-  // La raíz a la que son relativas las rutas, tal como la ve Jellyfin. Si no
-  // coincide con la configurada, los ItemId salen mal y no hay síntoma salvo
-  // que ninguna miniatura carga.
-  libraryPath: z.string().min(1),
+  generated_at: z.iso.datetime({ offset: true }),
   clips: z
     .array(
       z.object({
-        path: z
-          .string()
-          .min(1)
-          .refine(
-            (value) => !value.startsWith("/") && !value.split("/").includes(".."),
-            "ruta relativa a la raíz de la biblioteca",
-          ),
-        kind: z.enum(["VIDEO", "PHOTO"]),
-        capturedAt: z.iso.datetime({ offset: true }),
-        sizeBytes: z.number().int().nonnegative(),
+        jellyfin_path: z.string().startsWith("/"),
+        // Nulo hasta que Jellyfin escanee el fichero. El generador aborta sin
+        // escribir si no puede leer su base de datos, así que un nulo significa
+        // "todavía no indexado" y nunca "no se pudo consultar".
+        jellyfin_item_id: z.string().min(1).nullable(),
+        kind: z.enum(["video", "photo"]),
+        captured_at_utc: z.iso.datetime({ offset: true }),
+        size_bytes: z.number().int().nonnegative(),
       }),
     )
     .min(1),
 });
 
 export class ManifestError extends Error {
-  constructor(readonly code: "invalid-manifest" | "library-mismatch") {
+  constructor(readonly code: "invalid-manifest") {
     super(code);
   }
 }
 
-async function readManifest(
-  manifestPath: string,
-  jellyfinLibraryPath: string,
-): Promise<readonly ScannedClip[]> {
+async function readManifest(manifestPath: string): Promise<readonly ScannedClip[]> {
   const parsed = manifestSchema.safeParse(JSON.parse(await readFile(manifestPath, "utf8")));
   if (!parsed.success) throw new ManifestError("invalid-manifest");
-  const manifest = parsed.data;
-  if (manifest.libraryPath.replace(/\/+$/, "") !== jellyfinLibraryPath.replace(/\/+$/, "")) {
-    throw new ManifestError("library-mismatch");
-  }
-  return manifest.clips.map((clip) => ({
-    path: clip.path,
-    kind: clip.kind,
-    capturedAt: new Date(clip.capturedAt),
-    sizeBytes: BigInt(clip.sizeBytes),
+  return parsed.data.clips.map((clip) => ({
+    path: clip.jellyfin_path,
+    itemId: clip.jellyfin_item_id,
+    kind: clip.kind === "video" ? "VIDEO" : "PHOTO",
+    capturedAt: new Date(clip.captured_at_utc),
+    sizeBytes: BigInt(clip.size_bytes),
   }));
 }
 
@@ -178,8 +180,10 @@ async function readManifest(
 // puesta—; un fichero es el manifiesto que genera el servidor.
 export async function scanMediaLibrary(
   libraryPath: string,
-  jellyfinLibraryPath: string,
+  jellyfinLibraryPath: string | null,
 ): Promise<readonly ScannedClip[]> {
   const info = await stat(libraryPath);
-  return info.isDirectory() ? scanDirectory(libraryPath) : readManifest(libraryPath, jellyfinLibraryPath);
+  if (!info.isDirectory()) return readManifest(libraryPath);
+  if (!jellyfinLibraryPath) throw new ManifestError("invalid-manifest");
+  return scanDirectory(libraryPath, jellyfinLibraryPath);
 }

@@ -553,7 +553,12 @@ enum OffsetSource {
 model MediaClip {
   id         String    @id @default(cuid())
   userId     String
+  // Ruta absoluta tal como la ve Jellyfin: identidad estable del clip, y lo
+  // que mantiene vivos los overrides de MediaClipLink entre reindexados.
   path       String
+  // ItemId de Jellyfin. Nulo mientras Jellyfin no haya escaneado el fichero:
+  // entonces el clip se lista sin enlace ni miniatura.
+  itemId     String?
   kind       MediaKind
   capturedAt DateTime
   sizeBytes  BigInt?

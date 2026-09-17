@@ -53,7 +53,12 @@ export async function rescanMediaLibrary(): Promise<ScanResult> {
       prisma.mediaClip.upsert({
         where: { userId_path: { userId, path: clip.path } },
         create: { userId, ...clip },
-        update: { kind: clip.kind, capturedAt: clip.capturedAt, sizeBytes: clip.sizeBytes },
+        update: {
+          itemId: clip.itemId,
+          kind: clip.kind,
+          capturedAt: clip.capturedAt,
+          sizeBytes: clip.sizeBytes,
+        },
       }),
     ),
   );

@@ -3,6 +3,7 @@ import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { countryNameToCode } from "@tripplanner/shared";
+import { jellyfinItemId } from "../src/lib/jellyfin.ts";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -22,14 +23,17 @@ function country(name: string): string {
 // Biblioteca de media de mentira para staging, donde no hay —ni debe haber—
 // acceso al Jellyfin de producción. Escribe el mismo manifiesto que en
 // producción genera el script del servidor, con el naming real de la cámara.
+// Los ItemId se calculan con el mismo MD5 del que Jellyfin deriva los suyos,
+// que es lo más parecido a los de verdad que se puede tener sin un Jellyfin.
 //
 // Va en SEED_MEDIA_LIBRARY_PATH y no en MEDIA_LIBRARY_PATH a propósito: en
 // local esa segunda puede apuntar al material real.
 type ManifestClip = {
-  path: string;
-  kind: "VIDEO" | "PHOTO";
-  capturedAt: string;
-  sizeBytes: number;
+  jellyfin_path: string;
+  jellyfin_item_id: string | null;
+  kind: "video" | "photo";
+  captured_at_utc: string;
+  size_bytes: number;
 };
 
 function clipName(at: Date, index: number, extension: "MP4" | "JPG"): string {
@@ -60,12 +64,18 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
   const clips: ManifestClip[] = [];
   // El nombre lleva la hora local del sitio y `capturedAt` el instante real:
   // es la diferencia que la app tiene que deducir como huso del viaje.
+  const libraryPath = process.env.JELLYFIN_LIBRARY_PATH?.trim() || "/mnt/media/buceo";
+  // Uno de cada seis se deja sin ItemId: es el clip recién copiado que Jellyfin
+  // todavía no ha escaneado, y la app tiene que pintarlo sin enlace.
   const emit = (at: Date, siteOffsetMinutes: number, extension: "MP4" | "JPG" = "MP4") => {
+    const kind = extension === "MP4" ? "video" : "photo";
+    const jellyfinPath = path.posix.join(libraryPath, clipName(at, index++, extension));
     clips.push({
-      path: clipName(at, index++, extension),
-      kind: extension === "MP4" ? "VIDEO" : "PHOTO",
-      capturedAt: new Date(at.getTime() - siteOffsetMinutes * minute).toISOString(),
-      sizeBytes: extension === "MP4" ? 1_240_000_000 : 5_600_000,
+      jellyfin_path: jellyfinPath,
+      jellyfin_item_id: index % 6 === 0 ? null : jellyfinItemId(jellyfinPath, kind === "video" ? "VIDEO" : "PHOTO"),
+      kind,
+      captured_at_utc: new Date(at.getTime() - siteOffsetMinutes * minute).toISOString(),
+      size_bytes: extension === "MP4" ? 1_240_000_000 : 5_600_000,
     });
   };
 
@@ -96,13 +106,7 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
   await writeFile(
     target,
     `${JSON.stringify(
-      {
-        version: 1,
-        seed: true,
-        generatedAt: new Date().toISOString(),
-        libraryPath: process.env.JELLYFIN_LIBRARY_PATH?.trim() || "/mnt/media/buceo",
-        clips,
-      },
+      { version: 1, seed: true, generated_at: new Date().toISOString(), clips },
       null,
       2,
     )}\n`,

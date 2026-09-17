@@ -2,7 +2,7 @@ import "server-only";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { getMediaConfig } from "@/lib/media-config";
-import { jellyfinDetailsUrl, jellyfinItemId, jellyfinPrimaryImageUrl } from "@/lib/jellyfin";
+import { jellyfinDetailsUrl, jellyfinPrimaryImageUrl } from "@/lib/jellyfin";
 import { dateToDayKey, dayKey, dayKeyToDate, matchClipsToDive } from "@/lib/media-match";
 
 export type DiveClip = {
@@ -104,19 +104,19 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
 
   return {
     clips: clips.map((clip) => {
-      const itemId = jellyfinItemId(path.posix.join(config.jellyfinLibraryPath, clip.path), clip.kind);
+      const { itemId } = clip;
       const local = atSite(clip.capturedAt, offsetMinutes);
       return {
         id: clip.id,
-        filename: clip.path,
+        filename: path.posix.basename(clip.path),
         capturedAt: clip.capturedAt,
         time: hhmm(local),
         day: local.toISOString().slice(0, 10),
         kind: clip.kind,
         auto: auto.has(clip.id),
         attached: attached.has(clip.id),
-        detailsUrls: linkBases.map((base) => jellyfinDetailsUrl(base, itemId)),
-        imageUrls: imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId)),
+        detailsUrls: itemId ? linkBases.map((base) => jellyfinDetailsUrl(base, itemId)) : [],
+        imageUrls: itemId ? imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId)) : [],
       };
     }),
     day,
@@ -228,12 +228,12 @@ export async function getMediaLibrary(userId: string): Promise<readonly LibraryD
         offsetMinutes: offset?.offsetMinutes ?? 0,
         offsetSource: offset?.source ?? null,
         clips: dayClips.map((clip) => {
-          const itemId = jellyfinItemId(path.posix.join(config.jellyfinLibraryPath, clip.path), clip.kind);
+          const { itemId } = clip;
           const claim = claimedBy.get(clip.id);
           const local = atSite(clip.capturedAt, offset?.offsetMinutes ?? 0);
           return {
             id: clip.id,
-            filename: clip.path,
+            filename: path.posix.basename(clip.path),
             capturedAt: clip.capturedAt,
             time: hhmm(local),
             day: local.toISOString().slice(0, 10),
@@ -242,8 +242,8 @@ export async function getMediaLibrary(userId: string): Promise<readonly LibraryD
             attached: claim !== undefined,
             diveNumber: claim?.diveNumber ?? null,
             diveLogId: claim?.id ?? null,
-            detailsUrls: linkBases.map((base) => jellyfinDetailsUrl(base, itemId)),
-            imageUrls: imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId)),
+            detailsUrls: itemId ? linkBases.map((base) => jellyfinDetailsUrl(base, itemId)) : [],
+            imageUrls: itemId ? imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId)) : [],
           };
         }),
       };
