@@ -8,7 +8,7 @@ vi.mock("server-only", () => ({}));
 const { ManifestError, scanMediaLibrary } = await import("@/lib/media-library");
 const { jellyfinItemId } = await import("@/lib/jellyfin");
 
-const LIBRARY = "/mnt/media/buceo";
+const LIBRARY = "/library/video";
 
 async function manifestWith(body: unknown): Promise<string> {
   const dir = await mkdtemp(path.join(tmpdir(), "media-manifest-"));
@@ -18,8 +18,8 @@ async function manifestWith(body: unknown): Promise<string> {
 }
 
 const validClip = {
-  jellyfin_path: "/mnt/media/buceo/DJI_20260125191315_0064_D.MP4",
-  jellyfin_item_id: "98561df48d4855ea02cb8efcf66421eb",
+  jellyfin_path: "/library/video/CLIP_0064.MP4",
+  jellyfin_item_id: "0000ffff0000ffff0000ffff0000ffff",
   kind: "video",
   captured_at_utc: "2026-01-25T14:13:16Z",
   size_bytes: 93_285_139,
@@ -56,7 +56,7 @@ describe("scanMediaLibrary con manifiesto", () => {
   it.each([
     ["sin captured_at_utc", { ...validClip, captured_at_utc: undefined }],
     ["con hora sin huso", { ...validClip, captured_at_utc: "2026-01-25T14:13:16" }],
-    ["con ruta relativa", { ...validClip, jellyfin_path: "DJI_20260125191315_0064_D.MP4" }],
+    ["con ruta relativa", { ...validClip, jellyfin_path: "CLIP_0064.MP4" }],
     ["con kind en mayúsculas", { ...validClip, kind: "VIDEO" }],
     ["con ItemId vacío", { ...validClip, jellyfin_item_id: "" }],
     ["con tamaño negativo", { ...validClip, size_bytes: -1 }],

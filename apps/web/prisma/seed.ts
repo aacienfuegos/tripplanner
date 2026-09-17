@@ -72,7 +72,7 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
   const clips: ManifestClip[] = [];
   // El nombre lleva la hora local del sitio y `capturedAt` el instante real:
   // es la diferencia que la app tiene que deducir como huso del viaje.
-  const libraryPath = process.env.JELLYFIN_LIBRARY_PATH?.trim() || "/mnt/media/buceo";
+  const libraryPath = process.env.JELLYFIN_LIBRARY_PATH?.trim() || "/library/video";
   // Uno de cada seis se deja sin ItemId: es el clip recién copiado que Jellyfin
   // todavía no ha escaneado, y la app tiene que pintarlo sin enlace.
   const emit = (at: Date, siteOffsetMinutes: number, extension: "MP4" | "JPG" = "MP4") => {
