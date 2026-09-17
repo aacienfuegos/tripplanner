@@ -32,7 +32,7 @@ export function ClipTile({
       >
         {/* Un clip pendiente de Jellyfin no tiene miniatura por diseño: si
             contara como fallida dispararía el aviso de "no cargan". */}
-        <ClipThumbnail clip={clip} onState={clip.imageUrls.length > 0 ? onState : undefined} />
+        <ClipThumbnail clip={clip} onState={clip.imageUrl ? onState : undefined} />
       </ClipLink>
 
       <span className="pointer-events-none absolute top-1.5 left-1.5 rounded bg-black/55 p-1 backdrop-blur-sm">

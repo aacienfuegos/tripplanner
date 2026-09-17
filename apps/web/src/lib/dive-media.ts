@@ -20,8 +20,9 @@ export type DiveClip = {
   // necesita para saber si guardar un override explícito o borrar el que haya.
   readonly auto: boolean;
   readonly attached: boolean;
-  readonly detailsUrls: readonly string[];
-  readonly imageUrls: readonly string[];
+  // Nulos cuando Jellyfin todavía no ha indexado el fichero.
+  readonly detailsUrl: string | null;
+  readonly imageUrl: string | null;
 };
 
 export type DiveMedia = {
@@ -30,7 +31,7 @@ export type DiveMedia = {
   readonly diveWindow: { readonly start: string; readonly end: string; readonly date: string };
   readonly offsetMinutes: number;
   readonly offsetSource: "AUTO" | "MANUAL" | null;
-  readonly jellyfinUrls: readonly string[];
+  readonly jellyfinUrl: string;
 };
 
 // La biblioteca es una sola, la del servidor, y solo la ve el admin (#311).
@@ -45,6 +46,10 @@ async function mediaConfigFor(userId: string) {
 }
 
 const MINUTE = 60_000;
+
+// Las tarjetas de la ficha son del doble de ancho que las de la biblioteca, y
+// son un puñado en vez de cientos: ahí sí compensa pedir más resolución.
+const DIVE_THUMBNAIL_WIDTH = 480;
 
 // Un instante absoluto visto desde el huso del sitio.
 function atSite(instant: Date, siteOffsetMinutes: number): Date {
@@ -92,15 +97,6 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
   const offsetMinutes = offset?.offsetMinutes ?? 0;
   const auto = new Set(matchClipsToDive(dive, clips, offsetMinutes, new Map()).map((clip) => clip.id));
   const attached = new Set(matchClipsToDive(dive, clips, offsetMinutes, overrides).map((clip) => clip.id));
-  // Links e imágenes necesitan orden inverso, y la razón es la cookie de sesión.
-  // Un link es navegación de primer nivel y sí arrastra la cookie SameSite=Lax
-  // de Authentik, así que el host interno funciona. Una miniatura es un
-  // subrecurso cross-site y no la arrastra: contra el host interno cae siempre
-  // en el login de Authentik. El público no tiene forward-auth y el endpoint de
-  // imagen de Jellyfin es anónimo (ImageController.GetItemImage no lleva
-  // [Authorize]), así que es el único que sirve miniaturas desde otro origen.
-  const linkBases = [config.internalUrl, config.publicUrl].filter((url) => url !== null);
-  const imageBases = [config.publicUrl, config.internalUrl].filter((url) => url !== null);
 
   return {
     clips: clips.map((clip) => {
@@ -115,8 +111,10 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
         kind: clip.kind,
         auto: auto.has(clip.id),
         attached: attached.has(clip.id),
-        detailsUrls: itemId ? linkBases.map((base) => jellyfinDetailsUrl(base, itemId)) : [],
-        imageUrls: itemId ? imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId)) : [],
+        detailsUrl: itemId ? jellyfinDetailsUrl(config.jellyfinUrl, itemId) : null,
+        imageUrl: itemId
+          ? jellyfinPrimaryImageUrl(config.jellyfinUrl, itemId, DIVE_THUMBNAIL_WIDTH)
+          : null,
       };
     }),
     day,
@@ -129,7 +127,7 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
     },
     offsetMinutes,
     offsetSource: offset?.source ?? null,
-    jellyfinUrls: linkBases,
+    jellyfinUrl: config.jellyfinUrl,
   };
 }
 
@@ -212,8 +210,7 @@ export async function getMediaLibrary(userId: string): Promise<readonly LibraryD
     }
   }
 
-  const linkBases = [config.internalUrl, config.publicUrl].filter((url) => url !== null);
-  const imageBases = [config.publicUrl, config.internalUrl].filter((url) => url !== null);
+
   // Se agrupa por día UTC del instante: el día local del sitio depende del huso,
   // que es justo lo que se busca en el mapa. La diferencia solo afecta a clips
   // grabados a caballo de medianoche UTC.
@@ -242,8 +239,8 @@ export async function getMediaLibrary(userId: string): Promise<readonly LibraryD
             attached: claim !== undefined,
             diveNumber: claim?.diveNumber ?? null,
             diveLogId: claim?.id ?? null,
-            detailsUrls: itemId ? linkBases.map((base) => jellyfinDetailsUrl(base, itemId)) : [],
-            imageUrls: itemId ? imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId)) : [],
+            detailsUrl: itemId ? jellyfinDetailsUrl(config.jellyfinUrl, itemId) : null,
+            imageUrl: itemId ? jellyfinPrimaryImageUrl(config.jellyfinUrl, itemId) : null,
           };
         }),
       };

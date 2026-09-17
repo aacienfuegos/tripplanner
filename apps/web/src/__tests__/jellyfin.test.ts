@@ -39,7 +39,12 @@ describe("urls", () => {
 
   it("tolera una barra final en la base", () => {
     expect(jellyfinPrimaryImageUrl("https://jellyfin.lan/", "abc", 200)).toBe(
-      "https://jellyfin.lan/Items/abc/Images/Primary?maxWidth=200",
+      "https://jellyfin.lan/Items/abc/Images/Primary?fillWidth=200&quality=80",
     );
+  });
+
+  // Sin `quality` Jellyfin sirve al 90 y la miniatura pesa diez veces más.
+  it("pide siempre una calidad explícita", () => {
+    expect(jellyfinPrimaryImageUrl("https://jellyfin.lan", "abc")).toContain("quality=80");
   });
 });

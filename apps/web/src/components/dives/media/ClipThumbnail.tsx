@@ -6,10 +6,12 @@ import type { DiveClip } from "@/lib/dive-media";
 
 export type ThumbState = "loading" | "loaded" | "unavailable";
 
-// Un host interno inalcanzable desde fuera de la red no emite `error`: cuelga
-// hasta que expira el timeout de red. Sin este reloj propio la tarjeta se queda
-// en blanco indefinidamente y el estado de "sin miniatura" nunca se renderiza.
-const ATTEMPT_TIMEOUT_MS = [3000, 5000];
+// Un host inalcanzable no emite `error`: cuelga hasta que expira el timeout de
+// red. Sin este reloj propio la tarjeta se queda en blanco indefinidamente y el
+// estado de "sin miniatura" no se renderiza nunca. Es generoso a propósito:
+// Jellyfin genera la miniatura la primera vez que se la piden, y la de un vídeo
+// 4K tarda bastante más que unos pocos segundos.
+const TIMEOUT_MS = 15000;
 
 // Un clip que Jellyfin todavía no ha indexado no tiene ItemId, y sin él no hay
 // adónde enlazar: la tarjeta se pinta igual, pero no es un enlace.
@@ -20,13 +22,13 @@ export function ClipLink({
   ariaLabel,
   children,
 }: {
-  clip: { readonly detailsUrls: readonly string[] };
+  clip: { readonly detailsUrl: string | null };
   className?: string;
   title?: string;
   ariaLabel?: string;
   children: ReactNode;
 }) {
-  const href = clip.detailsUrls[0];
+  const href = clip.detailsUrl;
   if (!href) {
     return (
       <div className={className} title={title} aria-label={ariaLabel}>
@@ -63,11 +65,30 @@ export function ClipThumbnail({
   clip: DiveClip;
   onState?: (state: ThumbState) => void;
 }) {
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<ThumbState>(
-    clip.imageUrls.length === 0 ? "unavailable" : "loading",
-  );
-  const url = clip.imageUrls[attempt];
+  const url = clip.imageUrl;
+  const [state, setState] = useState<ThumbState>(url ? "loading" : "unavailable");
+  const boxRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // La rejilla llega a tener cientos de tarjetas y la imagen no se pide hasta
+  // que se acerca a la pantalla. Sin saber eso, el reloj de abajo corría
+  // también para las que el navegador no había pedido todavía y las daba por
+  // rotas sin haberlas intentado: al bajar, media rejilla ya se había rendido.
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const node = boxRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setVisible(true);
+        observer.disconnect();
+      },
+      { rootMargin: "300px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   // El callback llega como lambda del padre, así que cambia de identidad en
   // cada render suyo. Con él en las dependencias el efecto se reejecuta en cada
@@ -78,19 +99,24 @@ export function ClipThumbnail({
     onStateRef.current?.(state);
   }, [state]);
 
+  // Una imagen que termina de cargar antes de que React hidrate no dispara
+  // nunca `onLoad`: el evento ya pasó cuando se engancha el listener. Sin esta
+  // comprobación, justo las miniaturas más rápidas se daban por fallidas.
   useEffect(() => {
-    if (state !== "loading" || !url) return;
-    const timeout = setTimeout(() => setAttempt((current) => current + 1), ATTEMPT_TIMEOUT_MS[attempt] ?? 5000);
-    return () => clearTimeout(timeout);
-  }, [attempt, state, url]);
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth > 0) setState("loaded");
+  }, [url]);
 
   useEffect(() => {
-    if (!url && state === "loading") setState("unavailable");
-  }, [url, state]);
+    if (state !== "loading" || !url || !visible) return;
+    const timeout = setTimeout(() => setState("unavailable"), TIMEOUT_MS);
+    return () => clearTimeout(timeout);
+  }, [state, url, visible]);
 
   return (
     <>
       <div
+        ref={boxRef}
         aria-hidden
         className="absolute inset-0 bg-muted/40"
         style={{
@@ -104,8 +130,9 @@ export function ClipThumbnail({
           className="absolute top-1/2 left-1/2 size-6 -translate-x-1/2 -translate-y-1/2 text-muted-foreground/50"
         />
       )}
-      {url && state !== "unavailable" && (
+      {url && visible && state !== "unavailable" && (
         <img
+          ref={imgRef}
           src={url}
           alt=""
           loading="lazy"
@@ -113,7 +140,7 @@ export function ClipThumbnail({
             state === "loaded" ? "opacity-100" : "opacity-0"
           }`}
           onLoad={() => setState("loaded")}
-          onError={() => setAttempt((current) => current + 1)}
+          onError={() => setState("unavailable")}
         />
       )}
     </>
