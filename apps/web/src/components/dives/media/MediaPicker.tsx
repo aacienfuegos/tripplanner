@@ -14,20 +14,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { setClipLinks, setDayClockOffset } from "@/actions/media";
-import { groupIntoSessions, sessionOverlapsDive } from "@/lib/media-match";
+import { setClipLinks, setDaySiteOffset } from "@/actions/media";
+import { formatUtcOffset, groupIntoSessions, sessionOverlapsDive } from "@/lib/media-match";
 import { useT } from "@/contexts/LanguageContext";
 import type { DiveClip } from "@/lib/dive-media";
-import { ClipThumbnail, ClipTypeIcon, clipTime } from "./ClipThumbnail";
+import { ClipThumbnail, ClipTypeIcon } from "./ClipThumbnail";
 
 const OFFSET_STEP_MINUTES = 30;
 const COLLAPSED_PREVIEW = 6;
 
 type Filter = "ALL" | "VIDEO" | "PHOTO";
-
-function signed(minutes: number): string {
-  return `${minutes > 0 ? "+" : ""}${minutes}`;
-}
 
 function SessionTile({
   clip,
@@ -45,7 +41,7 @@ function SessionTile({
       role="checkbox"
       aria-checked={selected}
       onClick={onToggle}
-      aria-label={`${clip.kind === "VIDEO" ? t.diveMediaVideoAria : t.diveMediaPhotoAria} ${clipTime(clip.capturedAt)}`}
+      aria-label={`${clip.kind === "VIDEO" ? t.diveMediaVideoAria : t.diveMediaPhotoAria} ${clip.time}`}
       title={clip.filename}
       className={`relative aspect-video overflow-hidden rounded-md transition-opacity ${
         selected
@@ -63,7 +59,7 @@ function SessionTile({
         </span>
       )}
       <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-4 pb-1 text-left text-[10px] font-medium text-white tabular-nums">
-        {clipTime(clip.capturedAt)}
+        {clip.time}
       </span>
     </button>
   );
@@ -98,8 +94,8 @@ function Session({
           <span className="text-xs font-medium tabular-nums">
             {/* El selector abarca el día ±1, así que sin fecha una ráfaga de la
                 víspera parece de la misma jornada. */}
-            {otherDay && `${new Date(clips[0].capturedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · `}
-            {clipTime(clips[0].capturedAt)} – {clipTime(clips[clips.length - 1].capturedAt)}
+            {otherDay && `${clips[0].day} · `}
+            {clips[0].time} – {clips[clips.length - 1].time}
           </span>
           <span className="text-xs text-muted-foreground">· {clips.length}</span>
           {overlaps && (
@@ -142,6 +138,7 @@ export function MediaPicker({
   onOpenChange,
   diveLogId,
   dive,
+  diveWindow,
   clips,
   day,
   offsetMinutes,
@@ -151,6 +148,7 @@ export function MediaPicker({
   onOpenChange: (open: boolean) => void;
   diveLogId: string;
   dive: { date: string; bottomTime: number };
+  diveWindow: { start: string; end: string; date: string };
   clips: readonly DiveClip[];
   day: string;
   offsetMinutes: number;
@@ -181,9 +179,9 @@ export function MediaPicker({
     return groupIntoSessions(filtered).map((session) => ({
       clips: session,
       overlaps: sessionOverlapsDive(session, matchable, offsetMinutes),
-      otherDay: session[0].capturedAt.toDateString() !== matchable.date.toDateString(),
+      otherDay: session[0].day !== diveWindow.date,
     }));
-  }, [clips, query, filter, matchable, offsetMinutes]);
+  }, [clips, query, filter, matchable, offsetMinutes, diveWindow.date]);
 
   const changes = useMemo(
     () =>
@@ -223,7 +221,7 @@ export function MediaPicker({
 
   function shiftOffset(delta: number) {
     startTransition(async () => {
-      await setDayClockOffset(day, offsetMinutes + delta);
+      await setDaySiteOffset(day, offsetMinutes + delta);
       router.refresh();
     });
   }
@@ -246,9 +244,7 @@ export function MediaPicker({
           <div>
             <SheetTitle className="text-base">{t.diveMediaPickerTitle}</SheetTitle>
             <SheetDescription className="text-xs">
-              {clipTime(dive.date)} – {clipTime(new Date(new Date(dive.date).getTime() + dive.bottomTime * 60000))}
-              {" · "}
-              {new Date(dive.date).toLocaleDateString()}
+              {diveWindow.start} – {diveWindow.end} · {diveWindow.date}
             </SheetDescription>
           </div>
 
@@ -258,8 +254,8 @@ export function MediaPicker({
               <Button size="icon-xs" variant="outline" disabled={pending} onClick={() => shiftOffset(-OFFSET_STEP_MINUTES)}>
                 <Minus />
               </Button>
-              <span className="min-w-14 text-center text-xs font-medium tabular-nums">
-                {signed(offsetMinutes)} min
+              <span className="min-w-20 text-center text-xs font-medium tabular-nums">
+                {formatUtcOffset(offsetMinutes)}
               </span>
               <Button size="icon-xs" variant="outline" disabled={pending} onClick={() => shiftOffset(OFFSET_STEP_MINUTES)}>
                 <Plus />

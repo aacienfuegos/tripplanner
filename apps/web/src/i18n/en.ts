@@ -746,7 +746,7 @@ export const en: WebTKeys = {
   diveMediaScanUnreachable: "Could not read the library (disk not mounted?). The previous index is kept.",
   diveMediaScanEmpty: "The library is empty. The previous index is kept.",
   diveMediaScanDone: "Library indexed",
-  diveMediaClockOffset: "Clock offset",
+  diveMediaClockOffset: "Site timezone",
   diveMediaOffsetAuto: "auto",
   diveMediaOffsetManual: "manual",
   diveMediaPickerTitle: "Dive clips",

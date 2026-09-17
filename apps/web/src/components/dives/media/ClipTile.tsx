@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipThumbnail, ClipTypeIcon, clipTime, type ThumbState } from "./ClipThumbnail";
+import { ClipThumbnail, ClipTypeIcon, type ThumbState } from "./ClipThumbnail";
 import { useT } from "@/contexts/LanguageContext";
 import type { DiveClip } from "@/lib/dive-media";
 
@@ -29,7 +29,7 @@ export function ClipTile({
         target="_blank"
         rel="noreferrer"
         title={clip.filename}
-        aria-label={`${kindLabel} ${clipTime(clip.capturedAt)}`}
+        aria-label={`${kindLabel} ${clip.time}`}
         className="absolute inset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <ClipThumbnail clip={clip} onState={onState} />
@@ -50,7 +50,7 @@ export function ClipTile({
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pt-6 pb-1.5">
         <span className="text-[11px] font-medium text-white tabular-nums drop-shadow">
-          {clipTime(clip.capturedAt)}
+          {clip.time}
         </span>
         <Button
           size="icon-xs"

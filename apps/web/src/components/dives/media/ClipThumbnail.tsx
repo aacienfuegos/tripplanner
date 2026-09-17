@@ -11,10 +11,6 @@ export type ThumbState = "loading" | "loaded" | "unavailable";
 // en blanco indefinidamente y el estado de "sin miniatura" nunca se renderiza.
 const ATTEMPT_TIMEOUT_MS = [3000, 5000];
 
-export function clipTime(capturedAt: Date | string): string {
-  return new Date(capturedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 export function ClipTypeIcon({ kind, className }: { kind: DiveClip["kind"]; className?: string }) {
   return kind === "VIDEO" ? <Film className={className} /> : <ImageIcon className={className} />;
 }

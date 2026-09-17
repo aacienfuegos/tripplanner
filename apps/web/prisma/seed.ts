@@ -1,4 +1,4 @@
-import { readdir, mkdir, writeFile, unlink } from "node:fs/promises";
+import { readdir, mkdir, writeFile, unlink, utimes } from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -22,6 +22,10 @@ function country(name: string): string {
 // Biblioteca de media de mentira para staging, donde no hay —ni debe haber—
 // acceso al Jellyfin de producción. Escribe ficheros vacíos con el naming real
 // de la cámara para que el escaneo de verdad tenga algo que indexar.
+//
+// A cada uno se le pone como fecha el instante real de grabación, que es lo que
+// hará el generador de la carpeta en producción copiando el creation_time del
+// MP4: es de ahí de donde el escaneo saca el huso que tenía la cámara.
 //
 // Va en SEED_MEDIA_LIBRARY_PATH y no en MEDIA_LIBRARY_PATH a propósito: en
 // local esa segunda apunta a la tarjeta con el material real, y esta función
@@ -52,11 +56,14 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
   await Promise.all(existing.map((name) => unlink(path.join(target, name))));
 
   const minute = 60_000;
-  const files: string[] = [];
   let index = 1;
 
+  // Huso que finge tener la cámara en el dataset: el nombre lleva hora local y
+  // la fecha del fichero, el instante real.
+  const CAMERA_OFFSET_MINUTES = 2 * 60;
+  const files: { name: string; instant: Date }[] = [];
   const emit = (at: Date, extension: "MP4" | "JPG" = "MP4") => {
-    files.push(clipName(at, index++, extension));
+    files.push({ name: clipName(at, index++, extension), instant: new Date(at.getTime() - CAMERA_OFFSET_MINUTES * minute) });
   };
 
   // Ráfaga que cae dentro de la ventana: el emparejamiento automático la coge
@@ -85,7 +92,13 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
   const orphanDay = new Date("2024-09-21T17:40:00");
   for (let i = 0; i < 3; i += 1) emit(new Date(orphanDay.getTime() + i * 7 * minute));
 
-  await Promise.all(files.map((name) => writeFile(path.join(target, name), "")));
+  await Promise.all(
+    files.map(async ({ name, instant }) => {
+      const file = path.join(target, name);
+      await writeFile(file, "");
+      await utimes(file, instant, instant);
+    }),
+  );
   console.log(`   • Media: ${files.length} clips de prueba en ${target}`);
 }
 

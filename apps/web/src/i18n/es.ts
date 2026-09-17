@@ -745,7 +745,7 @@ export const es = {
   diveMediaScanUnreachable: "No se pudo leer la biblioteca (¿disco sin montar?). El índice anterior se mantiene.",
   diveMediaScanEmpty: "La biblioteca está vacía. El índice anterior se mantiene.",
   diveMediaScanDone: "Biblioteca indexada",
-  diveMediaClockOffset: "Desfase del reloj",
+  diveMediaClockOffset: "Huso del sitio",
   diveMediaOffsetAuto: "auto",
   diveMediaOffsetManual: "manual",
   diveMediaPickerTitle: "Clips de la inmersión",

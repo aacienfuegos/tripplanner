@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { rescanMediaLibrary, setClipLinks } from "@/actions/media";
+import { formatUtcOffset } from "@/lib/media-match";
 import { useT } from "@/contexts/LanguageContext";
 import type { DiveMedia as DiveMediaData } from "@/lib/dive-media";
 import { ClipTile } from "./media/ClipTile";
@@ -118,13 +119,9 @@ export function DiveMedia({
         </div>
       </div>
 
-      {media.offsetMinutes !== 0 && (
+      {media.offsetSource !== null && (
         <p className="text-xs text-muted-foreground">
-          {t.diveMediaClockOffset}:{" "}
-          <span className="tabular-nums">
-            {media.offsetMinutes > 0 ? "+" : ""}
-            {media.offsetMinutes} min
-          </span>
+          {t.diveMediaClockOffset}: <span className="tabular-nums">{formatUtcOffset(media.offsetMinutes)}</span>
         </p>
       )}
 
@@ -184,6 +181,7 @@ export function DiveMedia({
           onOpenChange={setPickerOpen}
           diveLogId={diveLogId}
           dive={dive}
+          diveWindow={media.diveWindow}
           clips={media.clips}
           day={media.day}
           offsetMinutes={media.offsetMinutes}

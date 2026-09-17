@@ -8,7 +8,13 @@ import { dateToDayKey, dayKey, dayKeyToDate, matchClipsToDive } from "@/lib/medi
 export type DiveClip = {
   readonly id: string;
   readonly filename: string;
+  // Instante absoluto, para agrupar y ordenar.
   readonly capturedAt: Date;
+  // Hora y día en el sitio de buceo, ya formateados. Van resueltos desde el
+  // servidor porque el navegador no sabe en qué huso se grabó: formatearlos en
+  // el suyo mostraría las inmersiones de Maldivas en hora de Madrid.
+  readonly time: string;
+  readonly day: string;
   readonly kind: "VIDEO" | "PHOTO";
   // Lo que dice el emparejamiento por hora, antes de overrides. El selector lo
   // necesita para saber si guardar un override explícito o borrar el que haya.
@@ -21,6 +27,7 @@ export type DiveClip = {
 export type DiveMedia = {
   readonly clips: readonly DiveClip[];
   readonly day: string;
+  readonly diveWindow: { readonly start: string; readonly end: string; readonly date: string };
   readonly offsetMinutes: number;
   readonly offsetSource: "AUTO" | "MANUAL" | null;
   readonly jellyfinUrls: readonly string[];
@@ -35,6 +42,17 @@ async function mediaConfigFor(userId: string) {
   if (!config) return null;
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
   return user?.isAdmin ? config : null;
+}
+
+const MINUTE = 60_000;
+
+// Un instante absoluto visto desde el huso del sitio.
+function atSite(instant: Date, siteOffsetMinutes: number): Date {
+  return new Date(instant.getTime() + siteOffsetMinutes * MINUTE);
+}
+
+function hhmm(date: Date): string {
+  return date.toISOString().slice(11, 16);
 }
 
 // Los clips del día ±1 son el conjunto entre el que elegir a mano cuando el
@@ -63,7 +81,7 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
       },
       orderBy: { capturedAt: "asc" },
     }),
-    prisma.dayClockOffset.findUnique({
+    prisma.mediaSiteOffset.findUnique({
       where: { userId_day: { userId, day: dayKeyToDate(day) } },
       select: { offsetMinutes: true, source: true },
     }),
@@ -87,10 +105,13 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
   return {
     clips: clips.map((clip) => {
       const itemId = jellyfinItemId(path.posix.join(config.jellyfinLibraryPath, clip.path), clip.kind);
+      const local = atSite(clip.capturedAt, offsetMinutes);
       return {
         id: clip.id,
         filename: clip.path,
         capturedAt: clip.capturedAt,
+        time: hhmm(local),
+        day: local.toISOString().slice(0, 10),
         kind: clip.kind,
         auto: auto.has(clip.id),
         attached: attached.has(clip.id),
@@ -99,6 +120,13 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
       };
     }),
     day,
+    // La hora de entrada de Diving Log ya es hora local del sitio, así que se
+    // formatea tal cual, sin aplicarle el huso.
+    diveWindow: {
+      start: hhmm(new Date(Date.UTC(dive.date.getFullYear(), dive.date.getMonth(), dive.date.getDate(), dive.date.getHours(), dive.date.getMinutes()))),
+      end: hhmm(new Date(Date.UTC(dive.date.getFullYear(), dive.date.getMonth(), dive.date.getDate(), dive.date.getHours(), dive.date.getMinutes()) + dive.bottomTime * MINUTE)),
+      date: day,
+    },
     offsetMinutes,
     offsetSource: offset?.source ?? null,
     jellyfinUrls: linkBases,
@@ -114,7 +142,7 @@ export async function getDiveClipCounts(userId: string): Promise<ReadonlyMap<str
   const [clips, dives, offsets, links] = await Promise.all([
     prisma.mediaClip.findMany({ where: { userId }, select: { id: true, capturedAt: true } }),
     prisma.diveLog.findMany({ where: { userId }, select: { id: true, date: true, bottomTime: true } }),
-    prisma.dayClockOffset.findMany({ where: { userId }, select: { day: true, offsetMinutes: true } }),
+    prisma.mediaSiteOffset.findMany({ where: { userId }, select: { day: true, offsetMinutes: true } }),
     prisma.mediaClipLink.findMany({
       where: { diveLog: { userId } },
       select: { clipId: true, diveLogId: true, included: true },
@@ -160,7 +188,7 @@ export async function getMediaLibrary(userId: string): Promise<readonly LibraryD
       where: { userId },
       select: { id: true, date: true, bottomTime: true, diveNumber: true },
     }),
-    prisma.dayClockOffset.findMany({ where: { userId } }),
+    prisma.mediaSiteOffset.findMany({ where: { userId } }),
     prisma.mediaClipLink.findMany({
       where: { diveLog: { userId } },
       select: { clipId: true, diveLogId: true, included: true },
@@ -186,7 +214,10 @@ export async function getMediaLibrary(userId: string): Promise<readonly LibraryD
 
   const linkBases = [config.internalUrl, config.publicUrl].filter((url) => url !== null);
   const imageBases = [config.publicUrl, config.internalUrl].filter((url) => url !== null);
-  const byDay = Map.groupBy(clips, (clip) => dayKey(clip.capturedAt));
+  // Se agrupa por día UTC del instante: el día local del sitio depende del huso,
+  // que es justo lo que se busca en el mapa. La diferencia solo afecta a clips
+  // grabados a caballo de medianoche UTC.
+  const byDay = Map.groupBy(clips, (clip) => dateToDayKey(clip.capturedAt));
 
   return [...byDay]
     .sort(([a], [b]) => b.localeCompare(a))
@@ -199,10 +230,13 @@ export async function getMediaLibrary(userId: string): Promise<readonly LibraryD
         clips: dayClips.map((clip) => {
           const itemId = jellyfinItemId(path.posix.join(config.jellyfinLibraryPath, clip.path), clip.kind);
           const claim = claimedBy.get(clip.id);
+          const local = atSite(clip.capturedAt, offset?.offsetMinutes ?? 0);
           return {
             id: clip.id,
             filename: clip.path,
             capturedAt: clip.capturedAt,
+            time: hhmm(local),
+            day: local.toISOString().slice(0, 10),
             kind: clip.kind,
             auto: claim !== undefined,
             attached: claim !== undefined,

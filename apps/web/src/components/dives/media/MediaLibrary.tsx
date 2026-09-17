@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { rescanMediaLibrary } from "@/actions/media";
 import { useT } from "@/contexts/LanguageContext";
 import type { LibraryDay } from "@/lib/dive-media";
-import { ClipThumbnail, ClipTypeIcon, clipTime } from "./ClipThumbnail";
+import { formatUtcOffset } from "@/lib/media-match";
+import { ClipThumbnail, ClipTypeIcon } from "./ClipThumbnail";
 
 export function MediaLibrary({
   days,
@@ -62,10 +63,9 @@ export function MediaLibrary({
           <header className="flex items-baseline gap-2">
             <h3 className="text-sm font-medium tabular-nums">{day.day}</h3>
             <span className="text-xs text-muted-foreground">· {day.clips.length}</span>
-            {day.offsetMinutes !== 0 && (
+            {day.offsetSource !== null && (
               <Badge variant="outline" className="h-5 px-1.5 text-[10px] tabular-nums">
-                {day.offsetMinutes > 0 ? "+" : ""}
-                {day.offsetMinutes} min
+                {formatUtcOffset(day.offsetMinutes)}
                 {day.offsetSource === "MANUAL" ? ` · ${t.diveMediaOffsetManual}` : ""}
               </Badge>
             )}
@@ -86,7 +86,7 @@ export function MediaLibrary({
                     <ClipTypeIcon kind={clip.kind} className="size-2.5 text-white" />
                   </span>
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-4 pb-0.5 text-[10px] font-medium text-white tabular-nums">
-                    {clipTime(clip.capturedAt)}
+                    {clip.time}
                   </span>
                 </a>
                 {clip.diveLogId ? (

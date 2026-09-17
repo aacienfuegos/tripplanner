@@ -11,7 +11,7 @@ import {
   dateToDayKey,
   dayKey,
   dayKeyToDate,
-  deduceClockOffset,
+  deduceSiteOffset,
   groupIntoTrips,
 } from "@/lib/media-match";
 
@@ -57,16 +57,16 @@ export async function rescanMediaLibrary(): Promise<ScanResult> {
     ),
   );
 
-  await refreshClockOffsets(userId);
+  await refreshSiteOffsets(userId);
   revalidatePath("/dives");
   return { indexed: clips.length, removed: removed.count };
 }
 
-async function refreshClockOffsets(userId: string) {
+async function refreshSiteOffsets(userId: string) {
   const [clips, dives, manual] = await Promise.all([
     prisma.mediaClip.findMany({ where: { userId }, select: { id: true, capturedAt: true } }),
     prisma.diveLog.findMany({ where: { userId }, select: { id: true, date: true, bottomTime: true } }),
-    prisma.dayClockOffset.findMany({ where: { userId, source: "MANUAL" }, select: { day: true } }),
+    prisma.mediaSiteOffset.findMany({ where: { userId, source: "MANUAL" }, select: { day: true } }),
   ]);
 
   const untouchable = new Set(manual.map((offset) => dateToDayKey(offset.day)));
@@ -74,12 +74,12 @@ async function refreshClockOffsets(userId: string) {
 
   for (const run of groupIntoTrips([...divesByDay.keys()])) {
     const runDives = run.flatMap((day) => divesByDay.get(day) ?? []);
-    const offsetMinutes = deduceClockOffset(clipsNearDives(clips, runDives), runDives);
+    const offsetMinutes = deduceSiteOffset(clipsNearDives(clips, runDives), runDives);
     if (offsetMinutes === null) continue;
     for (const day of run) {
       if (untouchable.has(day)) continue;
       const date = dayKeyToDate(day);
-      await prisma.dayClockOffset.upsert({
+      await prisma.mediaSiteOffset.upsert({
         where: { userId_day: { userId, day: date } },
         create: { userId, day: date, offsetMinutes, source: "AUTO" },
         update: { offsetMinutes, source: "AUTO" },
@@ -125,10 +125,10 @@ export async function setClipLinks(diveLogId: string, changes: readonly ClipLink
   revalidatePath(`/dives/${diveLogId}`);
 }
 
-export async function setDayClockOffset(day: string, offsetMinutes: number) {
+export async function setDaySiteOffset(day: string, offsetMinutes: number) {
   const userId = await requireMediaOwner();
   const date = dayKeyToDate(day);
-  await prisma.dayClockOffset.upsert({
+  await prisma.mediaSiteOffset.upsert({
     where: { userId_day: { userId, day: date } },
     create: { userId, day: date, offsetMinutes, source: "MANUAL" },
     update: { offsetMinutes, source: "MANUAL" },
