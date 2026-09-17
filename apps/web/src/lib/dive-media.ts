@@ -26,12 +26,23 @@ export type DiveMedia = {
   readonly jellyfinUrls: readonly string[];
 };
 
+// La biblioteca es una sola, la del servidor, y solo la ve el admin (#311).
+// La comprobación va aquí y no en cada página: las actions ya la hacen, y si la
+// lectura dependiera de que cada llamante se acordara, bastaría olvidarla en una
+// ruta para enseñar la sección a cualquier usuario.
+async function mediaConfigFor(userId: string) {
+  const config = getMediaConfig();
+  if (!config) return null;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+  return user?.isAdmin ? config : null;
+}
+
 // Los clips del día ±1 son el conjunto entre el que elegir a mano cuando el
 // desfase de reloj impide que el automático acierte.
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function getDiveMedia(userId: string, diveLogId: string): Promise<DiveMedia | null> {
-  const config = getMediaConfig();
+  const config = await mediaConfigFor(userId);
   if (!config) return null;
 
   const dive = await prisma.diveLog.findFirst({
@@ -98,7 +109,7 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
 // todas: son las mismas tres tablas y el emparejamiento es en memoria, así que
 // una query por fila no compraría nada.
 export async function getDiveClipCounts(userId: string): Promise<ReadonlyMap<string, number>> {
-  if (!getMediaConfig()) return new Map();
+  if (!(await mediaConfigFor(userId))) return new Map();
 
   const [clips, dives, offsets, links] = await Promise.all([
     prisma.mediaClip.findMany({ where: { userId }, select: { id: true, capturedAt: true } }),
@@ -140,7 +151,7 @@ export type LibraryDay = {
 // que reclama cada uno. Es la pantalla donde se ve de un vistazo qué días tienen
 // el desfase mal puesto y qué clips no los recoge nadie.
 export async function getMediaLibrary(userId: string): Promise<readonly LibraryDay[] | null> {
-  const config = getMediaConfig();
+  const config = await mediaConfigFor(userId);
   if (!config) return null;
 
   const [clips, dives, offsets, links] = await Promise.all([
