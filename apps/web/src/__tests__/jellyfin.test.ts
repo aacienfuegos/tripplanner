@@ -2,28 +2,31 @@ import { describe, it, expect } from "vitest";
 import { jellyfinDetailsUrl, jellyfinItemId, jellyfinPrimaryImageUrl } from "@/lib/jellyfin";
 
 describe("jellyfinItemId", () => {
-  // Par (ruta, ItemId) verificado contra la instancia real. Si Jellyfin cambia
-  // el esquema de derivación del Guid, este test es lo que lo detecta antes de
-  // que todos los links de la app apunten a items inexistentes (#311).
-  it("reproduce el ItemId real de un vídeo de la biblioteca", () => {
-    expect(jellyfinItemId("/mnt/media/buceo/DJI_20260829152524_0235_D.MP4", "VIDEO")).toBe(
-      "7edf01d92cb4aee73194c0b112cd4358",
+  // Vector fijo con una ruta que no existe en ninguna biblioteca: si Jellyfin
+  // cambia el esquema de derivación del Guid, este test lo detecta antes de que
+  // todos los links de la app apunten a items inexistentes (#311). La
+  // equivalencia con la instancia real se comprobó a mano, y no se fija aquí a
+  // propósito: el endpoint de imagen de Jellyfin es anónimo, así que publicar
+  // un par (ruta real, ItemId) en un repo público es publicar una URL viva.
+  it("deriva el Guid como Jellyfin", () => {
+    expect(jellyfinItemId("/library/video/CLIP_0001.MP4", "VIDEO")).toBe(
+      "29c9c748055d1fbd584da95622925978",
     );
   });
 
   it("distingue vídeo de foto para la misma ruta", () => {
-    const path = "/mnt/media/buceo/DJI_20260822132755_0222_D.JPG";
+    const path = "/library/video/CLIP_0002.JPG";
     expect(jellyfinItemId(path, "PHOTO")).not.toBe(jellyfinItemId(path, "VIDEO"));
   });
 
   it("es sensible a mayúsculas, como EnableCaseSensitiveItemIds por defecto", () => {
-    expect(jellyfinItemId("/mnt/media/buceo/A.MP4", "VIDEO")).not.toBe(
-      jellyfinItemId("/mnt/media/buceo/a.mp4", "VIDEO"),
+    expect(jellyfinItemId("/library/video/A.MP4", "VIDEO")).not.toBe(
+      jellyfinItemId("/library/video/a.mp4", "VIDEO"),
     );
   });
 
   it("devuelve 32 caracteres hex", () => {
-    expect(jellyfinItemId("/mnt/media/buceo/x.mp4", "VIDEO")).toMatch(/^[0-9a-f]{32}$/);
+    expect(jellyfinItemId("/library/video/x.mp4", "VIDEO")).toMatch(/^[0-9a-f]{32}$/);
   });
 });
 

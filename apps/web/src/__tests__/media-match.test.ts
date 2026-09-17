@@ -6,7 +6,7 @@ import {
   dateToDayKey,
   dayKey,
   dayKeyToDate,
-  deduceClockOffset,
+  deduceSiteOffset,
   hasUsableTime,
   matchClipsToDive,
   type MatchableClip,
@@ -17,67 +17,64 @@ function dive(time: string, bottomTime = 45, id = "dive-1"): MatchableDive {
   return { id, date: new Date(`2026-07-19T${time}:00`), bottomTime };
 }
 
+// Los clips son instantes absolutos (UTC); las inmersiones, hora de pared del
+// sitio. `clip()` recibe hora del sitio y le resta el huso para que los tests se
+// lean en la misma escala que las inmersiones.
+const SITE_OFFSET = 120;
+
 function clip(time: string, id = time): MatchableClip {
-  return { id, capturedAt: new Date(`2026-07-19T${time}:00`) };
+  return { id, capturedAt: new Date(new Date(`2026-07-19T${time}:00Z`).getTime() - SITE_OFFSET * 60000) };
 }
 
-describe("deduceClockOffset", () => {
-  // El caso medido en la SD: en julio la cámara seguía en UTC+4 con Madrid en
-  // UTC+2, así que los clips de una inmersión de las 11:00 se llaman ...1300...
-  it("deduce el desfase de dos horas de los ficheros de julio", () => {
-    const clips = [clip("13:05"), clip("13:20"), clip("13:40")];
-    expect(deduceClockOffset(clips, [dive("11:00")])).toBe(120);
+describe("deduceSiteOffset", () => {
+  it("encuentra el huso en el que estaba el ordenador de buceo", () => {
+    const clips = [clip("11:05"), clip("11:20"), clip("11:40")];
+    expect(deduceSiteOffset(clips, [dive("11:00")])).toBe(SITE_OFFSET);
   });
 
-  it("devuelve cero cuando el reloj está en hora", () => {
-    expect(deduceClockOffset([clip("11:05"), clip("11:20")], [dive("11:00")])).toBe(0);
+  it("funciona igual con un huso lejano, como Maldivas", () => {
+    const maldivas = 5 * 60;
+    const clips = ["06:20", "06:35", "06:50"].map((time, i) => ({
+      id: `c${i}`,
+      capturedAt: new Date(new Date(`2026-07-19T${time}:00Z`).getTime() - maldivas * 60000),
+    }));
+    expect(deduceSiteOffset(clips, [dive("06:13", 48)])).toBe(maldivas);
   });
 
-  it("no se inventa un desfase con un solo clip", () => {
-    expect(deduceClockOffset([clip("13:05")], [dive("11:00")])).toBeNull();
+  it("no se inventa un huso con un solo clip", () => {
+    expect(deduceSiteOffset([clip("11:05")], [dive("11:00")])).toBeNull();
   });
 
   it("ignora inmersiones sin hora de entrada", () => {
-    expect(deduceClockOffset([clip("13:05"), clip("13:20")], [dive("00:00")])).toBeNull();
+    expect(deduceSiteOffset([clip("11:05"), clip("11:20")], [dive("00:00")])).toBeNull();
   });
 
-  it("prefiere el desfase menor cuando dos puntúan igual", () => {
-    const clips = [clip("11:10"), clip("11:20")];
-    const dives = [dive("11:00", 45, "a"), dive("09:00", 45, "b")];
-    expect(deduceClockOffset(clips, dives)).toBe(0);
+  // El caso que descuadró el logbook real: material de superficie grabado antes
+  // de entrar al agua. Descuadrar el huso se los tragaría, pero rompe las otras
+  // inmersiones del día, que es lo que impide que gane.
+  it("no descuadra el huso para tragarse material de superficie", () => {
+    const dives = [dive("07:15", 56, "a"), dive("11:15", 54, "b"), dive("15:40", 44, "c")];
+    const clips = [
+      clip("07:19"), clip("07:32"), clip("07:50"), clip("08:03"),
+      clip("10:29"), clip("10:41"), clip("10:45"),
+      clip("11:20"), clip("11:35"), clip("11:50"),
+      clip("15:55"), clip("16:10"),
+    ];
+    expect(deduceSiteOffset(clips, dives)).toBe(SITE_OFFSET);
   });
 
   it("no devuelve nada sin clips", () => {
-    expect(deduceClockOffset([], [dive("11:00")])).toBeNull();
-  });
-
-  // Medido sobre el logbook real: el 28 de enero, mirado solo, prefiere -60
-  // porque así se traga el material de superficie grabado media hora antes de
-  // entrar al agua. Con el resto del viaje delante, cero gana de calle. Es la
-  // razón de deducir el desfase por viaje y no por día.
-  it("no inventa un desfase para tragarse material de superficie", () => {
-    const surface = [clip("10:29"), clip("10:41"), clip("10:42"), clip("10:45")];
-    const diving = [clip("11:20"), clip("11:35"), clip("11:50")];
-    const dives = [dive("11:15", 54, "a")];
-    expect(deduceClockOffset([...surface, ...diving], dives)).toBe(0);
-  });
-
-  // Medido sobre el logbook real: los días en los que el óptimo caía en el tope
-  // del rango eran justo aquellos en los que el emparejamiento resultante era
-  // falso. Sin este corte, el 24 de enero asociaba 8 clips a una inmersión que
-  // había terminado tres horas antes.
-  it("no devuelve un desfase que se apoya en el tope del rango", () => {
-    const clips = [clip("16:00"), clip("16:10"), clip("16:20")];
-    expect(deduceClockOffset(clips, [dive("11:00")])).toBeNull();
+    expect(deduceSiteOffset([], [dive("11:00")])).toBeNull();
   });
 });
 
 describe("clipsNearDives", () => {
   const target = dive("11:00");
 
-  it("descarta los clips que ningún desfase admisible podría acercar", () => {
-    const clips = [clip("11:10"), clip("13:30"), clip("23:00")];
-    expect(clipsNearDives(clips, [target]).map((c) => c.id)).toEqual(["11:10", "13:30"]);
+  it("descarta los clips que ningún huso podría acercar", () => {
+    const lejano = { id: "lejano", capturedAt: new Date("2026-07-21T11:00:00Z") };
+    const cerca = clip("11:10");
+    expect(clipsNearDives([cerca, lejano], [target]).map((c) => c.id)).toEqual(["11:10"]);
   });
 
   it("no devuelve nada si ninguna inmersión tiene hora", () => {
@@ -88,15 +85,17 @@ describe("clipsNearDives", () => {
 describe("matchClipsToDive", () => {
   const target = dive("11:00");
 
-  it("casa los clips dentro de la ventana corregida por el desfase", () => {
-    const clips = [clip("13:05"), clip("18:00")];
-    const matched = matchClipsToDive(target, clips, 120, new Map());
-    expect(matched.map((c) => c.id)).toEqual(["13:05"]);
+  it("casa los clips que caen en la ventana una vez aplicado el huso", () => {
+    const clips = [clip("11:10"), clip("18:00")];
+    expect(matchClipsToDive(target, clips, SITE_OFFSET, new Map()).map((c) => c.id)).toEqual(["11:10"]);
+  });
+
+  it("con el huso equivocado no casa nada", () => {
+    expect(matchClipsToDive(target, [clip("11:10")], 0, new Map())).toHaveLength(0);
   });
 
   it("incluye el tiempo de fondo en la ventana", () => {
-    const matched = matchClipsToDive(target, [clip("11:40")], 0, new Map());
-    expect(matched).toHaveLength(1);
+    expect(matchClipsToDive(target, [clip("11:40")], SITE_OFFSET, new Map())).toHaveLength(1);
   });
 
   it("un override manual gana al automático en los dos sentidos", () => {
@@ -105,14 +104,14 @@ describe("matchClipsToDive", () => {
       ["11:10", false],
       ["20:00", true],
     ]);
-    expect(matchClipsToDive(target, clips, 0, overrides).map((c) => c.id)).toEqual(["20:00"]);
+    expect(matchClipsToDive(target, clips, SITE_OFFSET, overrides).map((c) => c.id)).toEqual(["20:00"]);
   });
 
   it("una inmersión sin hora solo acepta clips añadidos a mano", () => {
     const midnight = dive("00:00");
     const clips = [clip("11:10")];
-    expect(matchClipsToDive(midnight, clips, 0, new Map())).toHaveLength(0);
-    expect(matchClipsToDive(midnight, clips, 0, new Map([["11:10", true]]))).toHaveLength(1);
+    expect(matchClipsToDive(midnight, clips, SITE_OFFSET, new Map())).toHaveLength(0);
+    expect(matchClipsToDive(midnight, clips, SITE_OFFSET, new Map([["11:10", true]]))).toHaveLength(1);
   });
 });
 

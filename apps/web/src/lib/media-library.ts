@@ -1,12 +1,18 @@
 import "server-only";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
+import { jellyfinItemId } from "@/lib/jellyfin";
 
 export type MediaKind = "VIDEO" | "PHOTO";
 
 export type ScannedClip = {
+  // Ruta absoluta tal como la ve Jellyfin: identidad estable del clip.
   readonly path: string;
+  // Nulo mientras Jellyfin no haya indexado el fichero.
+  readonly itemId: string | null;
   readonly kind: MediaKind;
+  // Instante absoluto en el que se grabó, no hora de pared.
   readonly capturedAt: Date;
   readonly sizeBytes: bigint;
 };
@@ -14,22 +20,27 @@ export type ScannedClip = {
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".mkv"]);
 const PHOTO_EXTENSIONS = new Set([".jpg", ".jpeg", ".png"]);
 
-// El nombre del fichero es el único timestamp que sobrevive el pipeline de
-// sincronización: convertir-120fps.sh recodifica sin -map_metadata ni touch -r,
-// así que los ficheros convertidos pierden el creation_time del contenedor y su
-// mtime pasa a ser la hora de conversión. El nombre sí se conserva (#311).
+const MINUTE = 60_000;
+// Los husos reales son múltiplos de 15 minutos. Redondear ahí absorbe los
+// segundos de diferencia entre el inicio de la grabación y el cierre del
+// fichero sin llegar a confundir dos husos distintos.
+const OFFSET_QUANTUM_MINUTES = 15;
+// Un huso puede estar hasta 14 horas por delante de UTC.
+const MAX_CAMERA_OFFSET_MINUTES = 14 * 60;
+
 const TIMESTAMP = /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/;
 
-export function parseCapturedAt(filename: string): Date | null {
+// Hora que marcaba el reloj de la cámara, tal cual, sin interpretarla en ningún
+// huso: se devuelve anclada a UTC para que el resultado no dependa de la zona
+// horaria del proceso.
+export function parseCameraWallClock(filename: string): Date | null {
   const match = TIMESTAMP.exec(filename);
   if (!match) return null;
   const [, year, month, day, hours, minutes, seconds] = match.map(Number);
   if (month < 1 || month > 12 || day < 1 || day > 31 || hours > 23 || minutes > 59 || seconds > 59) {
     return null;
   }
-  // Hora de pared, igual que dive-log-mapper compone DiveLog.date: ni la cámara
-  // ni Diving Log guardan offset, así que el matching es pared contra pared.
-  const date = new Date(year, month - 1, day, hours, minutes, seconds);
+  const date = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -40,19 +51,139 @@ function kindOf(filename: string): MediaKind | null {
   return null;
 }
 
-export async function scanMediaLibrary(libraryPath: string): Promise<readonly ScannedClip[]> {
-  const entries = await readdir(libraryPath, { withFileTypes: true });
-  const clips: ScannedClip[] = [];
+function dayOf(wallClock: Date): string {
+  return wallClock.toISOString().slice(0, 10);
+}
 
-  for (const entry of entries) {
+// Diferencia entre lo que marcaba el reloj de la cámara y el instante real del
+// fichero: el huso que tenía puesto la cámara. Medido sobre la biblioteca real
+// sale idéntico para todos los ficheros de un mismo día.
+function cameraOffsetOf(wallClock: Date, mtime: Date): number | null {
+  const raw = (wallClock.getTime() - mtime.getTime()) / MINUTE;
+  if (Math.abs(raw) > MAX_CAMERA_OFFSET_MINUTES) return null;
+  return Math.round(raw / OFFSET_QUANTUM_MINUTES) * OFFSET_QUANTUM_MINUTES;
+}
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+}
+
+type Entry = {
+  path: string;
+  kind: MediaKind;
+  wallClock: Date;
+  sizeBytes: bigint;
+  cameraOffset: number | null;
+};
+
+// Sin manifiesto —la tarjeta de la cámara enchufada en local— el ItemId se
+// calcula con el mismo MD5 del que Jellyfin deriva el suyo.
+async function scanDirectory(
+  libraryPath: string,
+  jellyfinLibraryPath: string,
+): Promise<readonly ScannedClip[]> {
+  const found = await readdir(libraryPath, { withFileTypes: true });
+  const entries: Entry[] = [];
+
+  for (const entry of found) {
     if (!entry.isFile()) continue;
     const kind = kindOf(entry.name);
     if (!kind) continue;
-    const capturedAt = parseCapturedAt(entry.name);
-    if (!capturedAt) continue;
-    const { size } = await stat(path.join(libraryPath, entry.name));
-    clips.push({ path: entry.name, kind, capturedAt, sizeBytes: BigInt(size) });
+    const wallClock = parseCameraWallClock(entry.name);
+    if (!wallClock) continue;
+    const { size, mtime } = await stat(path.join(libraryPath, entry.name));
+    entries.push({
+      path: entry.name,
+      kind,
+      wallClock,
+      sizeBytes: BigInt(size),
+      cameraOffset: cameraOffsetOf(wallClock, mtime),
+    });
   }
 
-  return clips;
+  // El huso se toma por día y por mediana. Un fichero suelto puede traer la
+  // fecha estropeada —la recodificación a 60 fps la reescribe—, pero el día
+  // entero no, y las fotos ni siquiera guardan UTC: heredan la del día.
+  const offsetByDay = new Map<string, number>();
+  const samples = new Map<string, number[]>();
+  for (const entry of entries) {
+    if (entry.cameraOffset === null) continue;
+    const day = dayOf(entry.wallClock);
+    samples.set(day, [...(samples.get(day) ?? []), entry.cameraOffset]);
+  }
+  for (const [day, values] of samples) {
+    offsetByDay.set(day, Math.round(median(values) / OFFSET_QUANTUM_MINUTES) * OFFSET_QUANTUM_MINUTES);
+  }
+
+  return entries.map((entry) => {
+    const jellyfinPath = path.posix.join(jellyfinLibraryPath, entry.path);
+    return {
+      path: jellyfinPath,
+      itemId: jellyfinItemId(jellyfinPath, entry.kind),
+      kind: entry.kind,
+      // Sin huso medible se deja la hora de pared tal cual. El emparejamiento
+      // sigue funcionando porque el desfase constante que eso introduce lo
+      // absorbe el huso del viaje; lo único que se pierde es la inmunidad a que
+      // el reloj de la cámara cambie a mitad de viaje.
+      capturedAt: new Date(entry.wallClock.getTime() - (offsetByDay.get(dayOf(entry.wallClock)) ?? 0) * MINUTE),
+      sizeBytes: entry.sizeBytes,
+    };
+  });
+}
+
+// En producción la biblioteca no se monta: el mismo script del servidor emite
+// un manifiesto con el instante ya resuelto y el ItemId leído de la base de
+// datos de Jellyfin. Evita depender de que la fecha de modificación sobreviva a
+// la copia —un `cp` sin `-p` la pone a hoy y todos los clips saltan al día de
+// la copia sin que nada falle a la vista— y deja a esta app sin acceso de
+// lectura al material.
+const manifestSchema = z.object({
+  version: z.literal(1),
+  generated_at: z.iso.datetime({ offset: true }),
+  clips: z
+    .array(
+      z.object({
+        jellyfin_path: z.string().startsWith("/"),
+        // Nulo hasta que Jellyfin escanee el fichero. El generador aborta sin
+        // escribir si no puede leer su base de datos, así que un nulo significa
+        // "todavía no indexado" y nunca "no se pudo consultar".
+        jellyfin_item_id: z.string().min(1).nullable(),
+        kind: z.enum(["video", "photo"]),
+        captured_at_utc: z.iso.datetime({ offset: true }),
+        size_bytes: z.number().int().nonnegative(),
+      }),
+    )
+    .min(1),
+});
+
+export class ManifestError extends Error {
+  constructor(readonly code: "invalid-manifest") {
+    super(code);
+  }
+}
+
+async function readManifest(manifestPath: string): Promise<readonly ScannedClip[]> {
+  const parsed = manifestSchema.safeParse(JSON.parse(await readFile(manifestPath, "utf8")));
+  if (!parsed.success) throw new ManifestError("invalid-manifest");
+  return parsed.data.clips.map((clip) => ({
+    path: clip.jellyfin_path,
+    itemId: clip.jellyfin_item_id,
+    kind: clip.kind === "video" ? "VIDEO" : "PHOTO",
+    capturedAt: new Date(clip.captured_at_utc),
+    sizeBytes: BigInt(clip.size_bytes),
+  }));
+}
+
+// Un directorio se escanea —es el caso local, con la tarjeta de la cámara
+// puesta—; un fichero es el manifiesto que genera el servidor.
+export async function scanMediaLibrary(
+  libraryPath: string,
+  jellyfinLibraryPath: string | null,
+): Promise<readonly ScannedClip[]> {
+  const info = await stat(libraryPath);
+  if (!info.isDirectory()) return readManifest(libraryPath);
+  if (!jellyfinLibraryPath) throw new ManifestError("invalid-manifest");
+  return scanDirectory(libraryPath, jellyfinLibraryPath);
 }

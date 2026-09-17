@@ -41,8 +41,8 @@ model User {
   diveEquipment        DiveEquipment[]
   diveEquipmentService DiveEquipmentService[]
 
-  mediaClips      MediaClip[]
-  dayClockOffsets DayClockOffset[]
+  mediaClips       MediaClip[]
+  mediaSiteOffsets MediaSiteOffset[]
 }
 
 model Settings {
@@ -553,7 +553,12 @@ enum OffsetSource {
 model MediaClip {
   id         String    @id @default(cuid())
   userId     String
+  // Ruta absoluta tal como la ve Jellyfin: identidad estable del clip, y lo
+  // que mantiene vivos los overrides de MediaClipLink entre reindexados.
   path       String
+  // ItemId de Jellyfin. Nulo mientras Jellyfin no haya escaneado el fichero:
+  // entonces el clip se lista sin enlace ni miniatura.
+  itemId     String?
   kind       MediaKind
   capturedAt DateTime
   sizeBytes  BigInt?
@@ -581,10 +586,11 @@ model MediaClipLink {
   @@index([diveLogId])
 }
 
-// El reloj de la cámara no está sincronizado con la hora local del sitio y el
-// desfase cambia solo (DJI Mimo sincroniza la hora del móvil al conectarse), así
-// que se deduce por día en vez de asumir uno fijo.
-model DayClockOffset {
+// Huso horario en el que estaba el ordenador de buceo ese día. Los clips llegan
+// con instante absoluto (creation_time del MP4 es UTC) pero Diving Log guarda
+// hora local sin huso, así que esto es lo que falta para situarlos en el mismo
+// eje. Se deduce por viaje y se guarda por día.
+model MediaSiteOffset {
   userId        String
   day           DateTime
   offsetMinutes Int

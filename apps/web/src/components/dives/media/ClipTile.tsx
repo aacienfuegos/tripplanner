@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipThumbnail, ClipTypeIcon, clipTime, type ThumbState } from "./ClipThumbnail";
+import { ClipLink, ClipThumbnail, ClipTypeIcon, type ThumbState } from "./ClipThumbnail";
 import { useT } from "@/contexts/LanguageContext";
 import type { DiveClip } from "@/lib/dive-media";
 
@@ -24,16 +24,16 @@ export function ClipTile({
 
   return (
     <li className="group relative aspect-video overflow-hidden rounded-lg bg-muted">
-      <a
-        href={clip.detailsUrls[0]}
-        target="_blank"
-        rel="noreferrer"
+      <ClipLink
+        clip={clip}
         title={clip.filename}
-        aria-label={`${kindLabel} ${clipTime(clip.capturedAt)}`}
+        ariaLabel={`${kindLabel} ${clip.time}`}
         className="absolute inset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
-        <ClipThumbnail clip={clip} onState={onState} />
-      </a>
+        {/* Un clip pendiente de Jellyfin no tiene miniatura por diseño: si
+            contara como fallida dispararía el aviso de "no cargan". */}
+        <ClipThumbnail clip={clip} onState={clip.imageUrls.length > 0 ? onState : undefined} />
+      </ClipLink>
 
       <span className="pointer-events-none absolute top-1.5 left-1.5 rounded bg-black/55 p-1 backdrop-blur-sm">
         <ClipTypeIcon kind={clip.kind} className="size-3 text-white" />
@@ -50,7 +50,7 @@ export function ClipTile({
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pt-6 pb-1.5">
         <span className="text-[11px] font-medium text-white tabular-nums drop-shadow">
-          {clipTime(clip.capturedAt)}
+          {clip.time}
         </span>
         <Button
           size="icon-xs"

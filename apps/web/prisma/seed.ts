@@ -1,8 +1,9 @@
-import { readdir, mkdir, writeFile, unlink } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { countryNameToCode } from "@tripplanner/shared";
+import { jellyfinItemId } from "../src/lib/jellyfin.ts";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -20,13 +21,20 @@ function country(name: string): string {
 
 
 // Biblioteca de media de mentira para staging, donde no hay —ni debe haber—
-// acceso al Jellyfin de producción. Escribe ficheros vacíos con el naming real
-// de la cámara para que el escaneo de verdad tenga algo que indexar.
+// acceso al Jellyfin de producción. Escribe el mismo manifiesto que en
+// producción genera el script del servidor, con el naming real de la cámara.
+// Los ItemId se calculan con el mismo MD5 del que Jellyfin deriva los suyos,
+// que es lo más parecido a los de verdad que se puede tener sin un Jellyfin.
 //
 // Va en SEED_MEDIA_LIBRARY_PATH y no en MEDIA_LIBRARY_PATH a propósito: en
-// local esa segunda apunta a la tarjeta con el material real, y esta función
-// borra ficheros.
-const GENERATED = /^DJI_\d{14}_\d{4}_D\.(MP4|JPG)$/;
+// local esa segunda puede apuntar al material real.
+type ManifestClip = {
+  jellyfin_path: string;
+  jellyfin_item_id: string | null;
+  kind: "video" | "photo";
+  captured_at_utc: string;
+  size_bytes: number;
+};
 
 function clipName(at: Date, index: number, extension: "MP4" | "JPG"): string {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -40,53 +48,78 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
   const target = process.env.SEED_MEDIA_LIBRARY_PATH?.trim();
   if (!target) return;
 
-  await mkdir(target, { recursive: true });
-  const existing = await readdir(target);
-  const foreign = existing.filter((name) => !GENERATED.test(name));
-  if (foreign.length > 0) {
-    // Si hay algo que este seed no ha creado, la ruta no es un directorio de
-    // pruebas y no se toca.
-    console.log(`   • Media: omitido, ${target} contiene ficheros ajenos al seed`);
+  // Antes era un directorio de ficheros vacíos: si la variable se quedó
+  // apuntando al de antes, decirlo en vez de morir con un EISDIR.
+  const info = await stat(target).catch(() => null);
+  if (info?.isDirectory()) {
+    console.log(`   • Media: omitido, SEED_MEDIA_LIBRARY_PATH debe apuntar a un fichero .json, no a ${target}`);
     return;
   }
-  await Promise.all(existing.map((name) => unlink(path.join(target, name))));
+
+  // Si en esa ruta hay algo que no sea un manifiesto de este seed, no es un
+  // fichero de pruebas y no se toca.
+  const existing = await readFile(target, "utf8").catch(() => null);
+  if (existing !== null) {
+    const parsed = JSON.parse(existing) as { version?: unknown; seed?: unknown };
+    if (parsed.seed !== true) {
+      console.log(`   • Media: omitido, ${target} no es un manifiesto de este seed`);
+      return;
+    }
+  }
 
   const minute = 60_000;
-  const files: string[] = [];
   let index = 1;
-
-  const emit = (at: Date, extension: "MP4" | "JPG" = "MP4") => {
-    files.push(clipName(at, index++, extension));
+  const clips: ManifestClip[] = [];
+  // El nombre lleva la hora local del sitio y `capturedAt` el instante real:
+  // es la diferencia que la app tiene que deducir como huso del viaje.
+  const libraryPath = process.env.JELLYFIN_LIBRARY_PATH?.trim() || "/library/video";
+  // Uno de cada seis se deja sin ItemId: es el clip recién copiado que Jellyfin
+  // todavía no ha escaneado, y la app tiene que pintarlo sin enlace.
+  const emit = (at: Date, siteOffsetMinutes: number, extension: "MP4" | "JPG" = "MP4") => {
+    const kind = extension === "MP4" ? "video" : "photo";
+    const jellyfinPath = path.posix.join(libraryPath, clipName(at, index++, extension));
+    clips.push({
+      jellyfin_path: jellyfinPath,
+      jellyfin_item_id: index % 6 === 0 ? null : jellyfinItemId(jellyfinPath, kind === "video" ? "VIDEO" : "PHOTO"),
+      kind,
+      captured_at_utc: new Date(at.getTime() - siteOffsetMinutes * minute).toISOString(),
+      size_bytes: extension === "MP4" ? 1_240_000_000 : 5_600_000,
+    });
   };
 
-  // Ráfaga que cae dentro de la ventana: el emparejamiento automático la coge
-  // con desfase 0.
+  const MADRID = 2 * 60;
+  const MALDIVAS = 5 * 60;
+
+  // Ráfaga dentro de la ventana de la primera inmersión.
   const [aligned] = dives;
-  // La del reloj desfasado tiene que ir en OTRO viaje. El desfase se deduce
-  // sobre los días consecutivos de un viaje, así que con las dos ráfagas juntas
-  // ganaría el desfase cero de la primera y la segunda no se emparejaría nunca.
+  // La segunda ráfaga tiene que ir en OTRO viaje: el huso se deduce por viaje,
+  // y así el dataset ejercita dos deducciones distintas en vez de una.
   const TRIP_GAP_MS = 2 * 24 * 60 * 60 * 1000;
-  const shifted = aligned
+  const faraway = aligned
     ? dives.find((dive) => Math.abs(dive.date.getTime() - aligned.date.getTime()) > TRIP_GAP_MS)
     : undefined;
   if (aligned) {
-    for (let i = 0; i < 6; i += 1) emit(new Date(aligned.date.getTime() + (3 + i * 4) * minute));
-    emit(new Date(aligned.date.getTime() + 10 * minute), "JPG");
+    for (let i = 0; i < 6; i += 1) emit(new Date(aligned.date.getTime() + (3 + i * 4) * minute), MADRID);
+    emit(new Date(aligned.date.getTime() + 10 * minute), MADRID, "JPG");
   }
-  // Ráfaga con el reloj de la cámara 90 min adelantado: obliga a que la
-  // deducción del desfase haga su trabajo en vez de acertar por defecto.
-  if (shifted) {
-    for (let i = 0; i < 5; i += 1) {
-      emit(new Date(shifted.date.getTime() + (90 + 5 + i * 6) * minute));
-    }
+  if (faraway) {
+    for (let i = 0; i < 5; i += 1) emit(new Date(faraway.date.getTime() + (5 + i * 6) * minute), MALDIVAS);
   }
   // Huérfanos: un día sin ninguna inmersión, para que la vista de biblioteca
   // tenga clips que no reclama nadie.
   const orphanDay = new Date("2024-09-21T17:40:00");
-  for (let i = 0; i < 3; i += 1) emit(new Date(orphanDay.getTime() + i * 7 * minute));
+  for (let i = 0; i < 3; i += 1) emit(new Date(orphanDay.getTime() + i * 7 * minute), MADRID);
 
-  await Promise.all(files.map((name) => writeFile(path.join(target, name), "")));
-  console.log(`   • Media: ${files.length} clips de prueba en ${target}`);
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(
+    target,
+    `${JSON.stringify(
+      { version: 1, seed: true, generated_at: new Date().toISOString(), clips },
+      null,
+      2,
+    )}\n`,
+  );
+  console.log(`   • Media: manifiesto con ${clips.length} clips de prueba en ${target}`);
 }
 
 async function main() {

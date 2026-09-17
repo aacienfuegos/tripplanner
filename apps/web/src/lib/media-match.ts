@@ -11,26 +11,34 @@ export type MatchableClip = {
 
 export const DEFAULT_TOLERANCE_MINUTES = 30;
 
-// El reloj de la cámara va por libre y cambia solo, así que el desfase se deduce
-// por día. Los offsets reales son diferencias de huso, de ahí el paso de 30 min.
-const OFFSET_STEP_MINUTES = 30;
-// Un día con varias inmersiones repartidas deja huecos donde un desfase grande
-// encaja la ráfaga de la mañana sobre la inmersión de la tarde. Acotar el
-// margen es lo que separa el desfase real de esa coincidencia: más allá de tres
-// horas la corrección la hace el usuario a mano, que es más barato que un
-// emparejamiento silenciosamente equivocado.
-const MAX_OFFSET_MINUTES = 3 * 60;
-// Con un solo clip dentro de ventana cualquier offset "encaja"; hacen falta dos
+// Los clips llegan con instante absoluto (el creation_time del MP4 es UTC), y
+// Diving Log guarda hora local sin huso. La incógnita es por tanto el huso del
+// sitio de buceo, que a diferencia del reloj de la cámara no cambia porque
+// conectes el móvil.
+const MIN_SITE_OFFSET_MINUTES = -12 * 60;
+const MAX_SITE_OFFSET_MINUTES = 14 * 60;
+// Casi todos los husos de buceo son horas enteras. Las medias horas existen
+// (India, Sri Lanka) pero son la excepción, así que solo se aceptan si mejoran
+// el resultado con holgura: si no, cualquier clip de superficie descuadraría el
+// huso media hora para tragarse tres vídeos del barco.
+const HALF_HOUR_MARGIN = 1.15;
+// Con un solo clip dentro de ventana cualquier huso "encaja"; hacen falta dos
 // para que el solapamiento signifique algo.
 const MIN_CLIPS_TO_ACCEPT_OFFSET = 2;
-// Un desfase real desplaza ráfagas enteras, así que sin corregirlo no debería
-// casar casi nada. Si a cero ya casa una parte apreciable de lo que casa el
-// candidato, lo que sobra no es un reloj mal puesto: son clips de superficie
-// grabados junto a la inmersión, y deslizar la ventana para tragárselos mueve
-// también todo lo que ya estaba bien.
-const ZERO_OFFSET_DOMINANCE = 0.5;
+// El huso se deduce contra la ventana estricta, sin la tolerancia con la que
+// luego se empareja. Con tolerancia, correr el huso media hora casi nunca pierde
+// clips y puede ganar los de superficie, así que el máximo se desplaza hacia
+// donde haya material grabado antes de entrar al agua.
+const DEDUCTION_TOLERANCE_MINUTES = 0;
 
 const MINUTE = 60_000;
+
+// El huso se enseña como se escribe un huso, no como un número de minutos.
+export function formatUtcOffset(minutes: number): string {
+  const sign = minutes < 0 ? "-" : "+";
+  const abs = Math.abs(minutes);
+  return `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+}
 
 export function dayKey(date: Date): string {
   const year = date.getFullYear();
@@ -39,7 +47,7 @@ export function dayKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// Clave de DayClockOffset. Medianoche UTC y no local: un Date de medianoche
+// Clave de MediaSiteOffset. Medianoche UTC y no local: un Date de medianoche
 // local se guarda como las 23:00 del día anterior y la fila deja de ser legible
 // fuera de la app.
 export function dayKeyToDate(day: string): Date {
@@ -64,9 +72,10 @@ export function clipsNearDives(
 ): readonly MatchableClip[] {
   const timed = dives.filter(hasUsableTime);
   if (timed.length === 0) return [];
-  const margin = (MAX_OFFSET_MINUTES + toleranceMinutes) * MINUTE;
-  const from = Math.min(...timed.map((dive) => dive.date.getTime())) - margin;
-  const to = Math.max(...timed.map((dive) => dive.date.getTime() + dive.bottomTime * MINUTE)) + margin;
+  const from = Math.min(...timed.map((dive) => diveWallClock(dive))) - (MAX_SITE_OFFSET_MINUTES + toleranceMinutes) * MINUTE;
+  const to =
+    Math.max(...timed.map((dive) => diveWallClock(dive) + dive.bottomTime * MINUTE)) -
+    (MIN_SITE_OFFSET_MINUTES - toleranceMinutes) * MINUTE;
   return clips.filter((clip) => clip.capturedAt.getTime() >= from && clip.capturedAt.getTime() <= to);
 }
 
@@ -76,20 +85,39 @@ export function hasUsableTime(dive: MatchableDive): boolean {
   return dive.date.getHours() !== 0 || dive.date.getMinutes() !== 0;
 }
 
+// La hora de entrada tal como la escribió Diving Log, anclada a UTC para que no
+// dependa del huso del proceso. Se lee con los getters locales porque es así
+// como la compuso dive-log-mapper.
+function diveWallClock(dive: MatchableDive): number {
+  return Date.UTC(
+    dive.date.getFullYear(),
+    dive.date.getMonth(),
+    dive.date.getDate(),
+    dive.date.getHours(),
+    dive.date.getMinutes(),
+    dive.date.getSeconds(),
+  );
+}
+
+// El instante real en el que empezó la inmersión, una vez sabemos en qué huso
+// estaba el ordenador de buceo.
+function diveStart(dive: MatchableDive, siteOffsetMinutes: number): number {
+  return diveWallClock(dive) - siteOffsetMinutes * MINUTE;
+}
+
 function isInsideWindow(
   clip: MatchableClip,
   dive: MatchableDive,
-  offsetMinutes: number,
+  siteOffsetMinutes: number,
   toleranceMinutes: number,
 ): boolean {
-  const start = dive.date.getTime() - toleranceMinutes * MINUTE;
-  const end = dive.date.getTime() + (dive.bottomTime + toleranceMinutes) * MINUTE;
-  const corrected = clip.capturedAt.getTime() - offsetMinutes * MINUTE;
-  return corrected >= start && corrected <= end;
+  const start = diveStart(dive, siteOffsetMinutes) - toleranceMinutes * MINUTE;
+  const end = diveStart(dive, siteOffsetMinutes) + (dive.bottomTime + toleranceMinutes) * MINUTE;
+  return clip.capturedAt.getTime() >= start && clip.capturedAt.getTime() <= end;
 }
 
-function windowCenter(dive: MatchableDive): number {
-  return dive.date.getTime() + (dive.bottomTime / 2) * MINUTE;
+function windowCenter(dive: MatchableDive, siteOffsetMinutes: number): number {
+  return diveStart(dive, siteOffsetMinutes) + (dive.bottomTime / 2) * MINUTE;
 }
 
 // Varios offsets consecutivos meten los mismos clips dentro de la ventana, así
@@ -99,57 +127,68 @@ function windowCenter(dive: MatchableDive): number {
 function score(
   clips: readonly MatchableClip[],
   dives: readonly MatchableDive[],
-  offsetMinutes: number,
+  siteOffsetMinutes: number,
   toleranceMinutes: number,
 ): { matched: number; drift: number } {
   let matched = 0;
   let drift = 0;
   for (const clip of clips) {
-    const inside = dives.filter((dive) => isInsideWindow(clip, dive, offsetMinutes, toleranceMinutes));
+    const inside = dives.filter((dive) => isInsideWindow(clip, dive, siteOffsetMinutes, toleranceMinutes));
     if (inside.length === 0) continue;
     matched += 1;
-    const corrected = clip.capturedAt.getTime() - offsetMinutes * MINUTE;
-    drift += Math.min(...inside.map((dive) => Math.abs(corrected - windowCenter(dive))));
+    drift += Math.min(
+      ...inside.map((dive) => Math.abs(clip.capturedAt.getTime() - windowCenter(dive, siteOffsetMinutes))),
+    );
   }
   return { matched, drift };
 }
 
-export function deduceClockOffset(
+// `phase` separa los husos en hora entera de los de media hora, para poder
+// compararlos entre sí: si la búsqueda de medias horas incluyera también las
+// enteras, nunca podría salir peor y el margen no filtraría nada.
+function bestOffset(
   clips: readonly MatchableClip[],
   dives: readonly MatchableDive[],
-  toleranceMinutes = DEFAULT_TOLERANCE_MINUTES,
+  toleranceMinutes: number,
+  phase: 0 | 30,
+): { offset: number; matched: number; drift: number } | null {
+  let best: { offset: number; matched: number; drift: number } | null = null;
+  for (let offset = MIN_SITE_OFFSET_MINUTES + phase; offset <= MAX_SITE_OFFSET_MINUTES; offset += 60) {
+    const { matched, drift } = score(clips, dives, offset, toleranceMinutes);
+    if (matched === 0) continue;
+    const better =
+      best === null ||
+      matched > best.matched ||
+      (matched === best.matched && drift < best.drift);
+    if (better) best = { offset, matched, drift };
+  }
+  return best;
+}
+
+// Huso horario en el que estaba el ordenador de buceo durante el viaje. Es lo
+// único que falta para situar las inmersiones en tiempo absoluto, porque los
+// clips ya vienen en UTC.
+export function deduceSiteOffset(
+  clips: readonly MatchableClip[],
+  dives: readonly MatchableDive[],
+  toleranceMinutes = DEDUCTION_TOLERANCE_MINUTES,
 ): number | null {
   const timed = dives.filter(hasUsableTime);
   if (clips.length === 0 || timed.length === 0) return null;
 
-  let best: { offset: number; matched: number; drift: number } | null = null;
-  for (let offset = -MAX_OFFSET_MINUTES; offset <= MAX_OFFSET_MINUTES; offset += OFFSET_STEP_MINUTES) {
-    const { matched, drift } = score(clips, timed, offset, toleranceMinutes);
-    const better =
-      best === null ||
-      matched > best.matched ||
-      (matched === best.matched &&
-        // A igual centrado, un reloj en hora es más probable que uno desfasado
-        // que casa los mismos clips por casualidad.
-        (drift < best.drift || (drift === best.drift && Math.abs(offset) < Math.abs(best.offset))));
-    if (better) best = { offset, matched, drift };
-  }
+  const whole = bestOffset(clips, timed, toleranceMinutes, 0);
+  const half = bestOffset(clips, timed, toleranceMinutes, 30);
+  if (!whole && !half) return null;
 
-  if (!best || best.matched < MIN_CLIPS_TO_ACCEPT_OFFSET) return null;
-  if (best.offset === 0) return 0;
-  // Un óptimo pegado al borde del rango explorado no es un óptimo: significa que
-  // el desfase real cae fuera y el algoritmo se ha agarrado al último valor que
-  // podía probar. Devolver eso emparejaría clips con seguridad injustificada,
-  // así que se admite no saberlo y que el usuario ponga el desfase a mano.
-  if (Math.abs(best.offset) === MAX_OFFSET_MINUTES) return null;
-  const zero = score(clips, timed, 0, toleranceMinutes);
-  return zero.matched >= best.matched * ZERO_OFFSET_DOMINANCE ? 0 : best.offset;
+  const best =
+    whole && (!half || half.matched < whole.matched * HALF_HOUR_MARGIN) ? whole : half!;
+  return best.matched >= MIN_CLIPS_TO_ACCEPT_OFFSET ? best.offset : null;
 }
 
 export function matchClipsToDive(
   dive: MatchableDive,
   clips: readonly MatchableClip[],
-  offsetMinutes: number,
+  siteOffsetMinutes: number,
   overrides: ReadonlyMap<string, boolean>,
   toleranceMinutes = DEFAULT_TOLERANCE_MINUTES,
 ): readonly MatchableClip[] {
@@ -157,7 +196,7 @@ export function matchClipsToDive(
   return clips.filter((clip) => {
     const override = overrides.get(clip.id);
     if (override !== undefined) return override;
-    return timed && isInsideWindow(clip, dive, offsetMinutes, toleranceMinutes);
+    return timed && isInsideWindow(clip, dive, siteOffsetMinutes, toleranceMinutes);
   });
 }
 
@@ -188,17 +227,16 @@ export function groupIntoSessions<T extends MatchableClip>(
 export function sessionOverlapsDive(
   session: readonly MatchableClip[],
   dive: MatchableDive,
-  offsetMinutes: number,
+  siteOffsetMinutes: number,
   toleranceMinutes = DEFAULT_TOLERANCE_MINUTES,
 ): boolean {
-  return session.some((clip) => isInsideWindow(clip, dive, offsetMinutes, toleranceMinutes));
+  return session.some((clip) => isInsideWindow(clip, dive, siteOffsetMinutes, toleranceMinutes));
 }
 
-// El desfase de un reloj es una propiedad de la cámara durante un periodo, no de
-// un día: si existe, está todos los días del viaje. Deducirlo día a día deja que
-// una jornada floja lo invente para tragarse material de superficie, y sobre el
-// logbook real eso producía −30 y −60 minutos en dos días de un viaje cuyos otros
-// cuatro salían a cero — un reloj no hace eso.
+// El huso es del viaje, no del día: deducirlo día a día dejaba que una jornada
+// floja lo descuadrara para tragarse material de superficie, y sobre el logbook
+// real eso producía correcciones en dos días de un viaje cuyos otros cuatro no
+// las pedían.
 const TRIP_GAP_DAYS = 2;
 
 export function groupIntoTrips(days: readonly string[]): readonly (readonly string[])[] {
@@ -215,8 +253,3 @@ export function groupIntoTrips(days: readonly string[]): readonly (readonly stri
   }
   return trips;
 }
-
-// `included: null` borra el override y devuelve el clip al automático. Se
-// aplican en bloque: el selector deja hacer decenas de cambios antes de guardar
-// y una action por clip repintaría la ficha entera entre medias.
-export type ClipLinkChange = { readonly clipId: string; readonly included: boolean | null };

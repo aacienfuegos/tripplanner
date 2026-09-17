@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Film, Image as ImageIcon } from "lucide-react";
 import type { DiveClip } from "@/lib/dive-media";
 
@@ -11,8 +11,41 @@ export type ThumbState = "loading" | "loaded" | "unavailable";
 // en blanco indefinidamente y el estado de "sin miniatura" nunca se renderiza.
 const ATTEMPT_TIMEOUT_MS = [3000, 5000];
 
-export function clipTime(capturedAt: Date | string): string {
-  return new Date(capturedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+// Un clip que Jellyfin todavía no ha indexado no tiene ItemId, y sin él no hay
+// adónde enlazar: la tarjeta se pinta igual, pero no es un enlace.
+export function ClipLink({
+  clip,
+  className,
+  title,
+  ariaLabel,
+  children,
+}: {
+  clip: { readonly detailsUrls: readonly string[] };
+  className?: string;
+  title?: string;
+  ariaLabel?: string;
+  children: ReactNode;
+}) {
+  const href = clip.detailsUrls[0];
+  if (!href) {
+    return (
+      <div className={className} title={title} aria-label={ariaLabel}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={className}
+      title={title}
+      aria-label={ariaLabel}
+    >
+      {children}
+    </a>
+  );
 }
 
 export function ClipTypeIcon({ kind, className }: { kind: DiveClip["kind"]; className?: string }) {
