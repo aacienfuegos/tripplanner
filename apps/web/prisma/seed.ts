@@ -140,6 +140,12 @@ async function main() {
 
   // Limpia datos anteriores del usuario dev
   // Orden: diveLog antes que trip/diveSite (FKs con onDelete: SetNull, no cascade)
+  // El seed escribe el manifiesto, pero quien rellena el índice es «Rescan
+  // library». Sin borrar el anterior, tras un redespliegue sobreviven las filas
+  // de la pasada previa —hora sacada del nombre, itemId nulo— y como los
+  // nombres de fichero coinciden, la pantalla no delata que son viejas.
+  await prisma.mediaClip.deleteMany({ where: { userId: DEV_USER_ID } });
+  await prisma.mediaSiteOffset.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveLog.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveCertification.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveEquipment.deleteMany({ where: { userId: DEV_USER_ID } });

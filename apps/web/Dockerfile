@@ -89,4 +89,14 @@ RUN chmod +x /app/docker/entrypoint.sh
 
 USER nextjs
 EXPOSE 3000
+
+# En la imagen y no solo en los compose del servidor: sin esto un `docker run`
+# no tiene healthcheck ninguno, y `compose up --wait` da por sano al instante
+# cualquier contenedor que no lo declare — que es justo lo que pasó al
+# desplegar un contenedor que moría durante el arranque.
+# En forma exec a propósito: en forma shell las comillas de la expresión pasan
+# por /bin/sh antes de llegar a node.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+  CMD ["node", "-e", "fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/health').then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))"]
+
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
