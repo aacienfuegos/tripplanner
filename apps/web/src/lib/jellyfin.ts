@@ -29,6 +29,10 @@ export function jellyfinDetailsUrl(baseUrl: string, itemId: string): string {
   return `${baseUrl.replace(/\/$/, "")}/web/index.html#!/details?id=${itemId}`;
 }
 
-export function jellyfinPrimaryImageUrl(baseUrl: string, itemId: string, maxWidth = 400): string {
-  return `${baseUrl.replace(/\/$/, "")}/Items/${itemId}/Images/Primary?maxWidth=${maxWidth}`;
+// `quality` es el parámetro que importa: sin él Jellyfin sirve al 90, y
+// `maxWidth` apenas recorta —medido, 153 KB por foto—. Con `fillWidth` y
+// `quality=80` la misma miniatura baja a 15 KB, que en una rejilla de un par de
+// cientos de clips es la diferencia entre 36 MB y 3,6 MB por pantalla.
+export function jellyfinPrimaryImageUrl(baseUrl: string, itemId: string, width = 320): string {
+  return `${baseUrl.replace(/\/$/, "")}/Items/${itemId}/Images/Primary?fillWidth=${width}&quality=80`;
 }

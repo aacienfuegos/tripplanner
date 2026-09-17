@@ -46,6 +46,10 @@ async function mediaConfigFor(userId: string) {
 
 const MINUTE = 60_000;
 
+// Las tarjetas de la ficha son del doble de ancho que las de la biblioteca, y
+// son un puñado en vez de cientos: ahí sí compensa pedir más resolución.
+const DIVE_THUMBNAIL_WIDTH = 480;
+
 // Un instante absoluto visto desde el huso del sitio.
 function atSite(instant: Date, siteOffsetMinutes: number): Date {
   return new Date(instant.getTime() + siteOffsetMinutes * MINUTE);
@@ -116,7 +120,7 @@ export async function getDiveMedia(userId: string, diveLogId: string): Promise<D
         auto: auto.has(clip.id),
         attached: attached.has(clip.id),
         detailsUrls: itemId ? linkBases.map((base) => jellyfinDetailsUrl(base, itemId)) : [],
-        imageUrls: itemId ? imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId)) : [],
+        imageUrls: itemId ? imageBases.map((base) => jellyfinPrimaryImageUrl(base, itemId, DIVE_THUMBNAIL_WIDTH)) : [],
       };
     }),
     day,
