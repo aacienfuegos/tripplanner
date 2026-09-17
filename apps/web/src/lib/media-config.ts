@@ -18,7 +18,7 @@ export function getMediaConfig(): MediaConfig | null {
   const jellyfinLibraryPath = process.env.JELLYFIN_LIBRARY_PATH?.trim() || null;
   if (!libraryPath) return null;
 
-  const jellyfinUrl = process.env.JELLYFIN_PUBLIC_URL?.trim();
+  const jellyfinUrl = process.env.JELLYFIN_URL?.trim();
   if (!jellyfinUrl) return null;
 
   return { libraryPath, jellyfinLibraryPath, jellyfinUrl };
