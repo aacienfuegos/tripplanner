@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -47,6 +47,14 @@ function clipName(at: Date, index: number, extension: "MP4" | "JPG"): string {
 async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number }[]) {
   const target = process.env.SEED_MEDIA_LIBRARY_PATH?.trim();
   if (!target) return;
+
+  // Antes era un directorio de ficheros vacíos: si la variable se quedó
+  // apuntando al de antes, decirlo en vez de morir con un EISDIR.
+  const info = await stat(target).catch(() => null);
+  if (info?.isDirectory()) {
+    console.log(`   • Media: omitido, SEED_MEDIA_LIBRARY_PATH debe apuntar a un fichero .json, no a ${target}`);
+    return;
+  }
 
   // Si en esa ruta hay algo que no sea un manifiesto de este seed, no es un
   // fichero de pruebas y no se toca.
