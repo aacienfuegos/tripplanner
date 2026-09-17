@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMediaConfig } from "@/lib/media-config";
-import { scanMediaLibrary } from "@/lib/media-library";
+import { ManifestError, scanMediaLibrary } from "@/lib/media-library";
 import {
   clipsNearDives,
   dateToDayKey,
@@ -36,8 +36,9 @@ export async function rescanMediaLibrary(): Promise<ScanResult> {
 
   let clips;
   try {
-    clips = await scanMediaLibrary(config.libraryPath);
-  } catch {
+    clips = await scanMediaLibrary(config.libraryPath, config.jellyfinLibraryPath);
+  } catch (error) {
+    if (error instanceof ManifestError) return { error: error.code };
     // El disco es LUKS: si no está montado el bind aparece vacío o ilegible.
     // Borrar el índice ahí dejaría al usuario sin vídeos por un fallo de arranque.
     return { error: "unreachable" };

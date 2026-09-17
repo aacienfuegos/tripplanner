@@ -744,6 +744,8 @@ export const es = {
   diveMediaRescanning: "Escaneando…",
   diveMediaScanUnreachable: "No se pudo leer la biblioteca (¿disco sin montar?). El índice anterior se mantiene.",
   diveMediaScanEmpty: "La biblioteca está vacía. El índice anterior se mantiene.",
+  diveMediaScanInvalidManifest: "El manifiesto de la biblioteca no tiene el formato esperado. El índice anterior se mantiene.",
+  diveMediaScanLibraryMismatch: "El manifiesto es de otra biblioteca (JELLYFIN_LIBRARY_PATH no coincide). El índice anterior se mantiene.",
   diveMediaScanDone: "Biblioteca indexada",
   diveMediaClockOffset: "Huso del sitio",
   diveMediaOffsetAuto: "auto",

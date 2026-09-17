@@ -64,6 +64,8 @@ export function DiveMedia({
         const messages: Record<string, string> = {
           unreachable: t.diveMediaScanUnreachable,
           empty: t.diveMediaScanEmpty,
+          "invalid-manifest": t.diveMediaScanInvalidManifest,
+          "library-mismatch": t.diveMediaScanLibraryMismatch,
         };
         toast.error(messages[result.error] ?? t.diveMediaScanUnreachable);
         return;

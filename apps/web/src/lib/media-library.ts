@@ -1,6 +1,7 @@
 import "server-only";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
 
 export type MediaKind = "VIDEO" | "PHOTO";
 
@@ -73,7 +74,7 @@ type Entry = {
   cameraOffset: number | null;
 };
 
-export async function scanMediaLibrary(libraryPath: string): Promise<readonly ScannedClip[]> {
+async function scanDirectory(libraryPath: string): Promise<readonly ScannedClip[]> {
   const found = await readdir(libraryPath, { withFileTypes: true });
   const entries: Entry[] = [];
 
@@ -117,4 +118,68 @@ export async function scanMediaLibrary(libraryPath: string): Promise<readonly Sc
     capturedAt: new Date(entry.wallClock.getTime() - (offsetByDay.get(dayOf(entry.wallClock)) ?? 0) * MINUTE),
     sizeBytes: entry.sizeBytes,
   }));
+}
+
+// En producción la biblioteca no se monta: el mismo script que genera el
+// espejo emite un manifiesto con el instante ya resuelto. Evita depender de que
+// la fecha de modificación sobreviva a la copia —un `cp` sin `-p` la pone a hoy
+// y todos los clips saltan al día de la copia sin que nada falle a la vista— y
+// deja a esta app sin acceso de lectura al material.
+const manifestSchema = z.object({
+  version: z.literal(1),
+  generatedAt: z.iso.datetime({ offset: true }),
+  // La raíz a la que son relativas las rutas, tal como la ve Jellyfin. Si no
+  // coincide con la configurada, los ItemId salen mal y no hay síntoma salvo
+  // que ninguna miniatura carga.
+  libraryPath: z.string().min(1),
+  clips: z
+    .array(
+      z.object({
+        path: z
+          .string()
+          .min(1)
+          .refine(
+            (value) => !value.startsWith("/") && !value.split("/").includes(".."),
+            "ruta relativa a la raíz de la biblioteca",
+          ),
+        kind: z.enum(["VIDEO", "PHOTO"]),
+        capturedAt: z.iso.datetime({ offset: true }),
+        sizeBytes: z.number().int().nonnegative(),
+      }),
+    )
+    .min(1),
+});
+
+export class ManifestError extends Error {
+  constructor(readonly code: "invalid-manifest" | "library-mismatch") {
+    super(code);
+  }
+}
+
+async function readManifest(
+  manifestPath: string,
+  jellyfinLibraryPath: string,
+): Promise<readonly ScannedClip[]> {
+  const parsed = manifestSchema.safeParse(JSON.parse(await readFile(manifestPath, "utf8")));
+  if (!parsed.success) throw new ManifestError("invalid-manifest");
+  const manifest = parsed.data;
+  if (manifest.libraryPath.replace(/\/+$/, "") !== jellyfinLibraryPath.replace(/\/+$/, "")) {
+    throw new ManifestError("library-mismatch");
+  }
+  return manifest.clips.map((clip) => ({
+    path: clip.path,
+    kind: clip.kind,
+    capturedAt: new Date(clip.capturedAt),
+    sizeBytes: BigInt(clip.sizeBytes),
+  }));
+}
+
+// Un directorio se escanea —es el caso local, con la tarjeta de la cámara
+// puesta—; un fichero es el manifiesto que genera el servidor.
+export async function scanMediaLibrary(
+  libraryPath: string,
+  jellyfinLibraryPath: string,
+): Promise<readonly ScannedClip[]> {
+  const info = await stat(libraryPath);
+  return info.isDirectory() ? scanDirectory(libraryPath) : readManifest(libraryPath, jellyfinLibraryPath);
 }

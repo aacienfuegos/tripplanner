@@ -1,4 +1,4 @@
-import { readdir, mkdir, writeFile, unlink, utimes } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -20,17 +20,17 @@ function country(name: string): string {
 
 
 // Biblioteca de media de mentira para staging, donde no hay —ni debe haber—
-// acceso al Jellyfin de producción. Escribe ficheros vacíos con el naming real
-// de la cámara para que el escaneo de verdad tenga algo que indexar.
-//
-// A cada uno se le pone como fecha el instante real de grabación, que es lo que
-// hará el generador de la carpeta en producción copiando el creation_time del
-// MP4: es de ahí de donde el escaneo saca el huso que tenía la cámara.
+// acceso al Jellyfin de producción. Escribe el mismo manifiesto que en
+// producción genera el script del servidor, con el naming real de la cámara.
 //
 // Va en SEED_MEDIA_LIBRARY_PATH y no en MEDIA_LIBRARY_PATH a propósito: en
-// local esa segunda apunta a la tarjeta con el material real, y esta función
-// borra ficheros.
-const GENERATED = /^DJI_\d{14}_\d{4}_D\.(MP4|JPG)$/;
+// local esa segunda puede apuntar al material real.
+type ManifestClip = {
+  path: string;
+  kind: "VIDEO" | "PHOTO";
+  capturedAt: string;
+  sizeBytes: number;
+};
 
 function clipName(at: Date, index: number, extension: "MP4" | "JPG"): string {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -44,62 +44,70 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
   const target = process.env.SEED_MEDIA_LIBRARY_PATH?.trim();
   if (!target) return;
 
-  await mkdir(target, { recursive: true });
-  const existing = await readdir(target);
-  const foreign = existing.filter((name) => !GENERATED.test(name));
-  if (foreign.length > 0) {
-    // Si hay algo que este seed no ha creado, la ruta no es un directorio de
-    // pruebas y no se toca.
-    console.log(`   • Media: omitido, ${target} contiene ficheros ajenos al seed`);
-    return;
+  // Si en esa ruta hay algo que no sea un manifiesto de este seed, no es un
+  // fichero de pruebas y no se toca.
+  const existing = await readFile(target, "utf8").catch(() => null);
+  if (existing !== null) {
+    const parsed = JSON.parse(existing) as { version?: unknown; seed?: unknown };
+    if (parsed.seed !== true) {
+      console.log(`   • Media: omitido, ${target} no es un manifiesto de este seed`);
+      return;
+    }
   }
-  await Promise.all(existing.map((name) => unlink(path.join(target, name))));
 
   const minute = 60_000;
   let index = 1;
-
-  // Huso que finge tener la cámara en el dataset: el nombre lleva hora local y
-  // la fecha del fichero, el instante real.
-  const CAMERA_OFFSET_MINUTES = 2 * 60;
-  const files: { name: string; instant: Date }[] = [];
-  const emit = (at: Date, extension: "MP4" | "JPG" = "MP4") => {
-    files.push({ name: clipName(at, index++, extension), instant: new Date(at.getTime() - CAMERA_OFFSET_MINUTES * minute) });
+  const clips: ManifestClip[] = [];
+  // El nombre lleva la hora local del sitio y `capturedAt` el instante real:
+  // es la diferencia que la app tiene que deducir como huso del viaje.
+  const emit = (at: Date, siteOffsetMinutes: number, extension: "MP4" | "JPG" = "MP4") => {
+    clips.push({
+      path: clipName(at, index++, extension),
+      kind: extension === "MP4" ? "VIDEO" : "PHOTO",
+      capturedAt: new Date(at.getTime() - siteOffsetMinutes * minute).toISOString(),
+      sizeBytes: extension === "MP4" ? 1_240_000_000 : 5_600_000,
+    });
   };
 
-  // Ráfaga que cae dentro de la ventana: el emparejamiento automático la coge
-  // con desfase 0.
+  const MADRID = 2 * 60;
+  const MALDIVAS = 5 * 60;
+
+  // Ráfaga dentro de la ventana de la primera inmersión.
   const [aligned] = dives;
-  // La del reloj desfasado tiene que ir en OTRO viaje. El desfase se deduce
-  // sobre los días consecutivos de un viaje, así que con las dos ráfagas juntas
-  // ganaría el desfase cero de la primera y la segunda no se emparejaría nunca.
+  // La segunda ráfaga tiene que ir en OTRO viaje: el huso se deduce por viaje,
+  // y así el dataset ejercita dos deducciones distintas en vez de una.
   const TRIP_GAP_MS = 2 * 24 * 60 * 60 * 1000;
-  const shifted = aligned
+  const faraway = aligned
     ? dives.find((dive) => Math.abs(dive.date.getTime() - aligned.date.getTime()) > TRIP_GAP_MS)
     : undefined;
   if (aligned) {
-    for (let i = 0; i < 6; i += 1) emit(new Date(aligned.date.getTime() + (3 + i * 4) * minute));
-    emit(new Date(aligned.date.getTime() + 10 * minute), "JPG");
+    for (let i = 0; i < 6; i += 1) emit(new Date(aligned.date.getTime() + (3 + i * 4) * minute), MADRID);
+    emit(new Date(aligned.date.getTime() + 10 * minute), MADRID, "JPG");
   }
-  // Ráfaga con el reloj de la cámara 90 min adelantado: obliga a que la
-  // deducción del desfase haga su trabajo en vez de acertar por defecto.
-  if (shifted) {
-    for (let i = 0; i < 5; i += 1) {
-      emit(new Date(shifted.date.getTime() + (90 + 5 + i * 6) * minute));
-    }
+  if (faraway) {
+    for (let i = 0; i < 5; i += 1) emit(new Date(faraway.date.getTime() + (5 + i * 6) * minute), MALDIVAS);
   }
   // Huérfanos: un día sin ninguna inmersión, para que la vista de biblioteca
   // tenga clips que no reclama nadie.
   const orphanDay = new Date("2024-09-21T17:40:00");
-  for (let i = 0; i < 3; i += 1) emit(new Date(orphanDay.getTime() + i * 7 * minute));
+  for (let i = 0; i < 3; i += 1) emit(new Date(orphanDay.getTime() + i * 7 * minute), MADRID);
 
-  await Promise.all(
-    files.map(async ({ name, instant }) => {
-      const file = path.join(target, name);
-      await writeFile(file, "");
-      await utimes(file, instant, instant);
-    }),
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(
+    target,
+    `${JSON.stringify(
+      {
+        version: 1,
+        seed: true,
+        generatedAt: new Date().toISOString(),
+        libraryPath: process.env.JELLYFIN_LIBRARY_PATH?.trim() || "/mnt/media/buceo",
+        clips,
+      },
+      null,
+      2,
+    )}\n`,
   );
-  console.log(`   • Media: ${files.length} clips de prueba en ${target}`);
+  console.log(`   • Media: manifiesto con ${clips.length} clips de prueba en ${target}`);
 }
 
 async function main() {
