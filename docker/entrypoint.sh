@@ -15,7 +15,10 @@ echo "==> Aplicando migraciones de base de datos..."
 # imagen de producción.
 if [ "$SEED_ON_BOOT" = "true" ]; then
   echo "==> SEED_ON_BOOT activo: sembrando datos de prueba del usuario dev..."
-  node prisma/seed.ts
+  # Un seed roto deja staging sin datos de prueba; no debe dejarlo sin app. Con
+  # `set -e` cualquier fallo aquí mataba el contenedor antes de arrancar Next y
+  # lo dejaba en bucle de reinicios (502 en staging).
+  node prisma/seed.ts || echo "!!! El seed ha fallado; la app arranca igualmente"
 fi
 
 echo "==> Iniciando Next.js (producción)..."
