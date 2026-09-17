@@ -1,9 +1,9 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { countryNameToCode } from "@tripplanner/shared";
-import { jellyfinItemId } from "../src/lib/jellyfin.ts";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -23,8 +23,9 @@ function country(name: string): string {
 // Biblioteca de media de mentira para staging, donde no hay —ni debe haber—
 // acceso al Jellyfin de producción. Escribe el mismo manifiesto que en
 // producción genera el script del servidor, con el naming real de la cámara.
-// Los ItemId se calculan con el mismo MD5 del que Jellyfin deriva los suyos,
-// que es lo más parecido a los de verdad que se puede tener sin un Jellyfin.
+// Los ItemId son sintéticos: en staging no hay Jellyfin contra el que
+// resolverlos, así que basta con que sean hex de 32 y estables. Derivarlos como
+// los de verdad obligaría a importar de src/, que no existe en la imagen.
 //
 // Va en SEED_MEDIA_LIBRARY_PATH y no en MEDIA_LIBRARY_PATH a propósito: en
 // local esa segunda puede apuntar al material real.
@@ -80,7 +81,8 @@ async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number
     const jellyfinPath = path.posix.join(libraryPath, clipName(at, index++, extension));
     clips.push({
       jellyfin_path: jellyfinPath,
-      jellyfin_item_id: index % 6 === 0 ? null : jellyfinItemId(jellyfinPath, kind === "video" ? "VIDEO" : "PHOTO"),
+      jellyfin_item_id:
+        index % 6 === 0 ? null : createHash("md5").update(jellyfinPath).digest("hex"),
       kind,
       captured_at_utc: new Date(at.getTime() - siteOffsetMinutes * minute).toISOString(),
       size_bytes: extension === "MP4" ? 1_240_000_000 : 5_600_000,
