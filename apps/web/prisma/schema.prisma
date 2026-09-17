@@ -40,6 +40,9 @@ model User {
   diveCertifications   DiveCertification[]
   diveEquipment        DiveEquipment[]
   diveEquipmentService DiveEquipmentService[]
+
+  mediaClips       MediaClip[]
+  mediaSiteOffsets MediaSiteOffset[]
 }
 
 model Settings {
@@ -397,49 +400,50 @@ model DiveSite {
 }
 
 model DiveLog {
-  id               String     @id @default(cuid())
-  userId           String
-  tripId           String?
-  diveSiteId       String?
-  date             DateTime
-  diveNumber       Int
-  depthMax         Float
-  bottomTime       Int
-  surfaceInterval  Int?
-  gasMix           GasMix
-  o2Percentage     Int?
-  heliumPercentage Int?
-  pressureStart    Int?
-  pressureEnd      Int?
-  waterTemp        Float?
-  airTemp          Float?
-  visibility       Float?
+  id                   String         @id @default(cuid())
+  userId               String
+  tripId               String?
+  diveSiteId           String?
+  date                 DateTime
+  diveNumber           Int
+  depthMax             Float
+  bottomTime           Int
+  surfaceInterval      Int?
+  gasMix               GasMix
+  o2Percentage         Int?
+  heliumPercentage     Int?
+  pressureStart        Int?
+  pressureEnd          Int?
+  waterTemp            Float?
+  airTemp              Float?
+  visibility           Float?
   visibilityHorizontal Float?
-  diveType         String?
-  buddyName        String?
-  suitType         String?
-  weight           Float?
-  notes            String?
-  rating           Int?
-  current          DiveCurrent?
-  divemaster       String?
-  boat             String?
-  entryType        DiveEntryType?
-  decoRequired     Boolean       @default(false)
-  safetyStopMinutes Int?
-  minPpo2          Float?
-  maxPpo2          Float?
-  cnsPercent       Int?
-  source           DiveSource @default(MANUAL)
-  externalId       String?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  diveType             String?
+  buddyName            String?
+  suitType             String?
+  weight               Float?
+  notes                String?
+  rating               Int?
+  current              DiveCurrent?
+  divemaster           String?
+  boat                 String?
+  entryType            DiveEntryType?
+  decoRequired         Boolean        @default(false)
+  safetyStopMinutes    Int?
+  minPpo2              Float?
+  maxPpo2              Float?
+  cnsPercent           Int?
+  source               DiveSource     @default(MANUAL)
+  externalId           String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   trip           Trip?               @relation(fields: [tripId], references: [id], onDelete: SetNull)
   diveSite       DiveSite?           @relation(fields: [diveSiteId], references: [id], onDelete: SetNull)
   equipment      DiveEquipment[]
   profileSamples DiveProfileSample[]
+  mediaLinks     MediaClipLink[]
 
   @@unique([userId, externalId])
 }
@@ -532,4 +536,68 @@ model DiveCertification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, externalId])
+}
+
+// ─── Media (biblioteca de Jellyfin, ver issue #311) ──────────────────────────
+
+enum MediaKind {
+  VIDEO
+  PHOTO
+}
+
+enum OffsetSource {
+  AUTO
+  MANUAL
+}
+
+model MediaClip {
+  id         String    @id @default(cuid())
+  userId     String
+  // Ruta absoluta tal como la ve Jellyfin: identidad estable del clip, y lo
+  // que mantiene vivos los overrides de MediaClipLink entre reindexados.
+  path       String
+  // ItemId de Jellyfin. Nulo mientras Jellyfin no haya escaneado el fichero:
+  // entonces el clip se lista sin enlace ni miniatura.
+  itemId     String?
+  kind       MediaKind
+  capturedAt DateTime
+  sizeBytes  BigInt?
+  indexedAt  DateTime  @default(now())
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links MediaClipLink[]
+
+  @@unique([userId, path])
+  @@index([userId, capturedAt])
+}
+
+// Solo overrides manuales. Los auto-matches se calculan en lectura contra
+// capturedAt, para que editar la hora de una inmersión no deje matches obsoletos.
+model MediaClipLink {
+  clipId    String
+  diveLogId String
+  included  Boolean
+  createdAt DateTime @default(now())
+
+  clip    MediaClip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  diveLog DiveLog   @relation(fields: [diveLogId], references: [id], onDelete: Cascade)
+
+  @@id([clipId, diveLogId])
+  @@index([diveLogId])
+}
+
+// Huso horario en el que estaba el ordenador de buceo ese día. Los clips llegan
+// con instante absoluto (creation_time del MP4 es UTC) pero Diving Log guarda
+// hora local sin huso, así que esto es lo que falta para situarlos en el mismo
+// eje. Se deduce por viaje y se guarda por día.
+model MediaSiteOffset {
+  userId        String
+  day           DateTime
+  offsetMinutes Int
+  source        OffsetSource
+  updatedAt     DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
 }

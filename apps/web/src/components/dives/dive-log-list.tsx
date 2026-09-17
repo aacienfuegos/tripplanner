@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { Plus, Waves, Pencil, Trash2, MapPin, Star, Thermometer, ArrowDownToLine, Timer, X } from "lucide-react";
+import { Plus, Waves, Pencil, Trash2, MapPin, Star, Thermometer, ArrowDownToLine, Timer, X, Film } from "lucide-react";
 import { countryCodeToName } from "@tripplanner/shared";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,10 +28,12 @@ export function DiveLogList({
   dives,
   sites,
   equipment,
+  clipCounts,
 }: {
   dives: DiveLogWithSite[];
   sites: DiveSite[];
   equipment: DiveEquipment[];
+  clipCounts?: Record<string, number>;
 }) {
   const { t } = useT();
   const router = useRouter();
@@ -202,6 +204,12 @@ export function DiveLogList({
                       <span className="font-semibold">{dive.diveSite?.name ?? t.diveSiteNone}</span>
                       {dive.diveType && <Badge variant="outline">{diveTypeLabel(dive.diveType, t)}</Badge>}
                       <Badge variant="outline">{gasMixLabels[dive.gasMix]}</Badge>
+                      {clipCounts?.[dive.id] && (
+                        <Badge variant="outline" className="gap-1">
+                          <Film className="h-3 w-3" />
+                          {clipCounts[dive.id]}
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">
                       <p>{formatDiveDate(dive.date, dfLocale)}</p>

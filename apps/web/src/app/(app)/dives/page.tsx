@@ -2,17 +2,19 @@ import { countryCodeToName } from "@tripplanner/shared";
 import { requireUser } from "@/lib/action-auth";
 import { prisma } from "@/lib/prisma";
 import { DiveLogList } from "@/components/dives/dive-log-list";
+import { getDiveClipCounts, getMediaLibrary } from "@/lib/dive-media";
+import { MediaLibrary } from "@/components/dives/media/MediaLibrary";
 import { CertificationList } from "@/components/dives/certification-list";
 import { DiveSiteList } from "@/components/dives/dive-site-list";
 import { EquipmentList } from "@/components/dives/equipment-list";
 import { DiveStatsView } from "@/components/dives/dive-stats";
 import type { DiveSitePoint } from "@/components/dives/DiveSitesMapView";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Waves, Award, MapPin, Anchor, BarChart3 } from "lucide-react";
+import { Waves, Award, MapPin, Anchor, BarChart3, Film } from "lucide-react";
 import { getT } from "@/lib/locale";
 import { computeDiveStats } from "@/lib/dive-stats";
 
-const TAB_VALUES = ["log", "sites", "equipment", "certifications", "stats"] as const;
+const TAB_VALUES = ["log", "sites", "equipment", "certifications", "stats", "media"] as const;
 
 export default async function DivesPage({
   searchParams,
@@ -21,9 +23,9 @@ export default async function DivesPage({
 }) {
   const userId = await requireUser();
   const { tab } = await searchParams;
-  const defaultTab = TAB_VALUES.includes(tab as (typeof TAB_VALUES)[number]) ? tab! : "log";
+  const requestedTab = TAB_VALUES.includes(tab as (typeof TAB_VALUES)[number]) ? tab! : "log";
 
-  const [t, dives, sites, certifications, equipment, areas, sitesWithCount, allEquipment] = await Promise.all([
+  const [t, dives, sites, certifications, equipment, areas, sitesWithCount, allEquipment, clipCountMap, mediaDays] = await Promise.all([
     getT(),
     prisma.diveLog.findMany({
       where: { userId },
@@ -53,7 +55,13 @@ export default async function DivesPage({
       include: { _count: { select: { diveLogs: true } } },
       orderBy: { name: "asc" },
     }),
+    getDiveClipCounts(userId),
+    getMediaLibrary(userId),
   ]);
+  const clipCounts = Object.fromEntries(clipCountMap);
+  // Sin biblioteca (no configurada o usuario no admin) la pestaña no existe, y
+  // un ?tab=media en la URL no debe dejar la página sin ninguna pestaña activa.
+  const defaultTab = requestedTab === "media" && !mediaDays ? "log" : requestedTab;
 
   const diveStats = computeDiveStats(
     dives.map((d) => ({
@@ -102,9 +110,14 @@ export default async function DivesPage({
           <TabsTrigger value="stats" className="gap-1.5">
             <BarChart3 className="h-3.5 w-3.5" /> {t.diveStatsTab}
           </TabsTrigger>
+          {mediaDays && (
+            <TabsTrigger value="media" className="gap-1.5">
+              <Film className="h-3.5 w-3.5" /> {t.diveMediaTab}
+            </TabsTrigger>
+          )}
         </TabsList>
         <TabsContent value="log" className="mt-4">
-          <DiveLogList dives={dives} sites={sites} equipment={equipment} />
+          <DiveLogList dives={dives} sites={sites} equipment={equipment} clipCounts={clipCounts} />
         </TabsContent>
         <TabsContent value="sites" className="mt-4">
           <DiveSiteList areas={areas} sites={sitesWithCount} sitePoints={sitePoints} />
@@ -118,6 +131,11 @@ export default async function DivesPage({
         <TabsContent value="stats" className="mt-4">
           <DiveStatsView stats={diveStats} t={t} />
         </TabsContent>
+        {mediaDays && (
+          <TabsContent value="media" className="mt-4">
+            <MediaLibrary days={mediaDays} canRescan />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

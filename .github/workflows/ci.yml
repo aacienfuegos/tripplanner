@@ -87,6 +87,12 @@ jobs:
         working-directory: apps/web
         run: npx prisma migrate deploy
 
+      # Se ejecuta desde una copia que solo contiene prisma/, porque la imagen
+      # de producción no lleva src/: un import relativo fuera de prisma/ pasa
+      # este paso si se corre sobre el repo y luego mata el contenedor al
+      # arrancar, dejando staging en bucle de reinicios (pasó con #325).
       - name: Smoke test del entrypoint real (node prisma/seed.ts)
         working-directory: apps/web
-        run: node prisma/seed.ts
+        run: |
+          rm -rf .smoke && mkdir -p .smoke && cp -r prisma .smoke/
+          node .smoke/prisma/seed.ts

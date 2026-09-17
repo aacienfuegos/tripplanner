@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { countryNameToCode } from "@tripplanner/shared";
@@ -16,6 +19,111 @@ function country(name: string): string {
   return code;
 }
 
+
+// Biblioteca de media de mentira para staging, donde no hay —ni debe haber—
+// acceso al Jellyfin de producción. Escribe el mismo manifiesto que en
+// producción genera el script del servidor, con el naming real de la cámara.
+// Los ItemId son sintéticos: en staging no hay Jellyfin contra el que
+// resolverlos, así que basta con que sean hex de 32 y estables. Derivarlos como
+// los de verdad obligaría a importar de src/, que no existe en la imagen.
+//
+// Va en SEED_MEDIA_LIBRARY_PATH y no en MEDIA_LIBRARY_PATH a propósito: en
+// local esa segunda puede apuntar al material real.
+type ManifestClip = {
+  jellyfin_path: string;
+  jellyfin_item_id: string | null;
+  kind: "video" | "photo";
+  captured_at_utc: string;
+  size_bytes: number;
+};
+
+function clipName(at: Date, index: number, extension: "MP4" | "JPG"): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const stamp =
+    `${at.getFullYear()}${pad(at.getMonth() + 1)}${pad(at.getDate())}` +
+    `${pad(at.getHours())}${pad(at.getMinutes())}${pad(at.getSeconds())}`;
+  return `DJI_${stamp}_${String(index).padStart(4, "0")}_D.${extension}`;
+}
+
+async function seedMediaLibrary(dives: readonly { date: Date; bottomTime: number }[]) {
+  const target = process.env.SEED_MEDIA_LIBRARY_PATH?.trim();
+  if (!target) return;
+
+  // Antes era un directorio de ficheros vacíos: si la variable se quedó
+  // apuntando al de antes, decirlo en vez de morir con un EISDIR.
+  const info = await stat(target).catch(() => null);
+  if (info?.isDirectory()) {
+    console.log(`   • Media: omitido, SEED_MEDIA_LIBRARY_PATH debe apuntar a un fichero .json, no a ${target}`);
+    return;
+  }
+
+  // Si en esa ruta hay algo que no sea un manifiesto de este seed, no es un
+  // fichero de pruebas y no se toca.
+  const existing = await readFile(target, "utf8").catch(() => null);
+  if (existing !== null) {
+    const parsed = JSON.parse(existing) as { version?: unknown; seed?: unknown };
+    if (parsed.seed !== true) {
+      console.log(`   • Media: omitido, ${target} no es un manifiesto de este seed`);
+      return;
+    }
+  }
+
+  const minute = 60_000;
+  let index = 1;
+  const clips: ManifestClip[] = [];
+  // El nombre lleva la hora local del sitio y `capturedAt` el instante real:
+  // es la diferencia que la app tiene que deducir como huso del viaje.
+  const libraryPath = process.env.JELLYFIN_LIBRARY_PATH?.trim() || "/library/video";
+  // Uno de cada seis se deja sin ItemId: es el clip recién copiado que Jellyfin
+  // todavía no ha escaneado, y la app tiene que pintarlo sin enlace.
+  const emit = (at: Date, siteOffsetMinutes: number, extension: "MP4" | "JPG" = "MP4") => {
+    const kind = extension === "MP4" ? "video" : "photo";
+    const jellyfinPath = path.posix.join(libraryPath, clipName(at, index++, extension));
+    clips.push({
+      jellyfin_path: jellyfinPath,
+      jellyfin_item_id:
+        index % 6 === 0 ? null : createHash("md5").update(jellyfinPath).digest("hex"),
+      kind,
+      captured_at_utc: new Date(at.getTime() - siteOffsetMinutes * minute).toISOString(),
+      size_bytes: extension === "MP4" ? 1_240_000_000 : 5_600_000,
+    });
+  };
+
+  const MADRID = 2 * 60;
+  const MALDIVAS = 5 * 60;
+
+  // Ráfaga dentro de la ventana de la primera inmersión.
+  const [aligned] = dives;
+  // La segunda ráfaga tiene que ir en OTRO viaje: el huso se deduce por viaje,
+  // y así el dataset ejercita dos deducciones distintas en vez de una.
+  const TRIP_GAP_MS = 2 * 24 * 60 * 60 * 1000;
+  const faraway = aligned
+    ? dives.find((dive) => Math.abs(dive.date.getTime() - aligned.date.getTime()) > TRIP_GAP_MS)
+    : undefined;
+  if (aligned) {
+    for (let i = 0; i < 6; i += 1) emit(new Date(aligned.date.getTime() + (3 + i * 4) * minute), MADRID);
+    emit(new Date(aligned.date.getTime() + 10 * minute), MADRID, "JPG");
+  }
+  if (faraway) {
+    for (let i = 0; i < 5; i += 1) emit(new Date(faraway.date.getTime() + (5 + i * 6) * minute), MALDIVAS);
+  }
+  // Huérfanos: un día sin ninguna inmersión, para que la vista de biblioteca
+  // tenga clips que no reclama nadie.
+  const orphanDay = new Date("2024-09-21T17:40:00");
+  for (let i = 0; i < 3; i += 1) emit(new Date(orphanDay.getTime() + i * 7 * minute), MADRID);
+
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(
+    target,
+    `${JSON.stringify(
+      { version: 1, seed: true, generated_at: new Date().toISOString(), clips },
+      null,
+      2,
+    )}\n`,
+  );
+  console.log(`   • Media: manifiesto con ${clips.length} clips de prueba en ${target}`);
+}
+
 async function main() {
   // Usuario dev
   await prisma.user.upsert({
@@ -32,6 +140,12 @@ async function main() {
 
   // Limpia datos anteriores del usuario dev
   // Orden: diveLog antes que trip/diveSite (FKs con onDelete: SetNull, no cascade)
+  // El seed escribe el manifiesto, pero quien rellena el índice es «Rescan
+  // library». Sin borrar el anterior, tras un redespliegue sobreviven las filas
+  // de la pasada previa —hora sacada del nombre, itemId nulo— y como los
+  // nombres de fichero coinciden, la pantalla no delata que son viejas.
+  await prisma.mediaClip.deleteMany({ where: { userId: DEV_USER_ID } });
+  await prisma.mediaSiteOffset.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveLog.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveCertification.deleteMany({ where: { userId: DEV_USER_ID } });
   await prisma.diveEquipment.deleteMany({ where: { userId: DEV_USER_ID } });
@@ -1111,6 +1225,7 @@ async function main() {
   console.log(`   • ${egipto.name} (${egipto.status})`);
   console.log(`   • Buceo: ${diveLogs.length} inmersiones, 5 sitios (2 áreas), 4 certificaciones, 8 piezas de equipo (2 wishlist)`);
   console.log(`   • Tareas: 6 (Marruecos)`);
+  await seedMediaLibrary(diveLogs);
 }
 
 main()

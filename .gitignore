@@ -52,3 +52,6 @@ next-env.d.ts
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 .claude/sessions/
+
+# Copia efímera del CI para el smoke test del seed
+apps/web/.smoke/
