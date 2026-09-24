@@ -56,8 +56,8 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
             return (
               <Card key={a.id} id={a.id} className="scroll-mt-16 target:ring-2 target:ring-primary/40">
                 <CardContent className="pt-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1.5 flex-1">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold">{a.name}</span>
                         <Badge variant="secondary">{a.type}</Badge>
@@ -66,10 +66,10 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
                       <div className="text-sm text-muted-foreground space-y-0.5">
                         {a.checkIn && <p>{t.checkInDate}: {format(a.checkIn, "d MMM yyyy", { locale: dfLocale })}</p>}
                         {a.checkOut && <p>{t.checkOutDate}: {format(a.checkOut, "d MMM yyyy", { locale: dfLocale })}</p>}
-                        <p className="flex items-center gap-1">
+                        <p className="flex flex-wrap items-center gap-x-1">
                           {nights !== null && (
                             <>
-                              <Moon className="h-3 w-3" />
+                              <Moon className="h-3 w-3 shrink-0" />
                               {t.nightsLabel(nights)}
                             </>
                           )}
@@ -80,7 +80,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
                         {a.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{a.bookingRef}</span></p>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0 max-sm:-mb-2 max-sm:-mr-2 max-sm:justify-end">
                       {(a.address || a.city) && (
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([a.name, a.address, a.city].filter(Boolean).join(", "))}`}

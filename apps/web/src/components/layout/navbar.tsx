@@ -37,6 +37,7 @@ export function Navbar({ user }: NavbarProps) {
     : user.email?.[0].toUpperCase() ?? "U";
 
   return (
+    <>
     <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-8">
@@ -77,22 +78,22 @@ export function Navbar({ user }: NavbarProps) {
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2">
+              <DropdownMenuItem className="gap-2 py-2 md:py-1" render={<Link href="/profile" />}>
                 <User className="h-4 w-4" />
-                <Link href="/profile" className="flex-1">{t.navProfile}</Link>
+                {t.navProfile}
               </DropdownMenuItem>
               {user.isAdmin && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2">
+                  <DropdownMenuItem className="gap-2 py-2 md:py-1" render={<Link href="/admin" />}>
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    <Link href="/admin" className="flex-1">{t.navAdmin}</Link>
+                    {t.navAdmin}
                   </DropdownMenuItem>
                 </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-destructive focus:text-destructive gap-2 cursor-pointer"
+                className="text-destructive focus:text-destructive gap-2 py-2 md:py-1 cursor-pointer"
                 onClick={() => signOut({ callbackUrl: "/auth/signin" })}
               >
                 <LogOut className="h-4 w-4" />
@@ -103,5 +104,27 @@ export function Navbar({ user }: NavbarProps) {
         </div>
       </div>
     </header>
+    <nav className="md:hidden fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+      <div className="grid grid-cols-3">
+        {navLinks.map(({ href, label, icon: Icon }) => {
+          const active = pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex flex-col items-center gap-0.5 py-2 text-xs font-medium",
+                active ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              {label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+    </>
   );
 }

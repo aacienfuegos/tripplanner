@@ -179,20 +179,23 @@ export function PackingList({ tripId, items, hasDiveEquipment = false }: Props) 
               </CardHeader>
               <CardContent className="pt-0 space-y-1">
                 {catItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 py-1.5 group">
-                    <input
-                      type="checkbox"
-                      checked={item.packed}
-                      onChange={() => handleToggle(item.id, item.packed)}
-                      className="h-4 w-4 cursor-pointer"
-                    />
-                    <span className={`flex-1 text-sm ${item.packed ? "line-through text-muted-foreground" : ""}`}>
-                      {item.name}
-                      {item.quantity > 1 && <span className="text-muted-foreground ml-1">×{item.quantity}</span>}
-                    </span>
+                  <div key={item.id} className="flex items-center gap-3 group">
+                    <label className="flex flex-1 items-center gap-3 py-2 sm:py-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={item.packed}
+                        onChange={() => handleToggle(item.id, item.packed)}
+                        className="h-4 w-4 shrink-0 cursor-pointer"
+                      />
+                      <span className={`flex-1 text-sm ${item.packed ? "line-through text-muted-foreground" : ""}`}>
+                        {item.name}
+                        {item.quantity > 1 && <span className="text-muted-foreground ml-1">×{item.quantity}</span>}
+                      </span>
+                    </label>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      aria-label={t.delete}
+                      className="-m-2 p-2 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDiveDate } from "@/lib/dive-date";
@@ -9,7 +10,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <Card>
       <CardContent className="pt-4 pb-4">
         <p className="text-xs text-muted-foreground mb-1">{label}</p>
-        <p className="text-2xl font-bold leading-none">{value}</p>
+        <p className="text-xl sm:text-2xl font-bold leading-none">{value}</p>
       </CardContent>
     </Card>
   );
@@ -48,10 +49,10 @@ export function DiveStatsView({ stats, t }: { stats: DiveStats; t: WebTKeys }) {
             <StatCard label={t.diveStatsAvgWaterTemp} value={`${stats.avgWaterTemp.toFixed(1)}°C`} />
           )}
           {stats.firstDiveDate && (
-            <StatCard label={t.diveStatsDivingSince} value={formatDiveDate(stats.firstDiveDate, dfLocale)} />
+            <StatCard label={t.diveStatsDivingSince} value={format(stats.firstDiveDate, "d MMM yyyy", { locale: dfLocale })} />
           )}
           {stats.lastDiveDate && (
-            <StatCard label={t.diveStatsLastDive} value={formatDiveDate(stats.lastDiveDate, dfLocale)} />
+            <StatCard label={t.diveStatsLastDive} value={format(stats.lastDiveDate, "d MMM yyyy", { locale: dfLocale })} />
           )}
         </div>
       )}
