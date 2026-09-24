@@ -82,12 +82,12 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
           {activities.map((act) => (
             <Card key={act.id} id={act.id} className="scroll-mt-16 target:ring-2 target:ring-primary/40">
               <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1.5 flex-1">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{act.name}</span>
                       <Badge variant="outline">{typeLabels[act.type]}</Badge>
-                      <button onClick={() => cycleStatus(act)}>
+                      <button onClick={() => cycleStatus(act)} className="-my-1.5 py-1.5">
                         <Badge variant={statusVariants[act.status]} className="cursor-pointer">
                           {statusLabels[act.status]}
                         </Badge>
@@ -97,24 +97,24 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
                       {act.scheduledAt && <p>{format(act.scheduledAt, "d MMM yyyy, HH:mm", { locale: dfLocale })}</p>}
                       {act.location && (
                         <p className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5" /> {act.location}{act.city && `, ${act.city}`}
+                          <MapPin className="h-3.5 w-3.5 shrink-0" /> {act.location}{act.city && `, ${act.city}`}
                         </p>
                       )}
                       {act.duration && (
                         <p className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" /> {act.duration} min
+                          <Clock className="h-3.5 w-3.5 shrink-0" /> {act.duration} min
                         </p>
                       )}
                       {act.price && (
                         <p className="flex items-center gap-1">
-                          <Banknote className="h-3.5 w-3.5" /> {formatCurrency(act.price, currency, t.dateLocale)}
+                          <Banknote className="h-3.5 w-3.5 shrink-0" /> {formatCurrency(act.price, currency, t.dateLocale)}
                         </p>
                       )}
                       {act.bookingRef && <p>{t.bookingRef}: <span className="font-mono font-medium text-foreground">{act.bookingRef}</span></p>}
                       {act.description && <p className="italic">{act.description}</p>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0 max-sm:-mb-2 max-sm:-mr-2 max-sm:justify-end">
                     {(act.location || act.city) && (
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([act.location, act.city].filter(Boolean).join(", "))}`}

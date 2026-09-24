@@ -94,25 +94,31 @@ export default async function DivesPage({
         <h1 className="text-2xl font-bold">{t.dives}</h1>
       </div>
       <Tabs defaultValue={defaultTab}>
-        <TabsList>
-          <TabsTrigger value="log" className="gap-1.5">
-            <Waves className="h-3.5 w-3.5" /> {t.diveLogsTab}
+        <TabsList className="max-sm:group-data-horizontal/tabs:h-10">
+          <TabsTrigger value="log" aria-label={t.diveLogsTab} className="group/trigger gap-1.5 px-2.5 sm:px-1.5">
+            <Waves className="h-3.5 w-3.5" />
+            <span className="max-sm:hidden max-sm:group-data-active/trigger:inline">{t.diveLogsTab}</span>
           </TabsTrigger>
-          <TabsTrigger value="sites" className="gap-1.5">
-            <MapPin className="h-3.5 w-3.5" /> {t.diveSitesTab}
+          <TabsTrigger value="sites" aria-label={t.diveSitesTab} className="group/trigger gap-1.5 px-2.5 sm:px-1.5">
+            <MapPin className="h-3.5 w-3.5" />
+            <span className="max-sm:hidden max-sm:group-data-active/trigger:inline">{t.diveSitesTab}</span>
           </TabsTrigger>
-          <TabsTrigger value="equipment" className="gap-1.5">
-            <Anchor className="h-3.5 w-3.5" /> {t.diveEquipmentTab}
+          <TabsTrigger value="equipment" aria-label={t.diveEquipmentTab} className="group/trigger gap-1.5 px-2.5 sm:px-1.5">
+            <Anchor className="h-3.5 w-3.5" />
+            <span className="max-sm:hidden max-sm:group-data-active/trigger:inline">{t.diveEquipmentTab}</span>
           </TabsTrigger>
-          <TabsTrigger value="certifications" className="gap-1.5">
-            <Award className="h-3.5 w-3.5" /> {t.diveCertificationsTab}
+          <TabsTrigger value="certifications" aria-label={t.diveCertificationsTab} className="group/trigger gap-1.5 px-2.5 sm:px-1.5">
+            <Award className="h-3.5 w-3.5" />
+            <span className="max-sm:hidden max-sm:group-data-active/trigger:inline">{t.diveCertificationsTab}</span>
           </TabsTrigger>
-          <TabsTrigger value="stats" className="gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> {t.diveStatsTab}
+          <TabsTrigger value="stats" aria-label={t.diveStatsTab} className="group/trigger gap-1.5 px-2.5 sm:px-1.5">
+            <BarChart3 className="h-3.5 w-3.5" />
+            <span className="max-sm:hidden max-sm:group-data-active/trigger:inline">{t.diveStatsTab}</span>
           </TabsTrigger>
           {mediaDays && (
-            <TabsTrigger value="media" className="gap-1.5">
-              <Film className="h-3.5 w-3.5" /> {t.diveMediaTab}
+            <TabsTrigger value="media" aria-label={t.diveMediaTab} className="group/trigger gap-1.5 px-2.5 sm:px-1.5">
+              <Film className="h-3.5 w-3.5" />
+              <span className="max-sm:hidden max-sm:group-data-active/trigger:inline">{t.diveMediaTab}</span>
             </TabsTrigger>
           )}
         </TabsList>

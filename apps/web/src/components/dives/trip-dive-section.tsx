@@ -69,9 +69,9 @@ export function TripDiveSection({ tripId, dives, availableDives, sites, equipmen
         </Button>
 
         {availableDives.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <Select value={selectedDiveId} onValueChange={(v) => v !== null && setSelectedDiveId(v)}>
-              <SelectTrigger className="w-96">
+              <SelectTrigger className="min-w-0 flex-1 sm:w-96 sm:flex-none">
                 <SelectValue placeholder={t.linkDiveSelectPlaceholder}>
                   {(value: string) => {
                     const selected = availableDives.find((d) => d.id === value);
