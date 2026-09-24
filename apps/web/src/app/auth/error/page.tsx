@@ -20,7 +20,7 @@ export default async function AuthErrorPage({
   const message = messages[error ?? "Default"] ?? messages.Default;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
       <Card className="w-full max-w-sm text-center">
         <CardHeader>
           <CardTitle>{t.authErrorTitle}</CardTitle>

@@ -75,28 +75,28 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
       </Button>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className={`grid ${budget ? "grid-cols-3" : "grid-cols-2"} md:grid-cols-3 gap-2 sm:gap-3`}>
         <Card>
-          <CardHeader className="pb-1 pt-4">
-            <CardTitle className="text-sm text-muted-foreground">{t.totalExpenses}</CardTitle>
+          <CardHeader className="pb-1 pt-1 max-sm:px-3 sm:pt-4">
+            <CardTitle className="text-xs sm:text-sm text-muted-foreground">{t.totalExpenses}</CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{formatCurrency(total, currency, t.dateLocale)}</p></CardContent>
+          <CardContent className="max-sm:px-3"><p className="text-base sm:text-2xl font-bold tabular-nums">{formatCurrency(total, currency, t.dateLocale)}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-1 pt-4">
-            <CardTitle className="text-sm text-muted-foreground">{t.paid}</CardTitle>
+          <CardHeader className="pb-1 pt-1 max-sm:px-3 sm:pt-4">
+            <CardTitle className="text-xs sm:text-sm text-muted-foreground">{t.paid}</CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold text-green-600">{formatCurrency(paid, currency, t.dateLocale)}</p></CardContent>
+          <CardContent className="max-sm:px-3"><p className="text-base sm:text-2xl font-bold tabular-nums text-green-600">{formatCurrency(paid, currency, t.dateLocale)}</p></CardContent>
         </Card>
         {budget && (
           <Card>
-            <CardHeader className="pb-1 pt-4">
-              <CardTitle className="text-sm text-muted-foreground">
+            <CardHeader className="pb-1 pt-1 max-sm:px-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm text-muted-foreground">
                 {t.remainingBudgetLabel}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className={`text-2xl font-bold ${budget - total < 0 ? "text-destructive" : ""}`}>
+            <CardContent className="max-sm:px-3">
+              <p className={`text-base sm:text-2xl font-bold tabular-nums ${budget - total < 0 ? "text-destructive" : ""}`}>
                 {formatCurrency(budget - total, currency, t.dateLocale)}
               </p>
             </CardContent>
@@ -128,7 +128,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
             <Card key={e.id} className={e.paid ? "opacity-70" : ""}>
               <CardContent className="py-3 px-4">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => handleTogglePaid(e)} className="shrink-0">
+                  <button onClick={() => handleTogglePaid(e)} className="shrink-0 -m-2 p-2">
                     {e.paid
                       ? <CheckCircle2 className="h-5 w-5 text-green-500" />
                       : <Circle className="h-5 w-5 text-muted-foreground" />
@@ -137,19 +137,20 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{e.description}</span>
-                      <Badge variant="outline" className="text-xs shrink-0">{catLabels[e.category] ?? e.category}</Badge>
+                      <Badge variant="outline" className="text-xs shrink-0 max-sm:hidden">{catLabels[e.category] ?? e.category}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate">
+                      <span className="sm:hidden">{catLabels[e.category] ?? e.category} · </span>
                       {format(e.date, "d MMM yyyy", { locale: dfLocale })}
                       {e.notes && ` · ${e.notes}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-semibold">
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    <span className="font-semibold tabular-nums max-sm:flex max-sm:flex-col max-sm:items-end">
                       {formatCurrency(e.amount, e.currency, t.dateLocale)}
                       {e.currency !== currency && e.convertedAmount != null && (
                         <span className="text-muted-foreground font-normal text-xs">
-                          {" "}(≈ {formatCurrency(e.convertedAmount, currency, t.dateLocale)})
+                          <span className="max-sm:hidden"> </span>(≈ {formatCurrency(e.convertedAmount, currency, t.dateLocale)})
                         </span>
                       )}
                     </span>

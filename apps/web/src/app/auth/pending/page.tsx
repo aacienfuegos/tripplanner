@@ -30,7 +30,7 @@ export default async function PendingPage() {
   if (user?.status === "DENIED") redirect("/auth/error?error=AccessDenied");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
       <Card className="w-full max-w-sm text-center">
         <CardHeader>
           <div className="flex justify-center mb-2">

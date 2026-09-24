@@ -53,8 +53,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">
             {firstName ? `${t.dashboardTitle}, ${firstName} 👋` : `${t.dashboardTitle} 👋`}
           </h1>
@@ -62,36 +62,36 @@ export default async function DashboardPage() {
             {stats.total === 0 ? t.noTripsYetHint : t.tripsRegisteredCount(stats.total)}
           </p>
         </div>
-        <Link href="/trips/new" className={buttonVariants()}>
+        <Link href="/trips/new" className={buttonVariants({ className: "shrink-0" })}>
           <Plus className="h-4 w-4 mr-2" />
           {t.newTrip}
         </Link>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 max-sm:px-3">
+            <CardTitle className="text-xs sm:text-sm font-medium">
               {t.totalTripsLabel}
             </CardTitle>
-            <Plane className="h-4 w-4 text-muted-foreground" />
+            <Plane className="h-4 w-4 text-muted-foreground max-sm:hidden" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
+          <CardContent className="max-sm:px-3"><div className="text-2xl font-bold">{stats.total}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t.statusUpcoming}</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 max-sm:px-3">
+            <CardTitle className="text-xs sm:text-sm font-medium">{t.statusUpcoming}</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground max-sm:hidden" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{stats.upcoming}</div></CardContent>
+          <CardContent className="max-sm:px-3"><div className="text-2xl font-bold">{stats.upcoming}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t.statusOngoing}</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 max-sm:px-3">
+            <CardTitle className="text-xs sm:text-sm font-medium">{t.statusOngoing}</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground max-sm:hidden" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{stats.ongoing}</div></CardContent>
+          <CardContent className="max-sm:px-3"><div className="text-2xl font-bold">{stats.ongoing}</div></CardContent>
         </Card>
       </div>
 
@@ -108,10 +108,10 @@ export default async function DashboardPage() {
               const trip = (activeTrip ?? nextTrip)!;
               const daysUntil = differenceInDays(trip.startDate, new Date());
               return (
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div className="min-w-0">
                     <h2 className="text-xl font-bold">{trip.name}</h2>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                    <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-1 mt-1">
                       <Calendar className="h-3.5 w-3.5" />
                       {format(trip.startDate, "d MMM", { locale: dfLocale })} —{" "}
                       {format(trip.endDate, "d MMM yyyy", { locale: dfLocale })}
@@ -128,15 +128,15 @@ export default async function DashboardPage() {
                       </p>
                     )}
                     <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
-                      <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                      <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 py-1 hover:text-foreground hover:underline transition-colors">
                         <Plane className="h-3 w-3" />
                         {trip._count.flights} {t.flights.toLowerCase()}
                       </Link>
-                      <Link href={`/trips/${trip.id}/accommodations`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                      <Link href={`/trips/${trip.id}/accommodations`} className="flex items-center gap-1 py-1 hover:text-foreground hover:underline transition-colors">
                         <Hotel className="h-3 w-3" />
                         {trip._count.accommodations} {t.accomAbbrev}
                       </Link>
-                      <Link href={`/trips/${trip.id}/activities`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                      <Link href={`/trips/${trip.id}/activities`} className="flex items-center gap-1 py-1 hover:text-foreground hover:underline transition-colors">
                         <Star className="h-3 w-3" />
                         {trip._count.activities} {t.activAbbrev}
                       </Link>
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
                   </div>
                   <Link
                     href={`/trips/${trip.id}`}
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                    className={buttonVariants({ variant: "outline", size: "sm", className: "self-start" })}
                   >
                     {t.viewTripBtn}
                   </Link>
@@ -250,14 +250,14 @@ export default async function DashboardPage() {
                     )}
                   </Link>
                   <div className="flex gap-3 mt-3 pt-2 border-t text-xs text-muted-foreground">
-                    <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 hover:text-foreground hover:underline transition-colors">
+                    <Link href={`/trips/${trip.id}/flights`} className="flex items-center gap-1 py-1 hover:text-foreground hover:underline transition-colors">
                       <Plane className="h-3 w-3" />
                       {trip._count.flights} {t.flights.toLowerCase()}
                     </Link>
-                    <Link href={`/trips/${trip.id}/accommodations`} className="hover:text-foreground hover:underline transition-colors">
+                    <Link href={`/trips/${trip.id}/accommodations`} className="py-1 hover:text-foreground hover:underline transition-colors">
                       {trip._count.accommodations} {t.accomAbbrev}
                     </Link>
-                    <Link href={`/trips/${trip.id}/activities`} className="hover:text-foreground hover:underline transition-colors">
+                    <Link href={`/trips/${trip.id}/activities`} className="py-1 hover:text-foreground hover:underline transition-colors">
                       {trip._count.activities} {t.activAbbrev}
                     </Link>
                   </div>

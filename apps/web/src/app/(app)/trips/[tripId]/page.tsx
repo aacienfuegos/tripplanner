@@ -152,16 +152,16 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="space-y-2 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-4xl font-bold tracking-tight leading-none">{trip.name}</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-none">{trip.name}</h1>
               <TripStatusBadge status={trip.status} locale={t.locale} />
             </div>
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 shrink-0" />
-                <span className="font-mono text-xs">
+                <span className="font-mono text-xs whitespace-nowrap">
                   {format(trip.startDate, "dd MMM yyyy", { locale: dfLocale })}
                   {" — "}
                   {format(trip.endDate, "dd MMM yyyy", { locale: dfLocale })}
@@ -480,7 +480,7 @@ function EventRow({ event, tripId, t }: { event: DayEvent; tripId: string; t: We
     const { data: f, role } = event;
     const time = role === "departure" ? f.departureAt : f.arrivalAt;
     return (
-      <Link href={href} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 hover:brightness-95 transition-[filter]">
+      <Link href={href} className="flex items-center gap-2 text-xs py-1.5 sm:py-1 px-2 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 hover:brightness-95 transition-[filter]">
         <Plane className={`h-3 w-3 text-blue-600 shrink-0 ${role === "arrival" ? "scale-x-[-1]" : ""}`} />
         <span className="font-medium text-blue-700 dark:text-blue-400 shrink-0">
           {role === "departure" ? t.flightDeparture : t.flightArrival}
@@ -499,7 +499,7 @@ function EventRow({ event, tripId, t }: { event: DayEvent; tripId: string; t: We
   if (event.type === "accommodation") {
     const { data: a, role } = event;
     return (
-      <Link href={href} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 hover:brightness-95 transition-[filter]">
+      <Link href={href} className="flex items-center gap-2 text-xs py-1.5 sm:py-1 px-2 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 hover:brightness-95 transition-[filter]">
         <Hotel className="h-3 w-3 text-emerald-600 shrink-0" />
         <span className="font-medium text-emerald-700 dark:text-emerald-400 shrink-0">
           {role === "checkin" ? t.checkIn : t.checkOut}
@@ -522,7 +522,7 @@ function EventRow({ event, tripId, t }: { event: DayEvent; tripId: string; t: We
   }[act.status];
 
   return (
-    <Link href={href} className={`flex items-center gap-2 text-xs py-1 px-2 rounded border hover:brightness-95 transition-[filter] ${rowColor}`}>
+    <Link href={href} className={`flex items-center gap-2 text-xs py-1.5 sm:py-1 px-2 rounded border hover:brightness-95 transition-[filter] ${rowColor}`}>
       <Icon className="h-3 w-3 text-amber-500 shrink-0" />
       <span className="font-medium truncate">{act.name}</span>
       {act.scheduledAt && (
@@ -547,14 +547,14 @@ function ConfirmBadge({ confirmed, t, className = "" }: { confirmed: boolean; t:
     return (
       <Badge variant="success" className={`text-xs h-4 px-1 shrink-0 ${className}`}>
         <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-        {t.confirmed}
+        <span className="sr-only sm:not-sr-only">{t.confirmed}</span>
       </Badge>
     );
   }
   return (
     <Badge variant="warning" className={`text-xs h-4 px-1 shrink-0 ${className}`}>
       <Circle className="h-2.5 w-2.5 mr-0.5" />
-      {t.unconfirmed}
+      <span className="sr-only sm:not-sr-only">{t.unconfirmed}</span>
     </Badge>
   );
 }
@@ -572,7 +572,7 @@ function ActivityStatusBadge({ status, t, className = "" }: { status: string; t:
   return (
     <Badge variant={cfg.variant} className={`text-xs h-4 px-1 ${cfg.variant === "outline" ? "text-muted-foreground" : ""} ${className}`}>
       <Icon className="h-2.5 w-2.5 mr-0.5" />
-      {cfg.label}
+      <span className="sr-only sm:not-sr-only">{cfg.label}</span>
     </Badge>
   );
 }

@@ -56,7 +56,7 @@ export default async function SignInPage() {
   const hasOAuth = hasGoogle || hasGitHub;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
