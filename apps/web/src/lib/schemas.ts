@@ -6,7 +6,7 @@ import { CURRENCIES, ISO_3166_ALPHA2_CODES } from "@tripplanner/shared";
 export const countryCodeSchema = z.enum(ISO_3166_ALPHA2_CODES);
 
 const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
-const httpUrl = z.string().refine(isHttpUrl, "La URL debe usar http o https");
+export const httpUrl = z.string().refine(isHttpUrl, "La URL debe usar http o https");
 
 export const tripStatusSchema = z.enum(["PLANNING", "BOOKED", "ONGOING", "COMPLETED", "CANCELLED"]);
 
@@ -53,9 +53,11 @@ export const expenseSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const accommodationTypeSchema = z.enum(["HOTEL", "HOSTEL", "AIRBNB", "APARTMENT", "RESORT", "OTHER"]);
+
 export const accommodationSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["HOTEL", "HOSTEL", "AIRBNB", "APARTMENT", "RESORT", "OTHER"]).default("HOTEL"),
+  type: accommodationTypeSchema.default("HOTEL"),
   address: z.string().optional(),
   city: z.string().min(1),
   checkIn: z.string().min(1),
@@ -67,9 +69,13 @@ export const accommodationSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const activityTypeSchema = z.enum(["ACTIVITY", "RESTAURANT", "MUSEUM", "TOUR", "TRANSPORT", "SHOW", "OTHER"]);
+
+export const bookingStatusSchema = z.enum(["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"]);
+
 export const activitySchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["ACTIVITY", "RESTAURANT", "MUSEUM", "TOUR", "TRANSPORT", "SHOW", "OTHER"]).default("ACTIVITY"),
+  type: activityTypeSchema.default("ACTIVITY"),
   description: z.string().optional(),
   location: z.string().optional(),
   city: z.string().optional(),
@@ -78,7 +84,7 @@ export const activitySchema = z.object({
   bookingRef: z.string().optional(),
   confirmationUrl: httpUrl.optional().or(z.literal("")),
   price: z.string().optional(),
-  status: z.enum(["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"]).default("PENDING"),
+  status: bookingStatusSchema.default("PENDING"),
   notes: z.string().optional(),
 });
 
