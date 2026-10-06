@@ -16,6 +16,9 @@ const name = z.string().min(1).max(200);
 const shortText = z.string().max(500).nullable().optional();
 const longText = z.string().max(5000).nullable().optional();
 const amount = z.number().nonnegative().nullable().optional();
+// Tope de la columna Int de PostgreSQL (32 bits): por encima Prisma falla al
+// escribir y la API devolvería 500 en vez de 422.
+const positiveInt = z.number().int().positive().max(2147483647).nullable().optional();
 const date = z.iso.date().nullable().optional();
 const nonEmpty = (data: object) => Object.keys(data).length > 0;
 const NON_EMPTY_MESSAGE = "At least one field is required";
@@ -32,7 +35,7 @@ const activityBaseApiSchema = z
     location: shortText,
     city: shortText,
     scheduledAt: z.iso.datetime({ local: true }).nullable().optional(),
-    duration: z.number().int().positive().nullable().optional(),
+    duration: positiveInt,
     bookingRef: shortText,
     confirmationUrl: httpUrl.max(500).nullable().optional(),
     price: amount,
@@ -88,7 +91,7 @@ const equipmentBaseApiSchema = z
     purchaseDate: date,
     purchasePrice: amount,
     lastServiceDate: date,
-    serviceIntervalMonths: z.number().int().positive().nullable().optional(),
+    serviceIntervalMonths: positiveInt,
     notes: longText,
   })
   .strict();
