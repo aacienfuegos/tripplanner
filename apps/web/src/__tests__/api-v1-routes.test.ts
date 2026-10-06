@@ -220,6 +220,38 @@ describe("validation", () => {
     expect(text).not.toContain("secreto-123");
   });
 
+  it("returns 422 for integers above the Int column range", async () => {
+    const activity = await createActivity(
+      jsonRequest("POST", `${BASE}/trips/trip-1/activities`, TOKEN, { name: "Museo", duration: 2147483648 }),
+      tripParams,
+    );
+    const equipment = await createEquipment(
+      jsonRequest("POST", `${BASE}/equipment`, TOKEN, { name: "Regulador", category: "REGULATOR", serviceIntervalMonths: 2147483648 }),
+      params({}),
+    );
+    expect(activity.status).toBe(422);
+    expect(equipment.status).toBe(422);
+    expect((await activity.json()).error.issues).toEqual([{ path: ["duration"], message: expect.any(String) }]);
+    expect((await equipment.json()).error.issues).toEqual([{ path: ["serviceIntervalMonths"], message: expect.any(String) }]);
+    expect(activityCreate).not.toHaveBeenCalled();
+    expect(equipmentCreate).not.toHaveBeenCalled();
+  });
+
+  it("accepts the largest value of the Int column", async () => {
+    const activity = await createActivity(
+      jsonRequest("POST", `${BASE}/trips/trip-1/activities`, TOKEN, { name: "Museo", duration: 2147483647 }),
+      tripParams,
+    );
+    const equipment = await createEquipment(
+      jsonRequest("POST", `${BASE}/equipment`, TOKEN, { name: "Regulador", category: "REGULATOR", serviceIntervalMonths: 2147483647 }),
+      params({}),
+    );
+    expect(activity.status).toBe(201);
+    expect(equipment.status).toBe(201);
+    expect(activityCreate.mock.calls[0][0].data).toMatchObject({ duration: 2147483647 });
+    expect(equipmentCreate.mock.calls[0][0].data).toMatchObject({ serviceIntervalMonths: 2147483647 });
+  });
+
   it("returns 422 for PATCH {} without touching Prisma or revalidatePath", async () => {
     const activity = await updateActivity(
       jsonRequest("PATCH", `${BASE}/trips/trip-1/activities/act-1`, TOKEN, {}),
