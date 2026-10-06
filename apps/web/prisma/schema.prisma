@@ -43,6 +43,8 @@ model User {
 
   mediaClips       MediaClip[]
   mediaSiteOffsets MediaSiteOffset[]
+
+  apiTokens ApiToken[]
 }
 
 model Settings {
@@ -84,6 +86,47 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ─── API tokens (/api/v1) ───────────────────────────────────────────────────
+
+enum ApiScope {
+  TRIPS_READ
+  ACTIVITIES_WRITE
+  ACCOMMODATIONS_WRITE
+  EQUIPMENT_WRITE
+}
+
+model ApiToken {
+  id         String          @id @default(cuid())
+  userId     String
+  name       String
+  tokenHash  String          @unique
+  prefix     String
+  scopes     ApiScope[]
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime        @default(now())
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usage      ApiTokenUsage[]
+
+  @@index([userId])
+}
+
+model ApiTokenUsage {
+  id         String   @id @default(cuid())
+  tokenId    String
+  method     String
+  path       String
+  status     Int
+  fields     String[] @default([])
+  resourceId String?
+  createdAt  DateTime @default(now())
+  token      ApiToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@index([tokenId, createdAt])
+  @@index([createdAt])
 }
 
 // ─── Core ───────────────────────────────────────────────────────────────────
