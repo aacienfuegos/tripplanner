@@ -1,0 +1,5 @@
+# Cambiar el gate de npm audit, sus excepciones o la configuración de npm exige la aprobación de Andrés (ruleset de develop y main)
+/.github/ @aacienfuegos
+/scripts/npm-audit.mjs @aacienfuegos
+/scripts/audit-exceptions.json @aacienfuegos
+.npmrc @aacienfuegos
