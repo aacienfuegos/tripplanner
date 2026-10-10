@@ -6,6 +6,8 @@ const SEVERITIES = ["info", "low", "moderate", "high", "critical"];
 const BLOCKING = ["high", "critical"];
 const GHSA = /\/(GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4})$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+const NPM_NAME = /^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-zA-Z0-9][a-zA-Z0-9._~-]*$/;
 const MAX_DAYS = 90;
 
 const today = new Date().toISOString().slice(0, 10);
@@ -56,6 +58,9 @@ function checkLockfile() {
     if (!isObject(entry)) return [`${key}: no es un objeto`];
     if (entry.link === true) return [];
     const name = key.slice(key.lastIndexOf("node_modules/") + "node_modules/".length);
+    // El resolved esperado se construye con estos dos campos: solo vale si version es semver y name un nombre válido de npm.
+    if (typeof entry.version !== "string" || !SEMVER.test(entry.version)) return [`${key}: version no es semver`];
+    if (!NPM_NAME.test(name)) return [`${key}: la clave no termina en un nombre válido de npm`];
     const base = name.replace(/^@[^/]+\//, "");
     const resolved = `https://registry.npmjs.org/${name}/-/${base}-${entry.version}.tgz`;
     if (typeof entry.integrity !== "string" || !entry.integrity.startsWith("sha512-")) {
@@ -63,6 +68,7 @@ function checkLockfile() {
     }
     if ("name" in entry && entry.name !== name) return [`${key}: name ${entry.name} no coincide con la clave`];
     if (entry.resolved !== resolved) return [`${key}: resolved ${entry.resolved} no es ${resolved}`];
+    if (new URL(resolved).href !== resolved) return [`${key}: resolved cambia al normalizar la URL`];
     return [];
   });
   if (problems.length > 0) fail("lockfile inesperado", problems);
