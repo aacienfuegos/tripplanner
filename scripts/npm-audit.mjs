@@ -53,11 +53,24 @@ function checkLockfile() {
   if (lock.lockfileVersion !== 3 || !isObject(lock.packages)) {
     fail("lockfile inesperado", ["lockfileVersion no es 3 o packages no es un objeto"]);
   }
+  // Los workspaces se leen de package.json y no de packages[""] del lockfile que se está validando.
+  const pkg = existsSync("package.json") ? parseJson(readFileSync("package.json", "utf8")) : undefined;
+  const workspaces = isObject(pkg) && Array.isArray(pkg.workspaces) ? pkg.workspaces.filter((w) => typeof w === "string") : [];
+  const isWorkspace = (dir) =>
+    !dir.split("/").some((s) => ["", ".", "..", "node_modules"].includes(s)) &&
+    workspaces.some((w) => w === dir || (w.endsWith("/*") && dir.startsWith(w.slice(0, -1)) && !dir.slice(w.length - 1).includes("/")));
   const problems = Object.entries(lock.packages).flatMap(([key, entry]) => {
     if (!key.includes("node_modules/")) return [];
     if (!isObject(entry)) return [`${key}: no es un objeto`];
-    if (entry.link === true) return [];
     const name = key.slice(key.lastIndexOf("node_modules/") + "node_modules/".length);
+    // npm trata como link cualquier valor verdadero de link.
+    if (entry.link) {
+      if (typeof entry.resolved !== "string" || !isWorkspace(entry.resolved)) {
+        return [`${key}: link a ${entry.resolved}, que no es un workspace de package.json`];
+      }
+      const target = lock.packages[entry.resolved];
+      return isObject(target) && target.name === name ? [] : [`${key}: ${entry.resolved} no es el workspace ${name}`];
+    }
     // El resolved esperado se construye con estos dos campos: solo vale si version es semver y name un nombre válido de npm.
     if (typeof entry.version !== "string" || !SEMVER.test(entry.version)) return [`${key}: version no es semver`];
     if (!NPM_NAME.test(name)) return [`${key}: la clave no termina en un nombre válido de npm`];
