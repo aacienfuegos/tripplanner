@@ -69,7 +69,10 @@ function checkLockfile() {
         return [`${key}: link a ${entry.resolved}, que no es un workspace de package.json`];
       }
       const target = lock.packages[entry.resolved];
-      return isObject(target) && target.name === name ? [] : [`${key}: ${entry.resolved} no es el workspace ${name}`];
+      // npm solo escribe name en la entrada de un workspace si no coincide con el nombre de su carpeta.
+      const folder = entry.resolved.slice(entry.resolved.lastIndexOf("/") + 1);
+      const targetName = isObject(target) && ("name" in target ? target.name : folder);
+      return targetName === name ? [] : [`${key}: ${entry.resolved} no es el workspace ${name}`];
     }
     // El resolved esperado se construye con estos dos campos: solo vale si version es semver y name un nombre válido de npm.
     if (typeof entry.version !== "string" || !SEMVER.test(entry.version)) return [`${key}: version no es semver`];
