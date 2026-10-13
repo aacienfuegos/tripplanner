@@ -144,6 +144,36 @@ describe("runAgentOSImport", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects non-string content without calling AgentOS", async () => {
+    const fetchMock = mockFetch(200, { output: JSON.stringify(VALID_PAYLOAD) });
+    global.fetch = fetchMock;
+    const { runAgentOSImport } = await import("@/actions/agentos");
+    const content = ["a".repeat(1_000_000)] as unknown as string;
+    await expect(runAgentOSImport(content)).rejects.toThrow("Entrada no válida");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-string trip dates without calling AgentOS", async () => {
+    const fetchMock = mockFetch(200, { output: JSON.stringify(VALID_PAYLOAD) });
+    global.fetch = fetchMock;
+    const { runAgentOSImport } = await import("@/actions/agentos");
+    const big = Array(10).fill("a".repeat(100_000)) as unknown as string;
+    await expect(
+      runAgentOSImport("some content", { tripStartDate: big, tripEndDate: big }),
+    ).rejects.toThrow("Entrada no válida");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("logs a requireUser failure that is not a redirect", async () => {
+    const dbError = new Error("connection refused");
+    requireUserMock.mockRejectedValue(dbError);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { runAgentOSImport } = await import("@/actions/agentos");
+    await expect(runAgentOSImport("some content")).rejects.toThrow("Error de autenticación");
+    expect(errorSpy).toHaveBeenCalledWith("runAgentOSImport: requireUser falló", dbError);
+    errorSpy.mockRestore();
+  });
+
   it("throws when env vars are missing", async () => {
     delete process.env.AGENTOS_URL;
     delete process.env.AGENTOS_API_KEY;
