@@ -127,8 +127,7 @@ el layout protegido lo manda a `/auth/pending`.
   - Las acciones de buceo, perfil y viajes usan `requireUser` y filtran por `userId`.
   - `apps/web/src/actions/admin.ts` y `apps/web/src/actions/media.ts` tienen su propia comprobación:
     sesión y `isAdmin` en base de datos, sin mirar el estado.
-  - `apps/web/src/actions/agentos.ts` solo comprueba que haya sesión (`auth()`), sin leer el
-    estado ni el dueño del viaje.
+  - `apps/web/src/actions/agentos.ts` (importación con IA) usa `requireUser`; no lee ningún viaje.
 - **Rutas de API** (`apps/web/src/app/api/`):
   - `auth/[...nextauth]/route.ts`: los manejadores de NextAuth.
   - `dives/import/route.ts`: exige que `Origin` coincida con `Host` y llama a `requireUser`.
