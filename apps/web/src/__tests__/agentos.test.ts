@@ -1,18 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock next/navigation redirect before importing the action
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn(),
-}));
-
-// Mock next/dist redirect-error detection
 vi.mock("next/dist/client/components/redirect-error", () => ({
-  isRedirectError: () => false,
+  isRedirectError: (e: unknown) => e instanceof Error && e.message === "NEXT_REDIRECT",
 }));
 
-// Mock auth — return a valid session by default
-vi.mock("@/lib/auth", () => ({
-  auth: vi.fn().mockResolvedValue({ user: { id: "test-user-001" } }),
+// requireUser revalidates status in the DB; an APPROVED user by default
+const requireUserMock = vi.fn();
+vi.mock("@/lib/action-auth", () => ({
+  requireUser: () => requireUserMock(),
 }));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -47,6 +42,7 @@ describe("runAgentOSImport", () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
+    requireUserMock.mockResolvedValue("test-user-001");
     process.env.AGENTOS_URL = AGENTOS_URL;
     process.env.AGENTOS_API_KEY = AGENTOS_KEY;
   });
@@ -125,6 +121,27 @@ describe("runAgentOSImport", () => {
     await expect(runAgentOSImport("some content")).rejects.toThrow(
       "no devolvió un JSON válido",
     );
+  });
+
+  it("rejects a PENDING or DENIED user without calling AgentOS", async () => {
+    requireUserMock.mockRejectedValue(new Error("NEXT_REDIRECT"));
+    const fetchMock = mockFetch(200, { output: JSON.stringify(VALID_PAYLOAD) });
+    global.fetch = fetchMock;
+    const { runAgentOSImport } = await import("@/actions/agentos");
+    await expect(runAgentOSImport("some content")).rejects.toThrow("NEXT_REDIRECT");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects content over 200,000 characters without calling AgentOS", async () => {
+    const fetchMock = mockFetch(200, { output: JSON.stringify(VALID_PAYLOAD) });
+    global.fetch = fetchMock;
+    const { runAgentOSImport } = await import("@/actions/agentos");
+    await expect(runAgentOSImport("a".repeat(200_001))).rejects.toThrow(
+      "demasiado largo",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    await runAgentOSImport("a".repeat(200_000));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("throws when env vars are missing", async () => {

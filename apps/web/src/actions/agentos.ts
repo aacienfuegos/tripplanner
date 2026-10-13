@@ -1,7 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/action-auth";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { generateImportSystemPrompt, generateImportUserMessage, importPayloadSchema, ImportPayload } from "@tripplanner/shared";
 
@@ -20,6 +19,10 @@ function extractJson(raw: string): string {
   return raw.trim();
 }
 
+// serverActions.bodySizeLimit is 50mb for the Diving Log import; each call here
+// costs a model run, so cap what reaches AgentOS well below that.
+const MAX_CONTENT_CHARS = 200_000;
+
 function agentosErrorMessage(status: number): string {
   if (status === 401 || status === 403)
     return "La API key de AgentOS no es válida o ha sido revocada.";
@@ -35,11 +38,16 @@ export async function runAgentOSImport(
   options?: { tripStartDate?: string; tripEndDate?: string },
 ): Promise<ImportPayload> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) redirect("/auth/signin");
+    await requireUser();
   } catch (e) {
     if (isRedirectError(e)) throw e;
     throw new Error("Error de autenticación.");
+  }
+
+  if (content.length > MAX_CONTENT_CHARS) {
+    throw new Error(
+      "El contenido es demasiado largo (máximo 200.000 caracteres). Recórtalo o usa el modo manual.",
+    );
   }
 
   const agentosUrl = process.env.AGENTOS_URL;
