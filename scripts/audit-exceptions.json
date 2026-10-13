@@ -1,0 +1,14 @@
+[
+  {
+    "id": "GHSA-vfj7-8cjw-p6xm",
+    "package": "braces",
+    "expires": "2027-01-04",
+    "reason": "Sin versión corregida (<=3.0.3) y el mantenedor rechaza el CVE (micromatch/braces#70). Llega por metro, Expo, tailwindcss 3, shadcn, ts-morph y patch-package; los patrones vienen de la configuración del repo, nunca de un usuario."
+  },
+  {
+    "id": "GHSA-86w9-cpqp-85rv",
+    "package": "node-forge",
+    "expires": "2027-01-04",
+    "reason": "Sin versión corregida (<=1.4.0); el fix está en digitalbazaar/forge#1152, sin publicar. Solo lo trae @expo/cli, herramienta de desarrollo de Android; no está en la imagen web y apps/android no usa code signing de Expo."
+  }
+]
