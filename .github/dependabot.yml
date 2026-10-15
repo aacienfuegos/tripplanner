@@ -7,9 +7,48 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    # Las versiones que fija el SDK de Expo (node_modules/expo/bundledNativeModules.json)
+    # se suben con `npx expo install --fix` al cambiar de SDK: un PR de Dependabot que se
+    # salga de ellas no se puede mergear (#347, #351, #353). Con `target-branch`, estos
+    # `ignore` no afectan a las actualizaciones de seguridad, que van a `main`.
+    ignore:
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-gesture-handler"
+      - dependency-name: "react-native-reanimated"
+      - dependency-name: "react-native-safe-area-context"
+      - dependency-name: "react-native-screens"
+      - dependency-name: "react-native-svg"
+      - dependency-name: "react-native-web"
+      - dependency-name: "react-native-webview"
+      - dependency-name: "react-native-worklets"
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@react-native-community/datetimepicker"
+      # Dentro del SDK solo entran parches: el major o el minor de expo-* es otro SDK.
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@expo/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "babel-preset-expo"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    # Un PR por grupo. Cada dependencia va al primer grupo que la incluye; los
+    # majors que no caen en prisma, next o expo siguen yendo en PR sueltos.
+    groups:
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+      next:
+        patterns: ["next", "@next/*", "eslint-config-next"]
+      expo:
+        patterns: ["expo", "expo-*", "@expo/*", "babel-preset-expo"]
+      menores-y-parches:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/apps/web"
     target-branch: "develop"
     schedule:
       interval: "weekly"
