@@ -7,6 +7,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    # Una versión publicada hace menos de 7 días no entra: da margen a que se
+    # retire un paquete comprometido. No afecta a las actualizaciones de seguridad.
+    cooldown:
+      default-days: 7
     # Las versiones que fija el SDK de Expo (node_modules/expo/bundledNativeModules.json)
     # se suben con `npx expo install --fix` al cambiar de SDK: un PR de Dependabot que se
     # salga de ellas no se puede mergear (#347, #351, #353). Con `target-branch`, estos
@@ -53,6 +57,12 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    cooldown:
+      default-days: 7
+    groups:
+      imagenes:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -60,3 +70,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    cooldown:
+      default-days: 7
+    groups:
+      acciones:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
