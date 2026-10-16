@@ -1,3 +1,6 @@
+# Todo el repo es de Andrés. La revisión del code owner solo se exige donde la pida un ruleset (main).
+* @aacienfuegos
+
 # Cambiar el gate de npm audit, sus excepciones o la configuración de npm exige la aprobación de Andrés (ruleset de develop y main)
 /.github/ @aacienfuegos
 /scripts/npm-audit.mjs @aacienfuegos
