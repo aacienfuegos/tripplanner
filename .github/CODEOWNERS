@@ -11,6 +11,7 @@ AGENTS.md @aacienfuegos
 .husky/ @aacienfuegos
 .githooks/ @aacienfuegos
 .envrc @aacienfuegos
+.env @aacienfuegos
 .vscode/ @aacienfuegos
 
 # Gate de npm audit, sus excepciones y la configuración de npm
