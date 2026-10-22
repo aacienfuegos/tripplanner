@@ -8,13 +8,14 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { ApiTokensCard, type ApiTokenStatus } from "@/components/profile/api-tokens-card";
 import { getT } from "@/lib/locale";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const [t, user] = await Promise.all([
+  const [t, user, apiTokens] = await Promise.all([
     getT(),
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -28,11 +29,48 @@ export default async function ProfilePage() {
         _count: { select: { trips: true } },
       },
     }),
+    prisma.apiToken.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        prefix: true,
+        scopes: true,
+        expiresAt: true,
+        revokedAt: true,
+        lastUsedAt: true,
+        createdAt: true,
+        usage: {
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            id: true,
+            method: true,
+            path: true,
+            status: true,
+            fields: true,
+            resourceId: true,
+            createdAt: true,
+          },
+        },
+      },
+    }),
   ]);
 
   if (!user) redirect("/auth/signin");
 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
+
+  const now = new Date();
+  const tokenViews = apiTokens.map(({ revokedAt, ...token }) => {
+    const status: ApiTokenStatus = revokedAt
+      ? "revoked"
+      : token.expiresAt && token.expiresAt <= now
+        ? "expired"
+        : "active";
+    return { ...token, status };
+  });
 
   const initials = user.name
     ? user.name.trim().split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -81,6 +119,8 @@ export default async function ProfilePage() {
           />
         </div>
       </div>
+
+      <ApiTokensCard tokens={tokenViews} />
     </div>
   );
 }
