@@ -29,6 +29,12 @@ recoge solo lo que no está allí y sale del código.
   `@formatjs` al arrancar (`apps/android/app/_layout.tsx`) porque Hermes no los trae.
 - **Datos de prueba en Android.** En desarrollo (`__DEV__`) se vuelve a sembrar un dataset en cada
   arranque (`apps/android/app/_layout.tsx`, `apps/android/src/db/seed.ts`).
+- **La imagen de ejecución no lleva toolchain.** En `apps/web/Dockerfile`, `python3`, `make` y `g++`
+  solo están en `base`, para las etapas de build (`builder` y `prod-deps`); `runner` sale de
+  `runtime-base`, sin ellos, y carga `better-sqlite3` y `sharp` durante el build para que un addon
+  roto pare el build y no el arranque. La capa de `apk upgrade` de `runtime-base` se reconstruye en
+  cada build (`no-cache-filters` en los workflows de deploy) para que los arreglos de Alpine entren
+  sin esperar a una imagen base nueva. No se debe volver a poner `runner` sobre `base`.
 
 ## Integraciones externas
 
