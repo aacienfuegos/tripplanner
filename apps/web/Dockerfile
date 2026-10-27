@@ -1,7 +1,8 @@
 FROM node:26-alpine AS base
-# python3/make/g++: better-sqlite3 (import de Diving Log, #169) trae binarios
-# precompilados pero npm igualmente invoca node-gyp en el install de este
-# paquete concreto — sin esto, npm ci falla en las stages builder/prod-deps.
+# python3/make/g++: solo para las etapas de build (builder y prod-deps).
+# better-sqlite3 (import de Diving Log, #169) trae binarios precompilados pero
+# npm igualmente invoca node-gyp en el install de este paquete concreto — sin
+# esto, npm ci falla. La etapa de ejecución sale de runtime-base, sin toolchain.
 RUN apk upgrade --no-cache && apk add --no-cache libc6-compat python3 make g++
 
 # ── Build stage ──────────────────────────────────────────────────────────────
@@ -39,8 +40,13 @@ COPY apps/web/package.json ./apps/web/
 RUN npm ci --omit=dev
 
 # ── Runtime stage ────────────────────────────────────────────────────────────
+# Sin python3/make/g++: nada compila en ejecución, y python3 arrastra libexpat y
+# otros paquetes que el gate de Trivy acaba encontrando con CVE.
+FROM node:26-alpine AS runtime-base
+RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
+
 # WORKDIR inside apps/web so next start, prisma, etc. resolve correctly
-FROM base AS runner
+FROM runtime-base AS runner
 WORKDIR /app/apps/web
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -61,6 +67,10 @@ RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 # in "dependencies" instead of devDependencies. tsx stays a devDependency: it
 # only backs `prisma db seed`, which this image never runs.
 COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules /app/node_modules
+# Los addons nativos se instalaron en prod-deps, que tiene más paquetes del
+# sistema: si aquí les falta una biblioteca, el build falla antes del push y no
+# al arrancar en staging.
+RUN node -e "new (require('better-sqlite3'))(':memory:').close(); require('sharp')"
 
 # The generated Prisma Client (query engine binary included) must match what
 # `next build` was compiled against — copy it from the builder instead of
