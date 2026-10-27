@@ -9,7 +9,7 @@
     "id": "GHSA-mrhx-c7xc-m3w5",
     "package": "zod",
     "expires": "2027-01-22",
-    "reason": "Sin versión corregida en 3.x (el aviso cubre <4.6.6). Solo quedan las copias 3.25.76 anidadas en @expo/cli (todas sus versiones piden ^3.25.76) y en shadcn 4.21, dos CLIs de desarrollo que no validan entrada de usuarios de la web. La zod de la raíz, la de la web, Android y packages/shared, va en 4.6.7, y los tres package.json piden ^4.6.7."
+    "reason": "Sin versión corregida en 3.x (el aviso cubre <4.6.6). Solo queda la copia 3.25.76 anidada en @expo/cli (todas sus versiones piden ^3.25.76), CLI de desarrollo que no valida entrada de usuarios de la web. La zod de la raíz, la de la web, Android y packages/shared, va en 4.6.7, y los tres package.json piden ^4.6.7."
   },
   {
     "id": "GHSA-27r3-jxmh-p828",
