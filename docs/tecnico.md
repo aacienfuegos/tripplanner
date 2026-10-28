@@ -35,6 +35,11 @@ recoge solo lo que no está allí y sale del código.
   roto pare el build y no el arranque. La capa de `apk upgrade` de `runtime-base` se reconstruye en
   cada build (`no-cache-filters` en los workflows de deploy) para que los arreglos de Alpine entren
   sin esperar a una imagen base nueva. No se debe volver a poner `runner` sobre `base`.
+- **La imagen de ejecución solo lleva `dependencies`.** `prod-deps` instala con `npm ci --omit=dev`,
+  así que lo que solo usan el build o una CLI de desarrollo va en `devDependencies` de
+  `apps/web/package.json`. `shadcn` es una de esas CLI: en `dependencies` metía en la imagen su
+  árbol (`@modelcontextprotocol/sdk`, `express`, `body-parser`), que el gate de Trivy acaba
+  encontrando con CVE (#393).
 
 ## Integraciones externas
 
