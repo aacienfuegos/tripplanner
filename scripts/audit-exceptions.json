@@ -10,17 +10,5 @@
     "package": "zod",
     "expires": "2027-01-22",
     "reason": "Sin versión corregida en 3.x (el aviso cubre <4.6.6). Solo queda la copia 3.25.76 anidada en @expo/cli (todas sus versiones piden ^3.25.76), CLI de desarrollo que no valida entrada de usuarios de la web. La zod de la raíz, la de la web, Android y packages/shared, va en 4.6.7, y los tres package.json piden ^4.6.7."
-  },
-  {
-    "id": "GHSA-27r3-jxmh-p828",
-    "package": "body-parser",
-    "expires": "2026-11-08",
-    "reason": "Temporal: la versión corregida, 2.4.0, se publicó el 2026-10-22 y no cumple el cooldown de 7 días hasta el 2026-10-29. Solo llega por shadcn -> @modelcontextprotocol/sdk -> express, para el servidor de shadcn mcp, que no se lanza ni en la imagen ni en el CI; ningún código de la web importa express ni body-parser. Se quita al subirlo a 2.4.0."
-  },
-  {
-    "id": "GHSA-834v-8h66-3h79",
-    "package": "happy-dom",
-    "expires": "2026-11-08",
-    "reason": "Temporal: la versión corregida, 21.0.4 (major), se publicó el 2026-10-20 y no cumple el cooldown de 7 días hasta el 2026-10-27. Es el entorno DOM de Vitest en apps/web (devDependency, fuera de la imagen) y solo procesa los componentes y fixtures del repo. Se quita al subirlo a 21."
   }
 ]
