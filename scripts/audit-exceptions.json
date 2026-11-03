@@ -1,9 +1,9 @@
 [
   {
-    "id": "GHSA-86w9-cpqp-85rv",
-    "package": "node-forge",
-    "expires": "2027-01-04",
-    "reason": "Sin versión corregida (<=1.4.0); el fix está en digitalbazaar/forge#1152, sin publicar. Solo lo trae @expo/cli, herramienta de desarrollo de Android; no está en la imagen web y apps/android no usa code signing de Expo."
+    "id": "GHSA-qr28-fpjm-wq7f",
+    "package": "decode-uri-component",
+    "expires": "2027-01-31",
+    "reason": "Sin versión corregida utilizable: la 0.5.1 corrige el aviso, pero desde la 0.3 el paquete es solo ESM y query-string 7.1.3 lo carga con require() y pide ^0.2.2. Solo lo trae query-string <- expo-router (todas las 57.x piden query-string ^7.1.3), en la app Android, donde parsea la query de las rutas y de los enlaces tripplanner:// y sub://. Ningún código de la web ni de packages/shared lo carga. El impacto es de disponibilidad: un enlace manipulado de cientos de KB que abre el propio usuario puede dejar la app sin responder un rato, sin acceso a datos. Se quita al subir a Expo SDK 58: expo-router 58.0.13 y posteriores ya no dependen de query-string."
   },
   {
     "id": "GHSA-mrhx-c7xc-m3w5",
