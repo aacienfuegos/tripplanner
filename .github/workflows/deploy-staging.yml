@@ -79,6 +79,7 @@ jobs:
           tags: ghcr.io/aacienfuegos/tripplanner:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          no-cache-filters: runtime-base
 
       - name: Instalar Trivy v0.71.0
         run: |
