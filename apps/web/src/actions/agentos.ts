@@ -1,8 +1,8 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/action-auth";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { z } from "zod";
 import { generateImportSystemPrompt, generateImportUserMessage, importPayloadSchema, ImportPayload } from "@tripplanner/shared";
 
 // Extracts a JSON object from Claude's output, which may contain explanatory text,
@@ -20,6 +20,21 @@ function extractJson(raw: string): string {
   return raw.trim();
 }
 
+// serverActions.bodySizeLimit is 50mb for the Diving Log import; each call here
+// costs a model run, so cap what reaches AgentOS well below that.
+const MAX_CONTENT_CHARS = 200_000;
+
+// Server action arguments arrive unvalidated: an array would pass a .length check.
+const inputSchema = z.object({
+  content: z.string().max(MAX_CONTENT_CHARS),
+  options: z
+    .object({
+      tripStartDate: z.string().max(40).optional(),
+      tripEndDate: z.string().max(40).optional(),
+    })
+    .optional(),
+});
+
 function agentosErrorMessage(status: number): string {
   if (status === 401 || status === 403)
     return "La API key de AgentOS no es válida o ha sido revocada.";
@@ -35,11 +50,23 @@ export async function runAgentOSImport(
   options?: { tripStartDate?: string; tripEndDate?: string },
 ): Promise<ImportPayload> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) redirect("/auth/signin");
+    await requireUser();
   } catch (e) {
     if (isRedirectError(e)) throw e;
+    console.error("runAgentOSImport: requireUser falló", e);
     throw new Error("Error de autenticación.");
+  }
+
+  const input = inputSchema.safeParse({ content, options });
+  if (!input.success) {
+    const tooLong = input.error.issues.some(
+      (i) => i.code === "too_big" && i.path[0] === "content",
+    );
+    throw new Error(
+      tooLong
+        ? "El contenido es demasiado largo (máximo 200.000 caracteres). Recórtalo o usa el modo manual."
+        : "Entrada no válida.",
+    );
   }
 
   const agentosUrl = process.env.AGENTOS_URL;
@@ -49,7 +76,7 @@ export async function runAgentOSImport(
   }
 
   const systemPrompt = generateImportSystemPrompt();
-  const userMessage = generateImportUserMessage(content, options);
+  const userMessage = generateImportUserMessage(input.data.content, input.data.options);
 
   let res: Response;
   try {
