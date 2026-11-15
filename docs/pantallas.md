@@ -148,8 +148,8 @@ apariencia, idioma, interruptor para simular Pro solo en desarrollo e informaci�
 
 ## Diferencias
 
-- La web tiene destinos, vídeos de inmersión, importación de Diving Log, importación vía AgentOS,
-  perfil, administración y pantallas de autenticación; Android no.
+- La web tiene destinos, vídeos de inmersión, importación de Diving Log, perfil, administración y
+  pantallas de autenticación; Android no.
 - Android tiene ajustes con plan gratuito o Pro y bloqueo de viajes; la web no tiene límites.
 - Android permite borrar un viaje desde la lista; la web no tiene esa acción en la interfaz.
 - Navegación del viaje: en la web, cuatro secciones más un desplegable "Más" en la cabecera; en
