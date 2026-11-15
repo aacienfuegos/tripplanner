@@ -10,12 +10,10 @@ export function PromptStep({
   tripStartDate,
   tripEndDate,
   onNext,
-  onSwitchToAuto,
 }: {
   tripStartDate?: string;
   tripEndDate?: string;
   onNext: () => void;
-  onSwitchToAuto?: () => void;
 }) {
   const { t } = useT();
   const [copied, setCopied] = useState(false);
@@ -60,18 +58,7 @@ export function PromptStep({
         </Button>
       </div>
 
-      <div className="flex justify-between items-center pt-2 border-t">
-        {onSwitchToAuto ? (
-          <button
-            type="button"
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
-            onClick={onSwitchToAuto}
-          >
-            {t.useAutoMode}
-          </button>
-        ) : (
-          <span />
-        )}
+      <div className="flex justify-end items-center pt-2 border-t">
         <Button size="sm" onClick={onNext}>
           {t.haveResponse}
         </Button>
