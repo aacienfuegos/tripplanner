@@ -103,10 +103,8 @@ shadcn de `CLAUDE.md`):
 `apps/web/src/components/layout/`: `navbar.tsx` (barra superior y barra inferior móvil),
 `section-header.tsx` (miga de pan, título con icono y navegación del viaje),
 `theme-provider.tsx`, `theme-toggle.tsx`, `language-toggle.tsx` y `ClientProviders.tsx`
-(idioma y estado de la importación en curso, con su indicador flotante
-`apps/web/src/components/import/ImportStatusFloat.tsx`). Fuera de `ui/`,
-`apps/web/src/components/trips/trip-status-badge.tsx` mapea el estado del viaje a una variante de
-`Badge`.
+(idioma). Fuera de `ui/`, `apps/web/src/components/trips/trip-status-badge.tsx` mapea el estado
+del viaje a una variante de `Badge`.
 
 ### Iconos
 

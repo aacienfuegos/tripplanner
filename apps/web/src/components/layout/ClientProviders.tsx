@@ -1,7 +1,5 @@
 "use client";
 
-import { ImportJobProvider } from "@/lib/import-job-context";
-import { ImportStatusFloat } from "@/components/import/ImportStatusFloat";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import type { WebLocale } from "@/i18n";
 
@@ -14,10 +12,7 @@ export function ClientProviders({
 }) {
   return (
     <LanguageProvider initialLocale={initialLocale}>
-      <ImportJobProvider>
-        {children}
-        <ImportStatusFloat />
-      </ImportJobProvider>
+      {children}
     </LanguageProvider>
   );
 }
