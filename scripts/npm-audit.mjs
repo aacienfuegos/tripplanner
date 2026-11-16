@@ -9,6 +9,10 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const NPM_NAME = /^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-zA-Z0-9][a-zA-Z0-9._~-]*$/;
 const MAX_DAYS = 90;
+const REGISTRY = "https://registry.npmjs.org";
+const INSTALL_SCRIPTS = ["preinstall", "install", "postinstall"];
+const EDGES = ["dependencies", "optionalDependencies", "peerDependencies"];
+const CONCURRENCY = 16;
 
 const today = new Date().toISOString().slice(0, 10);
 const maxExpires = new Date(Date.now() + MAX_DAYS * 86400000).toISOString().slice(0, 10);
@@ -44,7 +48,74 @@ function loadExceptions() {
   return exceptions;
 }
 
-function checkLockfile() {
+const depMap = (v) => (isObject(v) ? v : {});
+const sameDeps = (a, b) =>
+  Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((k) => Object.hasOwn(b, k) && a[k] === b[k]);
+
+async function fetchManifest(name, version) {
+  const url = `${REGISTRY}/${name.replace("/", "%2F")}/${version}`;
+  let reason = "";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      if (res.ok) return parseJson(await res.text());
+      reason = `HTTP ${res.status}`;
+      if (res.status < 500 && res.status !== 429) break;
+    } catch (e) {
+      reason = e instanceof Error ? e.message : String(e);
+    }
+  }
+  throw new Error(`${url}: ${reason}`);
+}
+
+function edgeProblems({ key, name, entry }, manifest) {
+  const label = `${name}@${entry.version}`;
+  if (!isObject(manifest) || manifest.name !== name || manifest.version !== entry.version) {
+    return [`${key}: el registry no devuelve el manifiesto de ${label}`];
+  }
+  // npm quita de dependencies las que también están en optionalDependencies al escribir el lockfile.
+  const optional = depMap(manifest.optionalDependencies);
+  const expected = {
+    dependencies: Object.fromEntries(Object.entries(depMap(manifest.dependencies)).filter(([d]) => !Object.hasOwn(optional, d))),
+    optionalDependencies: optional,
+    peerDependencies: depMap(manifest.peerDependencies),
+  };
+  const wrong = EDGES.filter((field) => !sameDeps(depMap(entry[field]), expected[field]));
+  if (wrong.length > 0) return [`${key}: ${wrong.join(", ")} no coincide con el manifiesto publicado de ${label}`];
+  const scripts = depMap(manifest.scripts);
+  if (entry.hasInstallScript && manifest.hasInstallScript !== true && !INSTALL_SCRIPTS.some((s) => Object.hasOwn(scripts, s))) {
+    return [`${key}: hasInstallScript, pero el manifiesto publicado de ${label} no tiene ${INSTALL_SCRIPTS.join(", ")}`];
+  }
+  return [];
+}
+
+// npm ci monta el árbol con las aristas del lockfile, no con el package.json del tarball: se cruzan con el manifiesto
+// publicado de cada name@version. Las de la raíz no, porque npm ci ya las compara con package.json.
+async function checkEdges(entries) {
+  const i = process.argv.indexOf("--manifests");
+  const local = i === -1 ? undefined : parseJson(readFileSync(process.argv[i + 1], "utf8"));
+  if (i !== -1 && !isObject(local)) fail("manifiestos inválidos", ["--manifests no es un objeto JSON"]);
+  const manifest = async (name, version) => {
+    if (!local) return fetchManifest(name, version);
+    if (!Object.hasOwn(local, `${name}@${version}`)) throw new Error(`${name}@${version} no está en --manifests`);
+    return local[`${name}@${version}`];
+  };
+  const queue = [...entries];
+  const problems = [];
+  const worker = async () => {
+    for (let next = queue.shift(); next; next = queue.shift()) {
+      try {
+        problems.push(...edgeProblems(next, await manifest(next.name, next.entry.version)));
+      } catch (e) {
+        problems.push(`${next.key}: no se pudo leer el manifiesto publicado (${e instanceof Error ? e.message : String(e)})`);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  if (problems.length > 0) fail("lockfile inesperado", problems.sort());
+}
+
+async function checkLockfile() {
   if (existsSync("npm-shrinkwrap.json")) {
     fail("lockfile inesperado", ["npm-shrinkwrap.json: npm lo usaría en lugar de package-lock.json"]);
   }
@@ -59,6 +130,7 @@ function checkLockfile() {
   const isWorkspace = (dir) =>
     !dir.split("/").some((s) => ["", ".", "..", "node_modules"].includes(s)) &&
     workspaces.some((w) => w === dir || (w.endsWith("/*") && dir.startsWith(w.slice(0, -1)) && !dir.slice(w.length - 1).includes("/")));
+  const fromRegistry = [];
   const problems = Object.entries(lock.packages).flatMap(([key, entry]) => {
     if (!key.includes("node_modules/")) return [];
     if (!isObject(entry)) return [`${key}: no es un objeto`];
@@ -85,9 +157,16 @@ function checkLockfile() {
     if ("name" in entry && entry.name !== name) return [`${key}: name ${entry.name} no coincide con la clave`];
     if (entry.resolved !== resolved) return [`${key}: resolved ${entry.resolved} no es ${resolved}`];
     if (new URL(resolved).href !== resolved) return [`${key}: resolved cambia al normalizar la URL`];
+    // Arborist saca aristas de un array o un string con Object.entries: si no, checkEdges los compararía como vacíos.
+    const malformed = EDGES.filter(
+      (f) => Object.hasOwn(entry, f) && !(isObject(entry[f]) && Object.values(entry[f]).every((r) => typeof r === "string")),
+    );
+    if (malformed.length > 0) return [`${key}: ${malformed.join(", ")} no es un objeto de nombre y rango`];
+    fromRegistry.push({ key, name, entry });
     return [];
   });
   if (problems.length > 0) fail("lockfile inesperado", problems);
+  await checkEdges(fromRegistry);
 }
 
 function loadReport() {
@@ -149,7 +228,7 @@ function parseReport(report) {
 }
 
 const exceptions = loadExceptions();
-checkLockfile();
+await checkLockfile();
 const { counts, advisories } = parseReport(loadReport());
 
 const errors = [];
