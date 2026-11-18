@@ -43,7 +43,11 @@ recoge solo lo que no está allí y sale del código.
 - **El gate de `npm audit` necesita red.** `scripts/npm-audit.mjs` cruza cada entrada del lockfile
   que no es un workspace con su manifiesto de `registry.npmjs.org` (aristas y `hasInstallScript`),
   porque `npm ci` monta el árbol con lo que dice el lockfile. Si el registry no responde, falla
-  cerrado (#430).
+  cerrado (#430). Las entradas `inBundle`, que npm escribe sin `resolved` ni `integrity`, se
+  comprueban contra el tarball de su paquete padre: el gate lo descarga, lo verifica con la
+  `integrity` del padre y exige que cada una esté dentro con su `name`, su `version` y sus aristas.
+  El gate solo ve los empaquetados que lista el lockfile: lo que trae un tarball sin entrada en el
+  lockfile lo instala npm sin que el gate ni `npm audit` lo vean.
 
 ## Integraciones externas
 
