@@ -57,10 +57,6 @@ Fuente: `apps/web/src/app/(app)/trips/` y `apps/web/src/actions/`.
   sube o pega el JSON resultante, que se revisa antes de importar
   (`apps/web/src/components/import/ImportWizard.tsx`, `PromptStep.tsx`, `UploadStep.tsx`,
   `ReviewStep.tsx`; prompt en `packages/shared/import-prompt.ts`).
-- Modo automático en dos pasos vía AgentOS, solo si está configurado: el usuario pega texto o sube
-  un PDF y el servidor llama a AgentOS (`apps/web/src/components/import/AutoImportStep.tsx`,
-  `apps/web/src/actions/agentos.ts`). Si AgentOS no está configurado, el asistente arranca en modo
-  manual (`ImportWizard.tsx`, estado `mode`).
 - Detección de duplicados y alta en bloque (`apps/web/src/actions/import.ts`).
 
 ### Buceo (web)
@@ -95,8 +91,7 @@ Fuente: `apps/web/src/app/(app)/dives/` y `apps/web/src/actions/dive*.ts`.
   en modo manual de tres pasos (`apps/android/src/components/import/`); ajustes de tema, idioma y
   plan (`apps/android/app/settings.tsx`).
 - No hay: cuenta ni autenticación; destinos como sección (no existe tabla, ver `docs/datos.md`);
-  importación vía AgentOS; importación de Diving Log; vídeos de inmersión; panel de
-  administración.
+  importación de Diving Log; vídeos de inmersión; panel de administración.
 - Límite gratuito: un viaje (`FREE_TRIP_LIMIT` en `apps/android/src/lib/pro-limits.ts`). Con más,
   los viajes más antiguos quedan bloqueados para edición (`isTripLocked` en
   `apps/android/src/db/trips.ts`, `apps/android/src/contexts/TripLockContext.tsx`). La compra de

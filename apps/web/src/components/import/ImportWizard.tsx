@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,21 +9,15 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ImportPayload } from "@tripplanner/shared";
-import { useImportJob } from "@/lib/import-job-context";
 import { PromptStep } from "./PromptStep";
 import { UploadStep } from "./UploadStep";
 import { ReviewStep } from "./ReviewStep";
-import { AutoImportStep } from "./AutoImportStep";
 import { useT } from "@/contexts/LanguageContext";
 import type { WebTKeys } from "@/i18n";
 
 type Step = 1 | 2 | 3;
-type Mode = "auto" | "manual";
 
-function stepLabel(step: Step, mode: Mode, t: WebTKeys): string {
-  if (mode === "auto") {
-    return step === 1 ? t.importStepAuto1 : t.importStepAuto2;
-  }
+function stepLabel(step: Step, t: WebTKeys): string {
   const labels: Record<Step, string> = {
     1: t.importStepManual1,
     2: t.importStepManual2,
@@ -38,43 +32,20 @@ export function ImportWizard({
   tripEndDate,
   open,
   onOpenChange,
-  agentosEnabled = false,
-  initialPayload,
 }: {
   tripId: string;
   tripStartDate?: string;
   tripEndDate?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  agentosEnabled?: boolean;
-  initialPayload?: ImportPayload | null;
 }) {
   const { t } = useT();
   const [step, setStep] = useState<Step>(1);
-  const [mode, setMode] = useState<Mode>(agentosEnabled ? "auto" : "manual");
   const [payload, setPayload] = useState<ImportPayload | null>(null);
-  const { status: jobStatus, tripId: jobTripId, consumePayload } = useImportJob();
-
-  // When the background import finishes while the dialog is open, advance to ReviewStep.
-  useEffect(() => {
-    if (open && jobStatus === "done" && jobTripId === tripId) {
-      const p = consumePayload();
-      if (p) { setPayload(p); setStep(3); }
-    }
-  }, [open, jobStatus, jobTripId, tripId, consumePayload]);
-
-  // When opening with a pre-loaded payload (from background import via float), jump to review.
-  useEffect(() => {
-    if (open && initialPayload) {
-      setStep(3);
-      setPayload(initialPayload);
-    }
-  }, [open, initialPayload]);
 
   const reset = () => {
     setStep(1);
     setPayload(null);
-    setMode(agentosEnabled ? "auto" : "manual");
   };
 
   const handleOpenChange = (o: boolean) => {
@@ -82,46 +53,31 @@ export function ImportWizard({
     onOpenChange(o);
   };
 
-  const switchToManual = () => { setMode("manual"); setStep(1); };
-  const switchToAuto   = () => { setMode("auto");   setStep(1); };
-
-  const totalSteps = mode === "auto" ? 2 : 3;
-  const visualStep = mode === "auto" && step === 3 ? 2 : step;
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden gap-3">
         <DialogHeader>
           <DialogTitle>{t.importAI}</DialogTitle>
-          <DialogDescription>{stepLabel(step, mode, t)}</DialogDescription>
+          <DialogDescription>{stepLabel(step, t)}</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-1.5">
-          {Array.from({ length: totalSteps }, (_, i) => (
+          {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-colors ${
-                i + 1 <= visualStep ? "bg-primary" : "bg-muted"
+                i + 1 <= step ? "bg-primary" : "bg-muted"
               }`}
             />
           ))}
         </div>
 
         <div className="flex-1 overflow-y-auto pr-1">
-          {step === 1 && mode === "auto" && (
-            <AutoImportStep
-              tripId={tripId}
-              tripStartDate={tripStartDate}
-              tripEndDate={tripEndDate}
-              onSwitchToManual={switchToManual}
-            />
-          )}
-          {step === 1 && mode === "manual" && (
+          {step === 1 && (
             <PromptStep
               tripStartDate={tripStartDate}
               tripEndDate={tripEndDate}
               onNext={() => setStep(2)}
-              onSwitchToAuto={agentosEnabled ? switchToAuto : undefined}
             />
           )}
           {step === 2 && (
@@ -134,7 +90,7 @@ export function ImportWizard({
             <ReviewStep
               tripId={tripId}
               payload={payload}
-              onBack={() => (mode === "auto" ? setStep(1) : setStep(2))}
+              onBack={() => setStep(2)}
               onDone={() => handleOpenChange(false)}
             />
           )}

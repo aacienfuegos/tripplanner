@@ -40,6 +40,10 @@ recoge solo lo que no está allí y sale del código.
   `apps/web/package.json`. `shadcn` es una de esas CLI: en `dependencies` metía en la imagen su
   árbol (`@modelcontextprotocol/sdk`, `express`, `body-parser`), que el gate de Trivy acaba
   encontrando con CVE (#393).
+- **El gate de `npm audit` necesita red.** `scripts/npm-audit.mjs` cruza cada entrada del lockfile
+  que no es un workspace con su manifiesto de `registry.npmjs.org` (aristas y `hasInstallScript`),
+  porque `npm ci` monta el árbol con lo que dice el lockfile. Si el registry no responde, falla
+  cerrado (#430).
 
 ## Integraciones externas
 
@@ -52,7 +56,6 @@ Variables de entorno solo por nombre. Todas las de la web se leen en `apps/web/s
 | Enlace por email (Resend) | `apps/web/src/lib/auth.ts` | `RESEND_API_KEY`, `EMAIL_FROM` | Sin `RESEND_API_KEY` no hay login por email ni aviso al administrador de altas nuevas; `EMAIL_FROM` tiene un valor por defecto en el código |
 | Aviso de alta al administrador | `apps/web/src/lib/auth.ts`, `notifyAdmin` | `ADMIN_EMAIL`, `AUTH_URL` | Sin `ADMIN_EMAIL` no se envía el aviso ni hay administrador automático; `AUTH_URL` solo forma el enlace del email y tiene valor por defecto |
 | Login de desarrollo | `apps/web/src/lib/auth.ts` | `DEV_ADMIN_EMAIL`, `DEV_ADMIN_PASSWORD`, `ALLOW_DEV_LOGIN` | Sin las dos primeras el proveedor no existe; en producción, además, hace falta `ALLOW_DEV_LOGIN` |
-| AgentOS (importación automática) | `apps/web/src/actions/agentos.ts`, `apps/web/src/app/(app)/trips/[tripId]/page.tsx` | `AGENTOS_URL`, `AGENTOS_API_KEY` | El asistente solo ofrece el modo manual; la acción lanza "AgentOS no está configurado en este entorno" |
 | Biblioteca de vídeos y Jellyfin | `apps/web/src/lib/media-config.ts`, `apps/web/src/lib/jellyfin.ts` | `MEDIA_LIBRARY_PATH`, `JELLYFIN_URL`, `JELLYFIN_LIBRARY_PATH` | Sin las dos primeras no hay biblioteca: la pestaña de vídeos no aparece; `JELLYFIN_LIBRARY_PATH` es opcional |
 | Mapas y teselas | Web: `apps/web/src/components/map/`, `apps/web/src/components/dives/DiveSitesMapView.tsx`; Android: `apps/android/app/trips/[id]/map.tsx`, `apps/android/src/components/DiveSitesMapModal.tsx` | Ninguna | Teselas de OpenFreeMap (orígenes en `connect-src` de `apps/web/src/proxy.ts`). En Android el mapa es una WebView que carga Leaflet, markercluster y MapLibre desde un CDN público |
 | Geocodificación | `apps/web/src/lib/geocoding.ts`, `apps/android/src/lib/geocode.ts` | Ninguna | Nominatim de OpenStreetMap; si falla, devuelve `null` y el elemento queda sin coordenadas. La web limita el ritmo y cachea en memoria; Android resuelve antes los códigos IATA contra `apps/android/src/lib/data/iata-airports.json` |
@@ -69,7 +72,7 @@ resuelven al compilar (`apps/android/app.config.ts`). Los campos sensibles de la
 
 `packages/shared/index.ts` reexporta cuatro módulos: `currencies.ts` (catálogo de monedas),
 `country-names.ts` (códigos ISO 3166-1 y nombres en español e inglés), `import-schemas.ts`
-(esquemas Zod de la importación) e `import-prompt.ts` (prompts manual y de AgentOS). Lo importan
+(esquemas Zod de la importación) e `import-prompt.ts` (prompt del modo manual). Lo importan
 las dos apps como `@tripplanner/shared`: un cambio aquí afecta a la web y a Android a la vez, y la
 base de datos de Android depende de `country-names.ts` en su migración 7
 (`apps/android/src/db/database.ts`).

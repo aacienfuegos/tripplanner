@@ -506,7 +506,7 @@ Corolario: si algo entra directo en `main` (hotfix, cherry-pick), devolverlo a
 | Archivo | Propósito |
 |---|---|
 | `packages/shared/import-schemas.ts` | Zod schemas para las 6 secciones. **Fuente de verdad** |
-| `packages/shared/import-prompt.ts` | Genera el prompt. `generateImportPrompt()` (manual) y `generateImportSystemPrompt()` / `generateImportUserMessage()` (AgentOS) |
+| `packages/shared/import-prompt.ts` | Genera el prompt del modo manual con `generateImportPrompt()` |
 | `apps/web/src/actions/import.ts` | `bulkImport` + `checkDuplicates` con Prisma |
 | `apps/web/src/components/import/ReviewStep.tsx` | Paso 3: tabs por sección, checkboxes, badge "Duplicado" |
 
