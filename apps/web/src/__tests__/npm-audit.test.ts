@@ -166,7 +166,7 @@ function gate(cambiar: (p: Lock["packages"]) => void, opciones: Opciones = {}) {
   } else {
     args.push("--manifests", "manifiestos.json");
   }
-  const env = opciones.sinTar ? { PATH: join(dir, "sin-tar") } : process.env;
+  const env = opciones.sinTar ? { ...process.env, PATH: join(dir, "sin-tar") } : process.env;
   const run = spawnSync(process.execPath, args, { cwd: dir, encoding: "utf8", env });
   const log = join(dir, "peticiones.log");
   const peticiones = existsSync(log) ? readFileSync(log, "utf8").split("\n").filter((u) => u !== "") : [];
