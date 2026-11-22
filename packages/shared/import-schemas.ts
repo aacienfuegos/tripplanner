@@ -76,6 +76,7 @@ export const importPackingItemSchema = z.object({
   name: z.string().min(1),
   category: z.string().min(1),
   quantity: z.number().int().positive().default(1),
+  suitcase: z.string().trim().nullish(),
 });
 
 export const importDocumentSchema = z.object({
