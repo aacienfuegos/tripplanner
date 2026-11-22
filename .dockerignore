@@ -15,3 +15,7 @@ tsconfig.tsbuildinfo
 .claude
 # Android app is not needed in the web Docker build
 apps/android
+# Salidas de Playwright (pruebas e2e)
+apps/web/playwright-report
+apps/web/test-results
+apps/web/blob-report
