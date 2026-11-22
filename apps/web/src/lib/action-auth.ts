@@ -30,3 +30,11 @@ export async function requireTripOwner(tripId: string) {
   if (!trip || trip.userId !== userId) redirect("/trips");
   return trip;
 }
+
+// requireTripOwner proves the trip is the user's, not that a suitcase id sent
+// with it belongs to that trip. Throws before any write if it doesn't.
+export async function requireSuitcaseInTrip(tripId: string, suitcaseId: string | null) {
+  if (suitcaseId === null) return;
+  const suitcase = await prisma.suitcase.findFirst({ where: { id: suitcaseId, tripId }, select: { id: true } });
+  if (!suitcase) throw new Error("Suitcase not found in this trip");
+}

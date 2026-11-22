@@ -7,6 +7,7 @@ import {
   activitySchema,
   documentSchema,
   packingItemSchema,
+  suitcaseSchema,
   taskSchema,
   profileSchema,
   unitSystemSchema,
@@ -257,12 +258,58 @@ describe("packingItemSchema", () => {
   it("accepts a valid packing item", () => {
     const result = packingItemSchema.safeParse(valid);
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.quantity).toBe("1");
+    if (result.success) expect(result.data).toEqual({ ...valid, quantity: 1, suitcaseId: null });
   });
 
   it("rejects missing category", () => {
     const result = packingItemSchema.safeParse({ ...valid, category: "" });
     expect(result.success).toBe(false);
+  });
+
+  it("reads the quantity from the form string (CA24)", () => {
+    const result = packingItemSchema.safeParse({ ...valid, quantity: "3" });
+    expect(result.success && result.data.quantity).toBe(3);
+  });
+
+  it.each(["0", "-1", "1.5", "", "abc", "10000"])("rejects quantity %j (CA24)", (quantity) => {
+    expect(packingItemSchema.safeParse({ ...valid, quantity }).success).toBe(false);
+  });
+
+  it("rejects a name with only spaces (CA24)", () => {
+    expect(packingItemSchema.safeParse({ ...valid, name: "   " }).success).toBe(false);
+  });
+
+  it("keeps the suitcase id and reads an empty one as no bag (CA5)", () => {
+    const withBag = packingItemSchema.safeParse({ ...valid, suitcaseId: "s-1" });
+    const withoutBag = packingItemSchema.safeParse({ ...valid, suitcaseId: "" });
+    expect(withBag.success && withBag.data.suitcaseId).toBe("s-1");
+    expect(withoutBag.success && withoutBag.data.suitcaseId).toBe(null);
+  });
+});
+
+// ─── Suitcase schema ──────────────────────────────────────────────────────────
+
+describe("suitcaseSchema (CA2)", () => {
+  it("accepts a bag without weight, of type Other by default", () => {
+    const result = suitcaseSchema.safeParse({ name: "Mochila" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toEqual({ name: "Mochila", type: "OTHER", weightGrams: null });
+  });
+
+  it("accepts a weight in grams from 0 to 1000 kg", () => {
+    expect(suitcaseSchema.safeParse({ name: "A", type: "CABIN", weightGrams: 0 }).success).toBe(true);
+    expect(suitcaseSchema.safeParse({ name: "A", type: "CABIN", weightGrams: 1_000_000 }).success).toBe(true);
+  });
+
+  it.each([
+    ["no name", { name: " ", weightGrams: null }],
+    ["a negative weight", { name: "A", weightGrams: -1 }],
+    ["a weight over 1000 kg", { name: "A", weightGrams: 1_000_001 }],
+    ["a fractional weight", { name: "A", weightGrams: 1.5 }],
+    ["a weight that is not a number", { name: "A", weightGrams: "10" }],
+    ["an unknown type", { name: "A", type: "TRUNK" }],
+  ])("rejects %s", (_case, input) => {
+    expect(suitcaseSchema.safeParse(input).success).toBe(false);
   });
 });
 
