@@ -304,7 +304,7 @@ function ItemSummary({ section, item, t }: { section: SectionKey; item: any; t: 
         <div className="text-xs space-y-0.5">
           <p className="font-medium">{item.name}</p>
           <p className="text-muted-foreground">
-            {item.category}{item.quantity > 1 ? ` · ×${item.quantity}` : ""}
+            {item.category}{item.quantity > 1 ? ` · ×${item.quantity}` : ""}{item.suitcase ? ` · ${item.suitcase}` : ""}
           </p>
         </div>
       );
