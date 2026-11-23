@@ -4,7 +4,7 @@ import { loginDevAdmin } from "./support/auth";
 
 const ACTIVITY = "E2E Actividad";
 
-test("viaje: validación, alta, edición y actividad", async ({ page }) => {
+test("viaje: validación, alta, edición, actividad y borrado", async ({ page }) => {
   const suffix = Date.now();
   const tripName = `E2E Viaje ${suffix}`;
   const editedName = `E2E Viaje editado ${suffix}`;
@@ -57,4 +57,11 @@ test("viaje: validación, alta, edición y actividad", async ({ page }) => {
   await activityCard.getByRole("button").last().click();
   await page.getByRole("dialog").getByRole("button", { name: es.delete }).click();
   await expect(page.getByText(ACTIVITY, { exact: true })).toHaveCount(0);
+
+  await page.goto(`${tripPath}/edit`);
+  await page.getByRole("button", { name: es.deleteTrip }).click();
+  await page.getByRole("dialog").getByRole("button", { name: es.delete }).click();
+  await page.waitForURL(/\/trips$/);
+  await expect(page.getByText(editedName, { exact: true })).toHaveCount(0);
+  await expect(tripCards).toHaveCount(tripsBefore);
 });
