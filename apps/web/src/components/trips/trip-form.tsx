@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { createTrip, updateTrip } from "@/actions/trips";
+import { createTrip, deleteTrip, updateTrip } from "@/actions/trips";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Trip } from "@/types";
 import { format } from "date-fns";
 import { useT } from "@/contexts/LanguageContext";
@@ -24,6 +25,7 @@ export function TripForm({ trip }: TripFormProps) {
   const { t } = useT();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -38,6 +40,24 @@ export function TripForm({ trip }: TripFormProps) {
       } catch (error) {
         if (isRedirectError(error)) throw error;
         toast.error(t.toastErrorSaving);
+      }
+    });
+  }
+
+  async function handleDelete(tripId: string) {
+    const ok = await confirm({
+      title: t.confirmDeleteTrip,
+      confirmLabel: t.delete,
+      cancelLabel: t.cancel,
+      destructive: true,
+    });
+    if (!ok) return;
+    startTransition(async () => {
+      try {
+        await deleteTrip(tripId);
+      } catch (error) {
+        if (isRedirectError(error)) throw error;
+        toast.error(t.error);
       }
     });
   }
@@ -125,8 +145,20 @@ export function TripForm({ trip }: TripFormProps) {
             <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isPending}>
               {t.cancel}
             </Button>
+            {trip && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="ml-auto"
+                onClick={() => handleDelete(trip.id)}
+                disabled={isPending}
+              >
+                {t.deleteTrip}
+              </Button>
+            )}
           </div>
         </form>
+        {confirmDialog}
       </CardContent>
     </Card>
   );

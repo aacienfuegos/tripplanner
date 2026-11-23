@@ -104,8 +104,8 @@ Las rutas de OAuth y `/api/mcp` responden 503 si `AUTH_URL` no es una URL `https
   usado en los `*-list.tsx` de `apps/web/src/components/`); crear y editar viaje, perfil y
   onboarding son páginas.
 - Borrado: confirmación con `useConfirmDialog` (`apps/web/src/components/ui/confirm-dialog.tsx`).
-  El viaje no se puede borrar desde ninguna pantalla: la acción `deleteTrip` de
-  `apps/web/src/actions/trips.ts` no se invoca en la interfaz.
+  El viaje se borra desde su página de edición, con el botón "Eliminar viaje" de
+  `apps/web/src/components/trips/trip-form.tsx`, que llama a `deleteTrip` y vuelve a `/trips`.
 - Avisos: toasts de `sonner` (`apps/web/src/components/ui/sonner.tsx`).
 - Vacío: cada lista pinta su propio mensaje cuando no hay elementos; no hay un componente común.
 - Carga: `apps/web/src/components/ui/skeleton.tsx` solo se usa mientras cargan los mapas
@@ -193,7 +193,7 @@ interruptor para simular Pro solo en desarrollo e información de versión.
 - La web tiene destinos, vídeos de inmersión, importación de Diving Log, perfil, administración y
   pantallas de autenticación; Android no.
 - Android tiene ajustes con plan gratuito o Pro y bloqueo de viajes; la web no tiene límites.
-- Android permite borrar un viaje desde la lista; la web no tiene esa acción en la interfaz.
+- Borrar un viaje: en Android, desde la lista; en la web, desde la página de edición.
 - Navegación del viaje: en la web, cuatro secciones más un desplegable "Más" en la cabecera; en
   Android, pestañas inferiores con un resumen ("Inicio") y una hoja "Más". El mapa está en "Más" en la web y en
   iconos de cabecera en Android.
