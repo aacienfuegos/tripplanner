@@ -1,11 +1,15 @@
-import type { Prisma } from "@prisma/client";
+import type { prisma } from "@/lib/prisma";
 import { foldText, resolveSuitcaseNames, type SuitcaseType } from "@tripplanner/shared";
+
+// Derived from the extended client's own $transaction, as in dive-numbering.ts:
+// Prisma.TransactionClient does not match a client built with $extends.
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 // Used by the AI import and by "copy from another trip": reuses the trip's bags
 // whose name matches by foldText and creates the missing ones, without weight.
 // Returns the bag id for each folded name, and how many bags were created.
 export async function ensureSuitcases(
-  tx: Prisma.TransactionClient,
+  tx: TxClient,
   tripId: string,
   wanted: readonly { readonly name: string | null | undefined; readonly type: SuitcaseType }[],
 ): Promise<{ ids: Map<string, string>; created: number }> {
