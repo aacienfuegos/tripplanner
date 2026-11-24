@@ -1,5 +1,6 @@
 // npm audit no admite excepciones: este gate las aplica por GHSA y paquete, con caducidad, y falla cerrado ante un lockfile o un informe que no reconoce.
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 
 const SEVERITIES = ["info", "low", "moderate", "high", "critical"];
@@ -13,6 +14,8 @@ const REGISTRY = "https://registry.npmjs.org";
 const INSTALL_SCRIPTS = ["preinstall", "install", "postinstall"];
 const EDGES = ["dependencies", "optionalDependencies", "peerDependencies"];
 const CONCURRENCY = 16;
+const MAX_BUFFER = 64 * 1024 * 1024;
+const TAR_SEGMENT = /^[A-Za-z0-9._][A-Za-z0-9._-]*$/;
 
 const today = new Date().toISOString().slice(0, 10);
 const maxExpires = new Date(Date.now() + MAX_DAYS * 86400000).toISOString().slice(0, 10);
@@ -52,13 +55,12 @@ const depMap = (v) => (isObject(v) ? v : {});
 const sameDeps = (a, b) =>
   Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((k) => Object.hasOwn(b, k) && a[k] === b[k]);
 
-async function fetchManifest(name, version) {
-  const url = `${REGISTRY}/${name.replace("/", "%2F")}/${version}`;
+async function download(url) {
   let reason = "";
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
-      if (res.ok) return parseJson(await res.text());
+      if (res.status === 200) return Buffer.from(await res.arrayBuffer());
       reason = `HTTP ${res.status}`;
       if (res.status < 500 && res.status !== 429) break;
     } catch (e) {
@@ -68,7 +70,19 @@ async function fetchManifest(name, version) {
   throw new Error(`${url}: ${reason}`);
 }
 
-function edgeProblems({ key, name, entry }, manifest) {
+const fetchManifest = async (name, version) =>
+  parseJson((await download(`${REGISTRY}/${name.replace("/", "%2F")}/${version}`)).toString("utf8"));
+
+// Como @npmcli/package-json: bundledDependencies si falta bundleDependencies; true son las claves de dependencies.
+function bundleNames(manifest) {
+  const bd = manifest.bundleDependencies === undefined ? manifest.bundledDependencies : manifest.bundleDependencies;
+  if (bd === true) return Object.keys(depMap(manifest.dependencies));
+  if (Array.isArray(bd)) return bd;
+  return isObject(bd) ? Object.keys(bd) : [];
+}
+const sameSet = (a, b) => new Set(a).size === new Set(b).size && a.every((x) => b.includes(x));
+
+function edgeProblems({ key, name, entry }, manifest, source = "el manifiesto publicado") {
   const label = `${name}@${entry.version}`;
   if (!isObject(manifest) || manifest.name !== name || manifest.version !== entry.version) {
     return [`${key}: el registry no devuelve el manifiesto de ${label}`];
@@ -81,10 +95,14 @@ function edgeProblems({ key, name, entry }, manifest) {
     peerDependencies: depMap(manifest.peerDependencies),
   };
   const wrong = EDGES.filter((field) => !sameDeps(depMap(entry[field]), expected[field]));
-  if (wrong.length > 0) return [`${key}: ${wrong.join(", ")} no coincide con el manifiesto publicado de ${label}`];
+  if (wrong.length > 0) return [`${key}: ${wrong.join(", ")} no coincide con ${source} de ${label}`];
+  // Si no, el lockfile podría convertir en empaquetador a un paquete que no lo es.
+  if (!sameSet(entry.bundleDependencies ?? [], bundleNames(manifest))) {
+    return [`${key}: bundleDependencies no coincide con ${source} de ${label}`];
+  }
   const scripts = depMap(manifest.scripts);
   if (entry.hasInstallScript && manifest.hasInstallScript !== true && !INSTALL_SCRIPTS.some((s) => Object.hasOwn(scripts, s))) {
-    return [`${key}: hasInstallScript, pero el manifiesto publicado de ${label} no tiene ${INSTALL_SCRIPTS.join(", ")}`];
+    return [`${key}: hasInstallScript, pero ${source} de ${label} no tiene ${INSTALL_SCRIPTS.join(", ")}`];
   }
   return [];
 }
@@ -115,6 +133,96 @@ async function checkEdges(entries) {
   if (problems.length > 0) fail("lockfile inesperado", problems.sort());
 }
 
+// Arborist saca aristas de un array o un string con Object.entries: si no, checkEdges los compararía como vacíos.
+function shapeProblems(key, entry) {
+  const malformed = EDGES.filter(
+    (f) => Object.hasOwn(entry, f) && !(isObject(entry[f]) && Object.values(entry[f]).every((r) => typeof r === "string")),
+  );
+  if (malformed.length > 0) return [`${key}: ${malformed.join(", ")} no es un objeto de nombre y rango`];
+  const bd = entry.bundleDependencies;
+  if (bd !== undefined && !(Array.isArray(bd) && bd.every((d) => typeof d === "string"))) {
+    return [`${key}: bundleDependencies no es una lista de nombres`];
+  }
+  return [];
+}
+
+// El empaquetador de una entrada inBundle es la entrada más cercana de su clave que no es inBundle.
+function bundlerOf(packages, key) {
+  for (let at = key.lastIndexOf("/node_modules/"); at > 0; at = key.lastIndexOf("/node_modules/", at - 1)) {
+    const parent = packages[key.slice(0, at)];
+    if (!isObject(parent)) return undefined;
+    if (!parent.inBundle) return key.slice(0, at);
+  }
+  return undefined;
+}
+
+function tar(args, input) {
+  const run = spawnSync("tar", args, { input, maxBuffer: MAX_BUFFER });
+  if (run.error) throw run.error;
+  if (run.status !== 0) throw new Error(`tar ${args[0]} sale con ${run.status ?? run.signal}: ${run.stderr.toString().trim()}`);
+  return run.stdout.toString("utf8");
+}
+
+// Se lee del stdin de tar, sin escribir nada en disco, y solo después de comprobar la integrity del lockfile.
+async function readTarball({ key, entry }) {
+  const data = await download(entry.resolved);
+  if (`sha512-${createHash("sha512").update(data).digest("base64")}` !== entry.integrity) {
+    throw new Error(`la integrity del tarball de ${key} no coincide con el lockfile`);
+  }
+  const names = tar(["-tzf", "-"], data).split("\n").slice(0, -1);
+  const types = tar(["-tvzf", "-"], data).split("\n").slice(0, -1).map((line) => line[0]);
+  if (names.length === 0 || names.length !== types.length) throw new Error(`el listado del tarball de ${key} no cuadra`);
+  const segments = new Set(names.map((n) => n.split("/")[0]));
+  const [segment] = segments;
+  if (segments.size !== 1 || !TAR_SEGMENT.test(segment)) {
+    throw new Error(`los miembros del tarball de ${key} no comparten un primer segmento válido`);
+  }
+  return (path) => {
+    const member = `${segment}/${path}/package.json`;
+    const found = types.filter((_, i) => names[i] === member);
+    if (found.length === 0) throw new Error(`${member} no está en el tarball de ${key}`);
+    // pacote descarta los Link y SymbolicLink al extraer: solo cuenta un fichero regular, y uno solo.
+    if (found.length !== 1 || found[0] !== "-") throw new Error(`${member} no es un único fichero regular en el tarball de ${key}`);
+    return parseJson(tar(["-xzOf", "-", "--", member], data));
+  };
+}
+
+// npm ci monta las entradas inBundle desde el tarball de su padre, cubierto por la integrity del padre; las que no encuentra
+// dentro las instala aparte como name@version del registry. Cada una tiene que estar en el tarball y cuadrar con su package.json.
+async function checkBundled(entries) {
+  const byParent = new Map();
+  for (const e of entries) byParent.set(e.parent.key, [...(byParent.get(e.parent.key) ?? []), e]);
+  const problems = [];
+  for (const group of byParent.values()) {
+    const { parent } = group[0];
+    let packageJson;
+    try {
+      packageJson = await readTarball(parent);
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
+      problems.push(...group.map(({ key }) => `${key}: no se pudo leer el tarball de ${parent.key} (${reason})`));
+      continue;
+    }
+    for (const e of group) problems.push(...bundledProblems(e, packageJson));
+  }
+  if (problems.length > 0) fail("lockfile inesperado", problems.sort());
+}
+
+function bundledProblems(bundledEntry, packageJson) {
+  const { key, name, entry, parent, path } = bundledEntry;
+  const source = `el package.json del tarball de ${parent.key}`;
+  let manifest;
+  try {
+    manifest = packageJson(path);
+  } catch (e) {
+    return [`${key}: ${e instanceof Error ? e.message : String(e)}`];
+  }
+  if (!isObject(manifest) || manifest.name !== name || manifest.version !== entry.version) {
+    return [`${key}: ${source} no es ${name}@${entry.version}`];
+  }
+  return edgeProblems(bundledEntry, manifest, source);
+}
+
 async function checkLockfile() {
   if (existsSync("npm-shrinkwrap.json")) {
     fail("lockfile inesperado", ["npm-shrinkwrap.json: npm lo usaría en lugar de package-lock.json"]);
@@ -131,6 +239,7 @@ async function checkLockfile() {
     !dir.split("/").some((s) => ["", ".", "..", "node_modules"].includes(s)) &&
     workspaces.some((w) => w === dir || (w.endsWith("/*") && dir.startsWith(w.slice(0, -1)) && !dir.slice(w.length - 1).includes("/")));
   const fromRegistry = [];
+  const bundledEntries = [];
   const problems = Object.entries(lock.packages).flatMap(([key, entry]) => {
     if (!key.includes("node_modules/")) return [];
     if (!isObject(entry)) return [`${key}: no es un objeto`];
@@ -149,6 +258,17 @@ async function checkLockfile() {
     // El resolved esperado se construye con estos dos campos: solo vale si version es semver y name un nombre válido de npm.
     if (typeof entry.version !== "string" || !SEMVER.test(entry.version)) return [`${key}: version no es semver`];
     if (!NPM_NAME.test(name)) return [`${key}: la clave no termina en un nombre válido de npm`];
+    // npm trata como empaquetada cualquier valor verdadero de inBundle.
+    if (entry.inBundle) {
+      if ("resolved" in entry || "integrity" in entry) return [`${key}: inBundle con resolved o integrity`];
+      if ("name" in entry && entry.name !== name) return [`${key}: name ${entry.name} no coincide con la clave`];
+      const shape = shapeProblems(key, entry);
+      if (shape.length > 0) return shape;
+      const parent = bundlerOf(lock.packages, key);
+      if (parent === undefined) return [`${key}: inBundle sin una entrada padre que no sea inBundle`];
+      bundledEntries.push({ key, name, entry, parent, path: key.slice(parent.length + 1) });
+      return [];
+    }
     const base = name.replace(/^@[^/]+\//, "");
     const resolved = `https://registry.npmjs.org/${name}/-/${base}-${entry.version}.tgz`;
     if (typeof entry.integrity !== "string" || !entry.integrity.startsWith("sha512-")) {
@@ -157,22 +277,26 @@ async function checkLockfile() {
     if ("name" in entry && entry.name !== name) return [`${key}: name ${entry.name} no coincide con la clave`];
     if (entry.resolved !== resolved) return [`${key}: resolved ${entry.resolved} no es ${resolved}`];
     if (new URL(resolved).href !== resolved) return [`${key}: resolved cambia al normalizar la URL`];
-    // Arborist saca aristas de un array o un string con Object.entries: si no, checkEdges los compararía como vacíos.
-    const malformed = EDGES.filter(
-      (f) => Object.hasOwn(entry, f) && !(isObject(entry[f]) && Object.values(entry[f]).every((r) => typeof r === "string")),
-    );
-    if (malformed.length > 0) return [`${key}: ${malformed.join(", ")} no es un objeto de nombre y rango`];
+    const shape = shapeProblems(key, entry);
+    if (shape.length > 0) return shape;
     fromRegistry.push({ key, name, entry });
     return [];
   });
+  const registryKeys = new Set(fromRegistry.map((e) => e.key));
+  // El padre tiene que ser una entrada del registry: la raíz, un workspace o un link no traen tarball que verificar.
+  for (const b of bundledEntries.filter((b) => !registryKeys.has(b.parent))) {
+    problems.push(`${b.key}: inBundle, pero su padre ${b.parent} no es una entrada del registry`);
+  }
   if (problems.length > 0) fail("lockfile inesperado", problems);
   await checkEdges(fromRegistry);
+  const parents = new Map(fromRegistry.map((e) => [e.key, e]));
+  await checkBundled(bundledEntries.map((b) => ({ ...b, parent: parents.get(b.parent) })));
 }
 
 function loadReport() {
   const i = process.argv.indexOf("--report");
   if (i !== -1) return parseJson(readFileSync(process.argv[i + 1], "utf8"));
-  const run = spawnSync("npm", ["audit", "--json"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const run = spawnSync("npm", ["audit", "--json"], { encoding: "utf8", maxBuffer: MAX_BUFFER });
   if (run.error) fail("no se pudo auditar", [run.error.message]);
   return parseJson(run.stdout);
 }
