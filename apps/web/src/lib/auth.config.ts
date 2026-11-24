@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
+import { safeCallbackUrl } from "@/lib/oauth/callback-url";
 
 const providers: NextAuthConfig["providers"] = [];
 
@@ -34,7 +35,13 @@ export const authConfig: NextAuthConfig = {
       const isAuthPage = nextUrl.pathname.startsWith("/auth");
       if (isAuthPage) return true;
       if (isLoggedIn) return true;
-      return Response.redirect(new URL("/auth/signin", nextUrl));
+      const signIn = new URL("/auth/signin", nextUrl);
+      // An agent's authorization request comes back to the consent screen
+      // after signing in. The sign-in page checks it again before using it.
+      if (nextUrl.pathname === "/oauth/authorize") {
+        signIn.searchParams.set("callbackUrl", safeCallbackUrl(nextUrl.pathname + nextUrl.search));
+      }
+      return Response.redirect(signIn);
     },
   },
 };

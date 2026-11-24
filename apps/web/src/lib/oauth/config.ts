@@ -45,3 +45,37 @@ export const NO_STORE = { "Cache-Control": "no-store", Pragma: "no-cache" } as c
 export function notConfiguredResponse(): Response {
   return Response.json({ error: "temporarily_unavailable" }, { status: 503, headers: NO_STORE });
 }
+
+// RFC 8414. No registration_endpoint: clients are registered by hand or by CIMD.
+export function authorizationServerMetadata(config: OAuthConfig) {
+  return {
+    issuer: config.issuer,
+    authorization_endpoint: `${config.issuer}/oauth/authorize`,
+    token_endpoint: `${config.issuer}/api/oauth/token`,
+    revocation_endpoint: `${config.issuer}/api/oauth/revoke`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code", "refresh_token"],
+    code_challenge_methods_supported: ["S256"],
+    token_endpoint_auth_methods_supported: ["none"],
+    revocation_endpoint_auth_methods_supported: ["none"],
+    scopes_supported: [...SCOPES],
+    client_id_metadata_document_supported: true,
+    authorization_response_iss_parameter_supported: true,
+  };
+}
+
+// RFC 9728.
+export function protectedResourceMetadata(config: OAuthConfig) {
+  return {
+    resource: config.resource,
+    authorization_servers: [config.issuer],
+    scopes_supported: [...SCOPES],
+    bearer_methods_supported: ["header"],
+  };
+}
+
+export function metadataResponse(build: (config: OAuthConfig) => object): Response {
+  const config = getOAuthConfig();
+  if (!config) return notConfiguredResponse();
+  return Response.json(build(config), { headers: { "Cache-Control": "public, max-age=3600" } });
+}
