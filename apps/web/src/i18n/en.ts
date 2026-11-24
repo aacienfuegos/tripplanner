@@ -834,6 +834,8 @@ export const en: WebTKeys = {
   agentsAuthorizeLimit: "You already have 10 active connections. Revoke one to authorize another.",
   agentsAuthorizeUnavailable: "Agent access is not configured on this server.",
   agentsAuthorizeTooMany: "Too many requests. Wait a minute and try again.",
+  agentsAuthorizeClientError: "The agent's request is not valid ({error}). Nothing has been authorized.",
+  agentsAuthorizeBackTo: "Back to {host}",
   agentsGoToConnections: "Go to connections",
   agentsBackHome: "Back to home",
   agentsCardTitle: "Agent connections",

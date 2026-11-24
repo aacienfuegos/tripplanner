@@ -29,6 +29,7 @@ export type ConsentView = {
 export type AuthorizeOutcome =
   | { readonly kind: "error"; readonly reason: AuthorizeErrorPage }
   | { readonly kind: "redirect"; readonly location: string }
+  | { readonly kind: "client_error"; readonly error: string; readonly location: string }
   | { readonly kind: "limit" }
   | { readonly kind: "consent"; readonly view: ConsentView };
 
@@ -76,10 +77,14 @@ export async function prepareAuthorization(
 
   const state = single(params, "state");
   const validState = typeof state === "string" && state.length <= 1024 ? state : null;
-  const back = (error: string): AuthorizeOutcome => ({
-    kind: "redirect",
-    location: clientRedirect(config, redirectUri, validState, { error }),
-  });
+  // Anyone can publish a CIMD document with their own redirect URI, so its
+  // errors go back only after a click (RFC 9700, 4.11.2): otherwise this
+  // page would be an open redirector. A manual client was registered by the
+  // user, who trusts its URI.
+  const back = (error: string): AuthorizeOutcome => {
+    const location = clientRedirect(config, redirectUri, validState, { error });
+    return client.kind === "CIMD" ? { kind: "client_error", error, location } : { kind: "redirect", location };
+  };
   if (state === null || (state !== undefined && validState === null)) return back("invalid_request");
 
   const responseType = single(params, "response_type");
