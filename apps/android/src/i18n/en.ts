@@ -222,6 +222,9 @@ export const en: TKeys = {
   themeDark: "Dark",
   langEs: "Español",
   langEn: "English",
+  unitSystem: "Unit system",
+  unitMetric: "Metric (kg)",
+  unitImperial: "Imperial (lb)",
 
   // --- Import ---
   importAI: "Import via AI",

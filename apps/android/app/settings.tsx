@@ -6,7 +6,9 @@ import { useColorScheme } from "nativewind";
 import { usePro } from "@/contexts/ProContext";
 import { useT } from "@/contexts/I18nContext";
 import { useTheme, ThemePreference } from "@/contexts/ThemeContext";
+import { useUnits } from "@/contexts/UnitsContext";
 import type { Lang } from "@/contexts/I18nContext";
+import type { UnitSystem } from "@tripplanner/shared";
 
 function OptionSelector<T extends string>({
   options, value, onChange, isDark,
@@ -46,6 +48,7 @@ export default function SettingsScreen() {
   const { isPro, setIsPro } = usePro();
   const { t, lang, setLang } = useT();
   const { preference, setPreference } = useTheme();
+  const { unitSystem, setUnitSystem } = useUnits();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -58,6 +61,11 @@ export default function SettingsScreen() {
   const langOptions: { value: Lang; label: string }[] = [
     { value: "es", label: t.langEs },
     { value: "en", label: t.langEn },
+  ];
+
+  const unitOptions: { value: UnitSystem; label: string }[] = [
+    { value: "METRIC",   label: t.unitMetric },
+    { value: "IMPERIAL", label: t.unitImperial },
   ];
 
   return (
@@ -133,6 +141,15 @@ export default function SettingsScreen() {
                 options={langOptions}
                 value={lang}
                 onChange={setLang}
+                isDark={isDark}
+              />
+            </View>
+            <View>
+              <Text className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">{t.unitSystem}</Text>
+              <OptionSelector
+                options={unitOptions}
+                value={unitSystem}
+                onChange={setUnitSystem}
                 isDark={isDark}
               />
             </View>

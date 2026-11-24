@@ -220,6 +220,9 @@ export const es = {
   themeDark: "Oscuro",
   langEs: "Español",
   langEn: "English",
+  unitSystem: "Sistema de unidades",
+  unitMetric: "Métrico (kg)",
+  unitImperial: "Imperial (lb)",
 
   // --- Import ---
   importAI: "Importar vía IA",
