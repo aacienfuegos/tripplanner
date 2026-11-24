@@ -210,6 +210,32 @@ base de datos de Android depende de `country-names.ts` en su migración 7
 - Android y `packages/shared`: no tienen tests propios ni script `test` en su `package.json`. Los
   esquemas compartidos se prueban desde `apps/web/src/__tests__/`.
 
+### Pruebas e2e (web)
+
+- Dónde: `apps/web/e2e/`, con Playwright (`apps/web/playwright.config.ts`, script `test:e2e`).
+  Vitest las excluye (`apps/web/vitest.config.ts`). Corren contra `next start`, con un solo worker
+  porque comparten la base de datos.
+- Qué cubren: acceso (sin sesión, Dev Login y un usuario `PENDING`), viaje y actividad, sitio e
+  inmersión vinculada a un viaje, cambio de idioma, desborde horizontal a 390 px y aprobación desde
+  `/admin`. `e2e/global-setup.ts` inserta los dos usuarios `PENDING` que usan; la sesión del
+  `PENDING` la firma `e2e/support/auth.ts` con el `AUTH_SECRET` del servidor de la prueba.
+- En local, la primera vez, `npx playwright install chromium` desde `apps/web/`. Antes de cada
+  pasada, una base desechable recién migrada y sembrada (`npx prisma migrate deploy` y
+  `npx prisma db seed`): el flujo de buceo cuenta con las inmersiones del seed y espera la nº 11.
+  Después, `npm run build --workspace=apps/web` y `npm run test:e2e --workspace=apps/web`, con
+  `DATABASE_URL` y las variables del paso "Pruebas e2e" de `.github/workflows/ci.yml`.
+- `DEV_ADMIN_PASSWORD: e2e-solo-ci` y `AUTH_SECRET: ci-placeholder` son públicos: están en el
+  repo. Solo valen para la CI y en local; el `.env` de staging, el único con `ALLOW_DEV_LOGIN`,
+  lleva otros.
+- Qué se corta: en el navegador, la fixture de `e2e/support/fixtures.ts` aborta todo lo que no
+  vaya a `http://localhost:3000` y la prueba falla si lo abortado no está en `ALLOWED_BLOCKED_HOSTS`
+  (`e2e/support/network.ts`, las dos de teselas). Desde el servidor, en la CI, el paso "Cortar
+  terceros en el servidor" resuelve a `127.0.0.1` y `::1` Nominatim, `open.er-api.com`, Resend y las
+  teselas; en local ese corte no existe y el servidor sí sale a esos orígenes.
+- Qué deja la CI: el artefacto `e2e` del run, 14 días, con el informe HTML (`playwright-report/`)
+  y las capturas (`test-results/`) siempre, y trazas y vídeo solo de las pruebas que fallan. Lleva
+  solo datos del seed y los ficticios de las pruebas (prefijo `E2E`, emails `@example.test`).
+
 ## Despliegue
 
 Ver `CLAUDE.md`, secciones "Entornos web" y "Estrategia de ramas".

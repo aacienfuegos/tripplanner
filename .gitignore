@@ -55,3 +55,8 @@ next-env.d.ts
 
 # Copia efímera del CI para el smoke test del seed
 apps/web/.smoke/
+
+# Salidas de Playwright (pruebas e2e)
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/blob-report/

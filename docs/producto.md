@@ -37,9 +37,8 @@ importación con IA (`CLAUDE.md`, cabecera):
 
 Fuente: `apps/web/src/app/(app)/trips/` y `apps/web/src/actions/`.
 
-- Crear, editar y listar viajes (`apps/web/src/actions/trips.ts`). La acción `deleteTrip` existe,
-  pero ninguna pantalla la invoca (búsqueda de `deleteTrip` en `apps/web/src`: solo la acción, los
-  tests y las cadenas de i18n).
+- Crear, editar, listar y borrar viajes (`apps/web/src/actions/trips.ts`). `deleteTrip` se invoca
+  desde la página de edición del viaje (`apps/web/src/components/trips/trip-form.tsx`).
 - Ficha del viaje con cabecera, cuenta atrás, resumen y cronología por días
   (`apps/web/src/app/(app)/trips/[tripId]/page.tsx`).
 - Secciones del viaje, cada una en su ruta bajo `apps/web/src/app/(app)/trips/[tripId]/`:
