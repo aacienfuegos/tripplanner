@@ -390,11 +390,12 @@ if (user_version < 1) {
   db.execSync(`CREATE TABLE IF NOT EXISTS trips (...); PRAGMA user_version = 1;`);
 }
 // Para añadir una nueva migración, encadenar con la siguiente versión:
-// if (user_version < 9) { db.execSync(`ALTER TABLE ...; PRAGMA user_version = 9;`); }
+// if (user_version < 10) { db.execSync(`ALTER TABLE ...; PRAGMA user_version = 10;`); }
 ```
 
-La DB va por la **versión 8** (la 5 añade coordenadas a los alojamientos para el
-mapa; el resto de la 4 a la 8 son del módulo de buceo). Nunca editar una migración
+La DB va por la **versión 9** (la 5 añade coordenadas a los alojamientos para el
+mapa; el resto de la 4 a la 8 son del módulo de buceo; la 9 añade las maletas del
+equipaje: tabla `suitcases` y columna `packing_items.suitcase_id`). Nunca editar una migración
 ya publicada: las instalaciones existentes no la vuelven a ejecutar.
 
 **Convención de columnas:** snake_case (`trip_id`, `start_date`, `flight_number`). Los tipos TypeScript usan el mismo snake_case para mantenerse alineados con SQLite.
