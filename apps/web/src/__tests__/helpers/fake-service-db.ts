@@ -1,0 +1,83 @@
+import { nextId, table } from "./fake-packing-db";
+
+// In-memory stand-in for the models the services touch, built on the packing
+// fake: it only understands the filters the services use and throws on any
+// other, and an update or delete that matches nothing fails like Prisma's
+// P2025. Two users, A and B, each with their own data: the services run as one
+// of them with the ids of the other.
+
+type Row = Record<string, unknown>;
+
+export const A = "user-a";
+export const B = "user-b";
+
+const defaults = {
+  user: (): Row => ({ id: nextId("user"), status: "APPROVED", isAdmin: false }),
+  trip: (): Row => ({ id: nextId("trip"), userId: "", name: "", currency: "EUR" }),
+  destination: (): Row => ({ id: nextId("destination"), tripId: "", arrivalDate: new Date(0), order: 0 }),
+  flight: (): Row => ({ id: nextId("flight"), tripId: "" }),
+  accommodation: (): Row => ({ id: nextId("accommodation"), tripId: "" }),
+  activity: (): Row => ({ id: nextId("activity"), tripId: "" }),
+  document: (): Row => ({ id: nextId("document"), tripId: "" }),
+  expense: (): Row => ({ id: nextId("expense"), tripId: "", amount: 0, currency: "EUR" }),
+  task: (): Row => ({ id: nextId("task"), tripId: "" }),
+  suitcase: (): Row => ({ id: nextId("suitcase"), tripId: "" }),
+  packingItem: (): Row => ({ id: nextId("item"), tripId: "", suitcaseId: null, packed: false }),
+  diveLog: (): Row => ({ id: nextId("dive"), userId: "", tripId: null, date: new Date(0), diveNumber: 0 }),
+  diveSite: (): Row => ({ id: nextId("site"), userId: "", address: null }),
+  diveArea: (): Row => ({ id: nextId("area"), userId: "" }),
+  diveEquipment: (): Row => ({ id: nextId("equipment"), userId: "", name: "", status: "OWNED" }),
+  diveEquipmentService: (): Row => ({ id: nextId("service"), userId: "", equipmentId: "" }),
+  diveCertification: (): Row => ({ id: nextId("certification"), userId: "" }),
+};
+
+type Tables = { [K in keyof typeof defaults]: Row[] };
+
+const state = Object.fromEntries(Object.keys(defaults).map((key) => [key, []])) as unknown as Tables;
+const keys = Object.keys(defaults) as (keyof Tables)[];
+
+export const fakeServicePrisma = Object.fromEntries(
+  keys.map((key) => [key, table(state[key], defaults[key])]),
+) as { [K in keyof Tables]: ReturnType<typeof table> };
+
+export const fakeServiceDb = {
+  reset(seed: Partial<Tables>) {
+    for (const key of keys) state[key].splice(0, Infinity, ...(seed[key] ?? []).map((row) => ({ ...defaults[key](), ...row })));
+  },
+  dump: () => structuredClone(state),
+  rows: <K extends keyof Tables>(key: K) => state[key],
+};
+
+// The same shape for both users, so every case can run as A and as B.
+export function seedTwoUsers() {
+  const forUser = (u: string): Partial<Tables> => ({
+    trip: [
+      { id: `trip-${u}`, userId: u, name: `Viaje ${u}`, currency: "EUR" },
+      { id: `trip-${u}-2`, userId: u, name: `Otro ${u}`, currency: "EUR" },
+    ],
+    destination: [{ id: `dest-${u}`, tripId: `trip-${u}` }],
+    flight: [{ id: `flight-${u}`, tripId: `trip-${u}` }],
+    accommodation: [{ id: `acc-${u}`, tripId: `trip-${u}` }],
+    activity: [{ id: `act-${u}`, tripId: `trip-${u}` }],
+    document: [{ id: `doc-${u}`, tripId: `trip-${u}` }],
+    expense: [{ id: `exp-${u}`, tripId: `trip-${u}`, amount: 10, currency: "EUR" }],
+    task: [{ id: `task-${u}`, tripId: `trip-${u}` }],
+    suitcase: [{ id: `bag-${u}`, tripId: `trip-${u}` }],
+    packingItem: [{ id: `item-${u}`, tripId: `trip-${u}`, suitcaseId: `bag-${u}`, packed: true }],
+    diveLog: [
+      { id: `dive-${u}`, userId: u, tripId: null },
+      { id: `dive-${u}-in-trip-2`, userId: u, tripId: `trip-${u}-2` },
+    ],
+    diveSite: [{ id: `site-${u}`, userId: u }],
+    diveArea: [{ id: `area-${u}`, userId: u }],
+    diveEquipment: [{ id: `eq-${u}`, userId: u }],
+    diveEquipmentService: [{ id: `svc-${u}`, userId: u, equipmentId: `eq-${u}` }],
+    diveCertification: [{ id: `cert-${u}`, userId: u }],
+  });
+  const a = forUser(A);
+  const b = forUser(B);
+  fakeServiceDb.reset({
+    ...(Object.fromEntries(keys.map((key) => [key, [...(a[key] ?? []), ...(b[key] ?? [])]])) as Partial<Tables>),
+    user: [{ id: A }, { id: B }],
+  });
+}

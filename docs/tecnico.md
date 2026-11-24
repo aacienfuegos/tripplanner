@@ -45,6 +45,37 @@ recoge solo lo que no está allí y sale del código.
   porque `npm ci` monta el árbol con lo que dice el lockfile. Si el registry no responde, falla
   cerrado (#430).
 
+## Capa de servicio
+
+Las escrituras de viajes, de sus secciones y de buceo están en `apps/web/src/lib/services/`, un
+fichero por área, con `import "server-only"`. Las server actions de `apps/web/src/actions/` son una
+capa fina: parsean el formulario con su esquema de `apps/web/src/lib/schemas.ts`, lo convierten a la
+entrada tipada y llaman al servicio con el actor web. La misma capa es la que usarán las
+herramientas MCP del acceso de agentes, con el actor de agente.
+
+- **Entrada tipada**: `apps/web/src/lib/agent-schemas.ts`, con números, booleanos y fechas locales
+  (`YYYY-MM-DD` o `YYYY-MM-DDTHH:mm`, como los formularios), los mismos obligatorios y enums que los
+  formularios, `http` o `https` en los enlaces y límites de 200 caracteres en textos cortos, 5000
+  en notas y descripciones, 2048 en URL y 100 elementos en listas. No llevan valores por defecto:
+  al crear se usan los de la base de datos.
+- **Edición parcial**: lo que no llega en la entrada no se escribe (Prisma omite los `undefined`).
+  Cada campo se valida con su esquema y ninguno depende de otro, así que el resultado completo es
+  válido. Solo se lee lo guardado cuando un efecto lo necesita: importe y moneda de un gasto,
+  dirección de un sitio, día y hora de una inmersión.
+- **Errores** (`apps/web/src/lib/services/errors.ts`): `NotFoundError`, `InputError` (campo y
+  motivo), y `DuplicateError`, `LimitError`, `ConflictError` y `ScopeError` para las fases
+  siguientes. Un P2025 de Prisma se convierte en `NotFoundError`.
+- **Efectos**: los servicios hacen lo que hacían las acciones: geocodificar alojamientos,
+  actividades y sitios, convertir gastos a la moneda del viaje y recalcularlos al cambiarla,
+  reordenar destinos, renumerar inmersiones, desmarcar el equipaje que cambia de maleta y
+  `revalidatePath`. Con un agente, el equipaje va a "Sin maleta" y su edición no cambia la maleta.
+- **Duplicados**: los criterios por tipo de elemento son funciones puras en
+  `apps/web/src/lib/duplicates.ts`; `checkDuplicates` de la importación IA usa las de sus seis
+  secciones.
+- **Tests**: los de servicios usan `apps/web/src/__tests__/helpers/fake-service-db.ts`, una base
+  en memoria con dos usuarios, y corren cada caso como los dos. Vitest resuelve `server-only` a
+  un módulo vacío (`apps/web/vitest.config.ts`), como hace Next en el servidor.
+
 ## Integraciones externas
 
 Variables de entorno solo por nombre. Todas las de la web se leen en `apps/web/src`.

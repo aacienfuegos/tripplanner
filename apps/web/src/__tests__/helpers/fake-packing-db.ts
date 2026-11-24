@@ -25,15 +25,28 @@ function matches(row: Row, where: Where = {}): boolean {
   });
 }
 
-let sequence = 0;
-const nextId = (prefix: string) => `${prefix}-new-${++sequence}`;
+// Like Prisma's error for an update or delete whose where matched nothing.
+const recordNotFound = (operation: string) =>
+  Object.assign(new Error(`fake db: record to ${operation} not found (P2025)`), { code: "P2025" });
 
-function table(rows: Row[], defaults: () => Row) {
-  const build = (data: Row) => ({ ...defaults(), ...data });
+let sequence = 0;
+export const nextId = (prefix: string) => `${prefix}-new-${++sequence}`;
+
+// Prisma leaves a field out of the write when its value is undefined.
+const defined = (data: Row): Row => Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+
+export function table(rows: Row[], defaults: () => Row) {
+  const build = (data: Row) => ({ ...defaults(), ...defined(data) });
   return {
     findUnique: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
     findFirst: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
-    findMany: async ({ where }: { where?: Where } = {}) => rows.filter((r) => matches(r, where)),
+    findMany: async ({ where, orderBy }: { where?: Where; orderBy?: Record<string, "asc" | "desc"> } = {}) => {
+      const found = rows.filter((r) => matches(r, where));
+      const [key, direction] = Object.entries(orderBy ?? {})[0] ?? [];
+      if (!key) return found;
+      const sign = direction === "desc" ? -1 : 1;
+      return found.sort((a, b) => (Number(a[key]) - Number(b[key])) * sign);
+    },
     create: async ({ data }: { data: Row }) => {
       const row = build(data);
       rows.push(row);
@@ -50,15 +63,15 @@ function table(rows: Row[], defaults: () => Row) {
     },
     update: async ({ where, data }: { where: Where; data: Row }) => {
       const i = rows.findIndex((r) => matches(r, where));
-      if (i === -1) throw new Error("fake db: record to update not found (P2025)");
-      rows[i] = { ...rows[i], ...data };
+      if (i === -1) throw recordNotFound("update");
+      rows[i] = { ...rows[i], ...defined(data) };
       return rows[i];
     },
     updateMany: async ({ where, data }: { where: Where; data: Row }) => {
       let count = 0;
       rows.forEach((r, i) => {
         if (matches(r, where)) {
-          rows[i] = { ...r, ...data };
+          rows[i] = { ...r, ...defined(data) };
           count++;
         }
       });
@@ -66,7 +79,7 @@ function table(rows: Row[], defaults: () => Row) {
     },
     delete: async ({ where }: { where: Where }) => {
       const i = rows.findIndex((r) => matches(r, where));
-      if (i === -1) throw new Error("fake db: record to delete not found (P2025)");
+      if (i === -1) throw recordNotFound("delete");
       return rows.splice(i, 1)[0];
     },
     deleteMany: async ({ where }: { where: Where }) => {

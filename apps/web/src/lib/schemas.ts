@@ -5,8 +5,19 @@ import { CURRENCIES, ISO_3166_ALPHA2_CODES, MAX_WEIGHT_GRAMS, SUITCASE_TYPES } f
 // mostrar se resuelve por locale en el momento del render (ver #264).
 export const countryCodeSchema = z.enum(ISO_3166_ALPHA2_CODES);
 
-const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
-const httpUrl = z.string().refine(isHttpUrl, "La URL debe usar http o https");
+export const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
+export const httpUrl = z.string().refine(isHttpUrl, "La URL debe usar http o https");
+
+// Enums shared by the form schemas below and the typed ones of agent-schemas.ts.
+export const flightClassSchema = z.enum(["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"]);
+export const expenseCategorySchema = z.enum(["FLIGHT", "ACCOMMODATION", "FOOD", "TRANSPORT", "ACTIVITY", "SHOPPING", "OTHER"]);
+export const accommodationTypeSchema = z.enum(["HOTEL", "HOSTEL", "AIRBNB", "APARTMENT", "RESORT", "OTHER"]);
+export const activityTypeSchema = z.enum(["ACTIVITY", "RESTAURANT", "MUSEUM", "TOUR", "TRANSPORT", "SHOW", "OTHER"]);
+export const bookingStatusSchema = z.enum(["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"]);
+export const documentTypeSchema = z.enum(["PASSPORT", "VISA", "INSURANCE", "TICKET", "VOUCHER", "OTHER"]);
+export const taskPrioritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+export const diveCurrentSchema = z.enum(["NONE", "LIGHT", "MODERATE", "STRONG"]);
+export const diveEntryTypeSchema = z.enum(["SHORE", "BOAT"]);
 
 export const tripStatusSchema = z.enum(["PLANNING", "BOOKED", "ONGOING", "COMPLETED", "CANCELLED"]);
 
@@ -38,13 +49,13 @@ export const flightSchema = z.object({
   bookingRef: z.string().optional(),
   confirmationUrl: httpUrl.optional().or(z.literal("")),
   seatNumber: z.string().optional(),
-  class: z.enum(["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"]).default("ECONOMY"),
+  class: flightClassSchema.default("ECONOMY"),
   price: z.string().optional(),
   notes: z.string().optional(),
 });
 
 export const expenseSchema = z.object({
-  category: z.enum(["FLIGHT", "ACCOMMODATION", "FOOD", "TRANSPORT", "ACTIVITY", "SHOPPING", "OTHER"]),
+  category: expenseCategorySchema,
   description: z.string().min(1),
   amount: z.string().min(1),
   currency: z.enum(CURRENCIES).default("EUR"),
@@ -55,7 +66,7 @@ export const expenseSchema = z.object({
 
 export const accommodationSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["HOTEL", "HOSTEL", "AIRBNB", "APARTMENT", "RESORT", "OTHER"]).default("HOTEL"),
+  type: accommodationTypeSchema.default("HOTEL"),
   address: z.string().optional(),
   city: z.string().min(1),
   checkIn: z.string().min(1),
@@ -69,7 +80,7 @@ export const accommodationSchema = z.object({
 
 export const activitySchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["ACTIVITY", "RESTAURANT", "MUSEUM", "TOUR", "TRANSPORT", "SHOW", "OTHER"]).default("ACTIVITY"),
+  type: activityTypeSchema.default("ACTIVITY"),
   description: z.string().optional(),
   location: z.string().optional(),
   city: z.string().optional(),
@@ -78,12 +89,12 @@ export const activitySchema = z.object({
   bookingRef: z.string().optional(),
   confirmationUrl: httpUrl.optional().or(z.literal("")),
   price: z.string().optional(),
-  status: z.enum(["PENDING", "RESERVED", "CONFIRMED", "CANCELLED"]).default("PENDING"),
+  status: bookingStatusSchema.default("PENDING"),
   notes: z.string().optional(),
 });
 
 export const documentSchema = z.object({
-  type: z.enum(["PASSPORT", "VISA", "INSURANCE", "TICKET", "VOUCHER", "OTHER"]),
+  type: documentTypeSchema,
   name: z.string().min(1),
   fileUrl: httpUrl.optional().or(z.literal("")),
   expiresAt: z.string().optional(),
@@ -112,7 +123,7 @@ export const taskSchema = z.object({
   title: z.string().min(1, "El título es obligatorio"),
   notes: z.string().optional(),
   dueDate: z.string().optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
+  priority: taskPrioritySchema.default("MEDIUM"),
 });
 
 export const unitSystemSchema = z.enum(["METRIC", "IMPERIAL"]);
@@ -173,10 +184,10 @@ export const diveLogSchema = z.object({
       "La valoración debe estar entre 1 y 5",
     ),
   visibilityHorizontal: z.string().optional(),
-  current: z.enum(["NONE", "LIGHT", "MODERATE", "STRONG"]).optional(),
+  current: diveCurrentSchema.optional(),
   divemaster: z.string().optional(),
   boat: z.string().optional(),
-  entryType: z.enum(["SHORE", "BOAT"]).optional(),
+  entryType: diveEntryTypeSchema.optional(),
   decoRequired: z.string().optional(),
   safetyStopMinutes: z.string().optional(),
   minPpo2: z.string().optional(),

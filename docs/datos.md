@@ -137,15 +137,26 @@ el layout protegido lo manda a `/auth/pending`.
   `userId` del viaje con la sesión y devuelven 404 si no coincide.
 - **Páginas de buceo** (`apps/web/src/app/(app)/dives/**/page.tsx`): llaman a `requireUser` y
   filtran por `userId`.
-- **Server Actions** (`apps/web/src/actions/`):
-  - `requireUser` (`apps/web/src/lib/action-auth.ts`) vuelve a leer el estado en la base de datos
-    en cada petición, porque el JWT puede tener hasta 30 días; `DENIED` va a error y `PENDING` a
-    `/auth/pending`.
-  - `requireTripOwner` (mismo fichero) añade que el viaje sea del usuario; si no, redirige a
-    `/trips`. La usan las acciones de las secciones del viaje y la importación.
-  - Las acciones de buceo, perfil y viajes usan `requireUser` y filtran por `userId`.
-  - `apps/web/src/actions/admin.ts` y `apps/web/src/actions/media.ts` tienen su propia comprobación:
-    sesión y `isAdmin` en base de datos, sin mirar el estado.
+- **Server Actions** (`apps/web/src/actions/`): `requireUser`
+  (`apps/web/src/lib/action-auth.ts`) vuelve a leer el estado en la base de datos en cada petición,
+  porque el JWT puede tener hasta 30 días; `DENIED` va a error y `PENDING` a `/auth/pending`.
+  Las acciones de viajes, de sus secciones y de buceo crean con él el actor web (`webActor()`,
+  `apps/web/src/lib/services/actor.ts`) y delegan en la capa de servicio; un viaje que no es del
+  usuario sigue redirigiendo a `/trips`. La importación IA, copiar el equipaje de otro viaje y las
+  maletas siguen con `requireTripOwner` (mismo fichero). `apps/web/src/actions/admin.ts` y
+  `apps/web/src/actions/media.ts` tienen su propia comprobación: sesión y `isAdmin` en base de
+  datos, sin mirar el estado.
+- **Capa de servicio** (`apps/web/src/lib/services/`): no lee la sesión; recibe un `Actor`, web o
+  de agente, y comprueba la propiedad en `access.ts`:
+  - `requireTrip` busca el viaje con `{ id, userId }` del actor y, con un agente, exige además que
+    esté en su conexión (todos los viajes o la lista). Si no, `NotFoundError`, la misma respuesta
+    que con un ID que no existe.
+  - Los elementos de un viaje se escriben con `{ id, tripId }` y lo de buceo con `{ id, userId }`;
+    un `where` que no encuentra nada da `NotFoundError` sin escribir.
+  - Referencias de buceo de entrada (`tripId`, `diveSiteId`, `diveAreaId`, `equipmentIds`): con el
+    actor web, una ajena se guarda como `null`, como siempre; con un agente da `NotFoundError`. El
+    viaje de una inmersión también pasa por la conexión del agente, y para cambiarlo o quitarlo,
+    el viaje actual tiene que estar en ella.
 - **Rutas de API** (`apps/web/src/app/api/`):
   - `auth/[...nextauth]/route.ts`: los manejadores de NextAuth.
   - `dives/import/route.ts`: exige que `Origin` coincida con `Host` y llama a `requireUser`.
