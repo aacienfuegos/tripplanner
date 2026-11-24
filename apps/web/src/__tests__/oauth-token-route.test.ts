@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createHash } from "node:crypto";
 import { fakeOAuthDb, fakeOAuthPrisma } from "./helpers/fake-oauth-db";
+import { endlessFormRequest } from "./helpers/endless-body";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", async () => ({ prisma: (await import("./helpers/fake-oauth-db")).fakeOAuthPrisma }));
@@ -281,6 +282,15 @@ describe("POST /api/oauth/token, malformed requests", () => {
       body: "grant_type=refresh_token&client_id=a&client_id=b&refresh_token=x",
     });
     expect(await (await POST(repeated)).json()).toEqual({ error: "invalid_request" });
+  });
+
+  it("stops reading a body over 8 KB without Content-Length", async () => {
+    seed();
+    const { request, state } = endlessFormRequest(`${ISSUER}/api/oauth/token`, { "cf-connecting-ip": nextIp() });
+    expect(request.headers.get("content-length")).toBeNull();
+    expect(await (await POST(request)).json()).toEqual({ error: "invalid_request" });
+    expect(state.cancelled).toBe(true);
+    expect(state.pulled).toBeLessThanOrEqual(16);
   });
 
   it("is off (503) when AUTH_URL is not https", async () => {

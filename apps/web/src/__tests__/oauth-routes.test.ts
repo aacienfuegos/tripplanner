@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fakeOAuthDb } from "./helpers/fake-oauth-db";
+import { endlessFormRequest } from "./helpers/endless-body";
 
 vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
 // next-auth imports "next/server" without an extension, which Node's ESM
@@ -120,6 +121,15 @@ describe("POST /api/oauth/revoke (RFC 7009)", () => {
 
   it("needs the token", async () => {
     expect((await post({ client_id: CLIENT })).status).toBe(400);
+  });
+
+  it("stops reading a body over 8 KB without Content-Length", async () => {
+    const { request, state } = endlessFormRequest(`${ISSUER}/api/oauth/revoke`);
+    expect(request.headers.get("content-length")).toBeNull();
+    expect((await revoke(request)).status).toBe(400);
+    expect(state.cancelled).toBe(true);
+    expect(state.pulled).toBeLessThanOrEqual(16);
+    expect(fakeOAuthDb.rows("oAuthToken")).toHaveLength(2);
   });
 });
 
