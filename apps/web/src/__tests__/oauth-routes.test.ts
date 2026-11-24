@@ -91,11 +91,14 @@ describe("POST /api/oauth/revoke (RFC 7009)", () => {
     });
   });
 
-  const post = (params: Record<string, string>) =>
+  // The limiter lives in the route module for the whole file: each request
+  // gets an IP of its own unless the test is about the limit.
+  let ipCounter = 0;
+  const post = (params: Record<string, string>, ip = `198.51.100.${++ipCounter}`) =>
     revoke(
       new Request(`${ISSUER}/api/oauth/revoke`, {
         method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
+        headers: { "content-type": "application/x-www-form-urlencoded", "cf-connecting-ip": ip },
         body: new URLSearchParams(params).toString(),
       }),
     );
@@ -121,6 +124,18 @@ describe("POST /api/oauth/revoke (RFC 7009)", () => {
 
   it("needs the token", async () => {
     expect((await post({ client_id: CLIENT })).status).toBe(400);
+  });
+
+  it("allows 20 requests a minute per IP, and answers the 21st with 429 and Retry-After", async () => {
+    const ip = "192.0.2.78";
+    for (let i = 0; i < 20; i++) {
+      expect((await post({ token: generateSecret("tpat_"), client_id: CLIENT }, ip)).status).toBe(200);
+    }
+    const res = await post({ token: access, client_id: CLIENT }, ip);
+    expect(res.status).toBe(429);
+    expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+    expect(fakeOAuthDb.rows("oAuthToken")).toHaveLength(2);
+    expect((await post({ token: generateSecret("tpat_"), client_id: CLIENT })).status).toBe(200);
   });
 
   it("stops reading a body over 8 KB without Content-Length", async () => {

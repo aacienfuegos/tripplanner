@@ -75,7 +75,7 @@ Las secciones de un viaje ajeno o inexistente devuelven 404 (`notFound()` en cad
 | `/api/dives/import` | `api/dives/import/route.ts` | `POST` del fichero de Diving Log; devuelve el contenido parseado para revisarlo |
 | `/api/health` | `api/health/route.ts` | Estado de la conexión a la base de datos |
 | `/api/oauth/token` | `api/oauth/token/route.ts` | `POST` de formulario: canje del código (con PKCE) y refresco; responde los tokens o un error RFC 6749 |
-| `/api/oauth/revoke` | `api/oauth/revoke/route.ts` | `POST` de formulario (RFC 7009): revoca un token; siempre 200 |
+| `/api/oauth/revoke` | `api/oauth/revoke/route.ts` | `POST` de formulario (RFC 7009): revoca un token; siempre 200, salvo 429 pasadas 20 por minuto e IP |
 | `/.well-known/oauth-authorization-server` | `.well-known/oauth-authorization-server/route.ts` | Metadatos del servidor de autorización (RFC 8414) |
 | `/.well-known/oauth-protected-resource` y `…/api/mcp` | `.well-known/oauth-protected-resource/route.ts` y `api/mcp/route.ts` | Metadatos del recurso protegido (RFC 9728) |
 
