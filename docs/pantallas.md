@@ -46,8 +46,8 @@ El layout `apps/web/src/app/(app)/layout.tsx` redirige antes de pintar nada: sin
 | `/trips/[tripId]` | `trips/[tripId]/page.tsx` | Lista de viajes, panel de inicio, miga de pan | Ver cabecera, cuenta atrás, resumen y cronología; importar con IA; ir a editar |
 | `/trips/[tripId]/edit` | `trips/[tripId]/edit/page.tsx` | Botón Editar de la ficha | Editar el viaje |
 | `/trips/[tripId]/flights` | `trips/[tripId]/flights/page.tsx` | Navegación del viaje | CRUD de vuelos |
-| `/trips/[tripId]/accommodations` | `trips/[tripId]/accommodations/page.tsx` | Navegación del viaje | CRUD de alojamientos |
-| `/trips/[tripId]/activities` | `trips/[tripId]/activities/page.tsx` | Navegación del viaje | CRUD de actividades |
+| `/trips/[tripId]/accommodations` | `trips/[tripId]/accommodations/page.tsx` | Navegación del viaje | CRUD de alojamientos; encima, "Sugerencias de agentes" si hay pendientes |
+| `/trips/[tripId]/activities` | `trips/[tripId]/activities/page.tsx` | Navegación del viaje | CRUD de actividades; encima, "Sugerencias de agentes" si hay pendientes |
 | `/trips/[tripId]/expenses` | `trips/[tripId]/expenses/page.tsx` | Navegación del viaje | CRUD de gastos |
 | `/trips/[tripId]/destinations` | `trips/[tripId]/destinations/page.tsx` | "Más", destinos de la cabecera de la ficha | CRUD de destinos |
 | `/trips/[tripId]/packing` | `trips/[tripId]/packing/page.tsx` | "Más" | Equipaje en dos vistas, "Por categoría" y "Por maleta" (recordada en la cookie `packingView`), con búsqueda y "Solo lo que falta por meter"; crear objetos en línea y editarlos en un diálogo; crear, editar, borrar (sacando o borrando sus objetos), desmarcar y compartir maletas; modo de selección con barra fija abajo (mover a una maleta, marcar, desmarcar, borrar); diálogos de maleta de destino y de copiar de otro viaje (`apps/web/src/components/packing/`) |
@@ -61,7 +61,7 @@ El layout `apps/web/src/app/(app)/layout.tsx` redirige antes de pintar nada: sin
 | `/dives/sites/areas/[id]` | `dives/sites/areas/[id]/page.tsx` | Pestaña Puntos de inmersión (`apps/web/src/components/dives/dive-site-list.tsx`) | Ficha del área; editar o borrar |
 | `/dives/equipment/[id]` | `dives/equipment/[id]/page.tsx` | Pestaña Equipo | Ficha del equipo y su mantenimiento |
 | `/profile` | `profile/page.tsx` | Menú de usuario | Editar nombre, imagen y unidades; tarjeta "Conexiones de agentes" con las activas y enlace a `/profile/agents` |
-| `/profile/agents` | `profile/agents/page.tsx` | Tarjeta del perfil, error de límite del consentimiento | Dirección del servidor MCP; pestaña "Conexiones" (revocar, con confirmación), "Clientes" (registrar en un diálogo, copiar `client_id`, borrar con confirmación que dice cuántas conexiones se revocan) y "Registro" (lo escrito por los agentes en los últimos 90 días, lo más reciente primero, 50 por página, filtrable por conexión; en las ediciones, cada campo con su valor de antes y de después). La pestaña se elige con `?tab=`, y el filtro y la página con `?grant=` y `?page=` (`apps/web/src/components/agents/`) |
+| `/profile/agents` | `profile/agents/page.tsx` | Tarjeta del perfil, error de límite del consentimiento | Dirección del servidor MCP; pestaña "Conexiones" (revocar, con confirmación), "Clientes" (registrar en un diálogo, copiar `client_id`, borrar con confirmación que dice cuántas conexiones se revocan) y "Registro" (lo creado, editado, borrado y sugerido por los agentes en los últimos 90 días, lo más reciente primero, 50 por página, filtrable por conexión; en las ediciones, cada campo con su valor de antes y de después; en los borrados, el nombre del elemento y "Restaurar", con un toast al terminar, o "Restaurado el <fecha>"). La pestaña se elige con `?tab=`, y el filtro y la página con `?grant=` y `?page=` (`apps/web/src/components/agents/`) |
 | `/admin` | `admin/page.tsx` | Menú de usuario, solo administrador | Aprobar, denegar o revocar usuarios; abrir o cerrar el registro. Si no eres administrador, redirige a `/dashboard` |
 
 Las secciones de un viaje ajeno o inexistente devuelven 404 (`notFound()` en cada `page.tsx` de
@@ -72,6 +72,14 @@ Lo que creó o editó un agente lleva junto a su nombre, en las listas y en las 
 (`apps/web/src/components/agents/agent-badge.tsx`): en la lista de viajes y su ficha, en las ocho
 secciones del viaje y sus inmersiones, y en el registro, los sitios, las zonas, el equipo, su
 mantenimiento y las certificaciones de `/dives`. Editarlo desde la web la quita.
+
+En alojamientos y actividades del viaje, el bloque "Sugerencias de agentes"
+(`apps/web/src/components/agents/agent-suggestions.tsx`) sale encima de la lista solo si hay
+sugerencias pendientes de ese tipo. Cada tarjeta trae los datos de la sugerencia, quién la hizo y
+"Aceptar" y "Descartar", con un toast de `sonner` al terminar. Aceptarla la convierte en un
+alojamiento o una actividad de la lista, con la marca "Añadido por"; descartarla la quita del
+bloque. Las sugerencias no salen en el mapa, la cronología, los gastos, el panel ni los contadores
+de la navegación del viaje.
 
 ### Rutas de API
 

@@ -63,8 +63,8 @@ usan la misma capa con el actor de agente (ver "Servidor MCP").
   válido. Solo se lee lo guardado cuando un efecto lo necesita: importe y moneda de un gasto,
   dirección de un sitio, día y hora de una inmersión.
 - **Errores** (`apps/web/src/lib/services/errors.ts`): `NotFoundError`, `InputError` (campo y
-  motivo), `DuplicateError` (el existente), `LimitError`, `ScopeError` y `ConflictError` (este, para
-  los borrados de la fase 4). Un P2025 de Prisma se convierte en `NotFoundError`.
+  motivo), `DuplicateError` (el existente), `LimitError`, `ScopeError` y `ConflictError` (lo
+  vinculado que impide a un agente borrar). Un P2025 de Prisma se convierte en `NotFoundError`.
 - **Efectos**: los servicios hacen lo que hacían las acciones: geocodificar alojamientos,
   actividades y sitios, convertir gastos a la moneda del viaje y recalcularlos al cambiarla,
   reordenar destinos, renumerar inmersiones, desmarcar el equipaje que cambia de maleta y

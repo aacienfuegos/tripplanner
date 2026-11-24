@@ -18,6 +18,7 @@ Fuente: `apps/web/prisma/schema.prisma`. Los identificadores son cadenas `cuid()
 | Vídeos | `MediaClip`, `MediaClipLink`, `MediaSiteOffset` | `MediaClip` y `MediaSiteOffset` llevan `userId`; `MediaClipLink` une un clip con una inmersión |
 | Agentes (OAuth) | `OAuthClient`, `AgentGrant`, `AgentGrantTrip`, `OAuthAuthorizationRequest`, `OAuthCode`, `OAuthToken` | `AgentGrant` (conexión) y `OAuthAuthorizationRequest` llevan `userId`; un `OAuthClient` manual lleva `ownerUserId` y uno CIMD no tiene dueño; `AgentGrantTrip`, `OAuthCode` y `OAuthToken` cuelgan de la conexión |
 | Agentes (registro) | `AgentAuditEntry` | Lleva `userId`; la conexión (`grantId`) y el viaje (`tripId`) van sin relación |
+| Agentes (sugerencias) | `AgentSuggestion` | Cuelga de un `Trip`; la conexión (`grantId`) va sin relación |
 
 Relaciones entre modelos, a alto nivel:
 
@@ -44,10 +45,17 @@ Relaciones entre modelos, a alto nivel:
   el del token CSRF de la petición (`csrfTokenHash`).
 - `AgentAuditEntry` es el registro de lo que escribe un agente: la conexión, la acción
   (`CREATED`, `UPDATED`, `DELETED`, `SUGGESTED`), el tipo y el ID del elemento, el viaje si lo
-  hay y, en una edición, `changes` con `{campo: [antes, después]}` de los campos que cambian
-  (`snapshot` y `restoredAt` son para los borrados de la fase 4). El viaje va sin relación para
-  que la entrada sobreviva al viaje; cada escritura de un agente borra las entradas del usuario de
-  más de 90 días (`apps/web/src/lib/services/audit.ts`).
+  hay y, en una edición, `changes` con `{campo: [antes, después]}` de los campos que cambian. En
+  un borrado, `snapshot` guarda la fila entera, con su ID, para restaurarla, y `restoredAt`,
+  cuándo se restauró. Las entradas `DELETED` de las últimas 24 horas de cada conexión son también
+  su límite de 20 borrados. El viaje va sin relación para que la entrada sobreviva al viaje; cada
+  escritura de un agente borra las entradas del usuario de más de 90 días
+  (`apps/web/src/lib/services/audit.ts`).
+- `AgentSuggestion` es un alojamiento o una actividad (`kind`) que propone un agente sin
+  añadirlo: `payload` lleva los datos con el mismo esquema que crearlo, y `status` es `PENDING`,
+  `ACCEPTED` (con `resultId`, el elemento creado, que toma el ID de la sugerencia) o
+  `DISMISSED`, con `resolvedAt`. No es un elemento del viaje: el mapa, la cronología, los gastos
+  y los contadores no la leen.
 - Los 15 modelos que puede escribir un agente (`Trip`, sus ocho secciones, `DiveArea`,
   `DiveSite`, `DiveLog`, `DiveEquipment`, `DiveEquipmentService` y `DiveCertification`) llevan
   `agentGrantId`, la marca de la conexión que los escribió la última vez. Va sin relación: una
@@ -65,7 +73,11 @@ Leídos de los `onDelete` del esquema:
   historial; borrar un `MediaClip`, sus `MediaClipLink`. Borrar un `User` borra también sus
   clientes manuales, conexiones, peticiones de autorización y entradas del registro de agentes;
   una conexión se lleva sus viajes, códigos y tokens, y un viaje borrado sale de las conexiones
-  que lo tenían.
+  que lo tenían y se lleva sus sugerencias.
+- **Por un agente.** Un agente borra un elemento por llamada y deja su fila en el registro, desde
+  donde el usuario la restaura durante 90 días (`apps/web/src/lib/services/restore.ts`). No borra
+  un sitio con inmersiones, una zona con sitios ni un equipo con inmersiones o mantenimiento, ni
+  ningún viaje ni inmersión; desde la web se siguen borrando como dice el punto siguiente.
 - **Borrado lógico.** Un `OAuthClient` no se borra: se marca `deletedAt` y sus conexiones se
   revocan. Las conexiones tampoco se borran: se revocan (`revokedAt`).
 - **A nulo.** Borrar un `Trip` deja sus inmersiones sin viaje; borrar un `DiveSite`, sus
@@ -198,6 +210,16 @@ la primera vez que se detecta; no hay proceso programado.
   usuario, sin caducar ni usar y con su token CSRF.
 - **Conexiones de agentes** (`apps/web/src/actions/agents.ts`): revocar y borrar un cliente van con
   el usuario de la sesión en el `where`; con el ID de otro no encuentran nada.
+- **Restaurar** (`restoreAgentDeletion` en `apps/web/src/actions/agents.ts`, con
+  `apps/web/src/lib/services/restore.ts`): la entrada se busca con `{ id, userId, action:
+  "DELETED", restoredAt: null }` de los últimos 90 días. La fila se crea con el `userId` del actor,
+  nunca con el del `snapshot`, y la de un viaje solo si su `tripId` es de un viaje del usuario. La
+  entrada se marca con un `updateMany` condicionado a `restoredAt: null` en la misma transacción
+  que la crea: dos a la vez restauran una vez.
+- **Sugerencias** (`apps/web/src/actions/suggestions.ts`, con
+  `apps/web/src/lib/services/suggestions.ts`): Aceptar y Descartar son un `updateMany` con `{ id,
+  tripId, status: "PENDING", trip: { userId } }` del usuario de la sesión, y Aceptar solo crea el
+  elemento si marca una, en la misma transacción.
 - **Layout protegido** (`apps/web/src/app/(app)/layout.tsx`): lee el usuario en la base de datos y
   redirige si no existe o está `DENIED`, si está `PENDING` o si no tiene nombre.
 - **Páginas de un viaje** (`apps/web/src/app/(app)/trips/[tripId]/**/page.tsx`): comparan el
@@ -237,7 +259,12 @@ la primera vez que se detecta; no hay proceso programado.
     nada la ruta rechaza las herramientas cuyos scopes no tiene la conexión.
 - **Lecturas de los agentes** (`apps/web/src/lib/services/trip-reads.ts` y `dive-reads.ts`): cada
   consulta lleva el usuario del actor; `list_trips`, además, la lista de viajes de la conexión, y
-  una inmersión de un viaje fuera de ella solo enseña su `tripId`.
+  una inmersión de un viaje fuera de ella solo enseña su `tripId`. `list_suggestions` busca con
+  `{ grantId, trip: { userId } }` de la conexión y, sin "todos los viajes", su lista.
+- **Borrados de los agentes** (`auditedDelete` en `apps/web/src/lib/services/audit.ts`): en una
+  transacción, bloquean la fila de la conexión (`SELECT … FOR UPDATE` con `$queryRaw` de
+  plantilla), cuentan sus borrados de las últimas 24 horas y, con 20, no borran. Así dos borrados
+  a la vez de la misma conexión van uno detrás de otro y el segundo ve el primero.
 - **Marca y registro en las páginas** (`apps/web/src/lib/agent-labels.ts`,
   `apps/web/src/lib/agent-audit.ts`): los nombres de las conexiones se buscan solo entre las del
   usuario, y el filtro por conexión del registro, también: una ajena da la lista vacía.

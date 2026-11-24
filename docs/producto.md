@@ -105,8 +105,10 @@ Fuente: `apps/web/src/app/(app)/dives/` y `apps/web/src/actions/dive*.ts`.
   todo menos los tokens y se puede revocar. Si el agente no publica un documento de metadatos
   (CIMD), se registra antes como cliente (como mucho 5); borrar un cliente revoca sus
   conexiones. Como mucho 10 conexiones activas, y una conexión caduca a los 90 días sin uso. La
-  pestaña Registro muestra, por conexión, lo que han creado y editado los agentes en los últimos
-  90 días, con el valor de antes y el de después de cada campo editado.
+  pestaña Registro muestra, por conexión, lo que han creado, editado, borrado y sugerido los
+  agentes en los últimos 90 días, con el valor de antes y el de después de cada campo editado. Lo
+  borrado trae su nombre y "Restaurar", que lo vuelve a crear con los mismos datos; si el viaje o
+  el equipo al que pertenecía ya no existe, no se restaura y lo dice.
 
 ### Acceso de agentes (MCP)
 
@@ -130,8 +132,15 @@ los que se creen después) y los permisos marcados.
   solo enseña su identificador, y no se puede mover de ahí.
 - Al crear algo igual a lo que ya hay, no se crea y el agente recibe el existente; puede repetirlo
   indicando que lo cree igualmente.
-- No hay forma de borrar un viaje ni una inmersión. Los borrados con Restaurar y las sugerencias
-  llegan en la fase 4.
+- Borrar, con su permiso aparte en viajes y en buceo: un elemento cada vez, como mucho 20 por
+  conexión en 24 horas, y todo se puede restaurar desde el registro durante 90 días. En el buceo no
+  se borra un sitio con inmersiones, una zona con sitios ni un equipo usado en una inmersión o con
+  mantenimiento: el agente recibe qué tiene vinculado. No hay forma de borrar un viaje ni una
+  inmersión.
+- Sugerir alojamientos y actividades sin añadirlos: esperan en el bloque "Sugerencias de agentes"
+  de su pantalla en el viaje, fuera del mapa, la cronología y los gastos, hasta que el usuario las
+  acepta (pasan a ser un alojamiento o una actividad normal, con su punto en el mapa y la marca
+  "Añadido por") o las descarta. El agente ve en qué estado está cada una.
 - Lo que crea o edita un agente lleva en su lista y en su ficha la marca "Añadido por" o "Editado
   por" con el nombre de la conexión; editarlo desde la web la quita. Lo que escribe un agente se
   muestra siempre como texto.
