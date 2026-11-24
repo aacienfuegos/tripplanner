@@ -22,7 +22,8 @@ export type Entity =
   | "Equipment"
   | "Equipment service"
   | "Certification"
-  | "Media library";
+  | "Media library"
+  | "Register entry";
 
 // The same error for what doesn't exist, what is another user's and what is
 // outside an agent's connection: telling them apart would confirm that an id

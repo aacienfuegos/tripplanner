@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { WebTKeys } from "@/i18n";
+import { RestoreButton } from "@/components/agents/restore-button";
 
 // The Registro tab of /profile/agents. Everything an agent wrote (names,
 // values) is the user's or an agent's text: always React text.
@@ -17,6 +18,10 @@ export type AuditItem = {
   readonly entityType: string;
   readonly trip: string | null;
   readonly changes: unknown;
+  // Of a deletion: the name it had, and Restaurar until it is restored.
+  readonly label: string | null;
+  readonly restorable: boolean;
+  readonly restored: string | null;
 };
 
 export type AuditFilter = { readonly id: string; readonly name: string };
@@ -119,11 +124,16 @@ export function AuditLog({
                     </Badge>
                     <span className="font-medium">{actions[item.action]}</span>
                     <span>{entity(item.entityType)}</span>
+                    {item.label && <span className="font-medium break-words">{item.label}</span>}
                     {item.trip && (
                       <span className="text-muted-foreground">{t.agentsAuditInTrip.replace("{trip}", item.trip)}</span>
                     )}
                     <span className="ml-auto text-xs text-muted-foreground">{item.when}</span>
                   </div>
+                  {item.restorable && <RestoreButton entryId={item.id} />}
+                  {item.restored && (
+                    <p className="text-xs text-muted-foreground">{t.agentsAuditRestoredOn.replace("{date}", item.restored)}</p>
+                  )}
                   {item.action === "UPDATED" &&
                     (rows.length === 0 ? (
                       <p className="text-xs text-muted-foreground">{t.agentsAuditNoChanges}</p>

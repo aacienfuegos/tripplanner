@@ -10,7 +10,7 @@ import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audi
 
 // El orden de la lista se deriva de arrivalDate en vez de pedirle al usuario
 // que reordene a mano — es lo que ya usa cityForDay() en el timeline del viaje.
-async function reorderDestinations(tripId: string) {
+export async function reorderDestinations(tripId: string) {
   const destinations = await prisma.destination.findMany({
     where: { tripId },
     orderBy: { arrivalDate: "asc" },
@@ -21,7 +21,7 @@ async function reorderDestinations(tripId: string) {
   );
 }
 
-function revalidateDestinationPaths(tripId: string) {
+export function revalidateDestinationPaths(tripId: string) {
   revalidatePath(`/trips/${tripId}`);
   revalidatePath(`/trips/${tripId}/destinations`);
   revalidatePath("/trips");

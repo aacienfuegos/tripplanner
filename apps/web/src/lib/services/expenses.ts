@@ -12,7 +12,7 @@ import { auditedCreate, auditedDelete, auditedUpdate, markOf } from "@/lib/servi
 // What the database puts when an expense comes without a currency.
 const DEFAULT_CURRENCY = "EUR";
 
-async function resolveConversion(expenseCurrency: string, tripCurrency: string, amount: number) {
+export async function resolveConversion(expenseCurrency: string, tripCurrency: string, amount: number) {
   if (expenseCurrency === tripCurrency) return { exchangeRate: null, convertedAmount: null };
   const rate = await getExchangeRate(expenseCurrency, tripCurrency);
   if (rate === null) return { exchangeRate: null, convertedAmount: null };

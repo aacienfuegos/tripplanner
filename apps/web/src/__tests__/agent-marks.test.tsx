@@ -17,6 +17,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("@/lib/prisma", async () => ({ prisma: (await import("./helpers/fake-service-db")).fakeServicePrisma }));
+vi.mock("@/actions/agents", () => ({ restoreAgentDeletion: vi.fn() }));
 
 const HTML = '<img src=x onerror="alert(1)">';
 
@@ -118,6 +119,9 @@ describe("the register of the profile (CA20)", () => {
             entityType: "Accommodation",
             trip: "Japón",
             changes: { notes: [null, HTML], checkOut: ["2026-04-05", "2026-04-06"] },
+            label: null,
+            restorable: false,
+            restored: null,
           },
         ]}
         connections={[{ id: "grant-a", name: "Investigador" }]}
@@ -132,6 +136,37 @@ describe("the register of the profile (CA20)", () => {
     expect(screen.getByText(HTML)).toBeInTheDocument();
     expect(screen.getByText("(empty)")).toBeInTheDocument();
     expect(screen.getByText("2026-04-06")).toBeInTheDocument();
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Restore" })).toBeNull();
+  });
+
+  it("shows a deletion with the name it had and Restore, and a restored one with its date (CA12, CA20)", () => {
+    const deletion = {
+      when: "Nov 24, 2026, 10:00 AM",
+      connection: "Investigador",
+      action: "DELETED" as const,
+      entityType: "Activity",
+      trip: "Japón",
+      changes: null,
+      label: HTML,
+    };
+    const { container } = render(
+      <AuditLog
+        t={en}
+        items={[
+          { ...deletion, id: "e1", restorable: true, restored: null },
+          { ...deletion, id: "e2", restorable: false, restored: "Nov 25, 2026, 9:00 AM" },
+        ]}
+        connections={[]}
+        grant={null}
+        page={0}
+        hasMore={false}
+      />,
+    );
+    expect(screen.getAllByText("Deleted")).toHaveLength(2);
+    expect(screen.getAllByText(HTML)).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Restore" })).toHaveLength(1);
+    expect(screen.getByText("Restored on Nov 25, 2026, 9:00 AM")).toBeInTheDocument();
     expect(container.querySelector("img")).toBeNull();
   });
 });

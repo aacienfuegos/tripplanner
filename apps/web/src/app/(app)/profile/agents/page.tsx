@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConnectionsList, type ConnectionItem } from "@/components/agents/connections-list";
 import { ClientsPanel, type ClientItem } from "@/components/agents/clients-panel";
 import { AuditLog, type AuditItem } from "@/components/agents/audit-log";
-import { listAuditEntries } from "@/lib/agent-audit";
+import { deletedLabel, listAuditEntries } from "@/lib/agent-audit";
 import type { WebTKeys } from "@/i18n";
 
 function scopeLabels(t: WebTKeys, scopes: readonly string[]): string[] {
@@ -101,6 +101,9 @@ export default async function AgentConnectionsPage({
     entityType: entry.entityType,
     trip: entry.tripId ? (audit.tripNames.get(entry.tripId) ?? null) : null,
     changes: entry.changes,
+    label: entry.action === "DELETED" ? deletedLabel(entry.snapshot) : null,
+    restorable: entry.action === "DELETED" && entry.restoredAt === null,
+    restored: entry.restoredAt ? format(entry.restoredAt, "PPp", { locale: dfLocale }) : null,
   }));
 
   return (
