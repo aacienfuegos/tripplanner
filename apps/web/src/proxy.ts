@@ -57,5 +57,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // .well-known holds the OAuth metadata: public, and without a session
+  // check that would send a client to the sign-in page.
+  matcher: ["/((?!api|.well-known|_next/static|_next/image|favicon.ico).*)"],
 };

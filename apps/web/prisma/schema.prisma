@@ -43,6 +43,10 @@ model User {
 
   mediaClips       MediaClip[]
   mediaSiteOffsets MediaSiteOffset[]
+
+  oauthClients               OAuthClient[]
+  agentGrants                AgentGrant[]
+  oauthAuthorizationRequests OAuthAuthorizationRequest[]
 }
 
 model Settings {
@@ -104,7 +108,7 @@ model Trip {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   destinations   Destination[]
   flights        Flight[]
   accommodations Accommodation[]
@@ -115,6 +119,7 @@ model Trip {
   suitcases      Suitcase[]
   tasks          Task[]
   diveLogs       DiveLog[]
+  agentGrants    AgentGrantTrip[]
 
   @@unique([userId, externalId])
 }
@@ -628,4 +633,125 @@ model MediaSiteOffset {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, day])
+}
+
+// ─── Acceso de agentes: servidor de autorización OAuth (CIE-1112) ────────────
+// De los tokens, códigos y del token CSRF solo se guarda la huella SHA-256.
+
+enum OAuthClientKind {
+  MANUAL
+  CIMD
+}
+
+enum AgentGrantRevokedReason {
+  USER
+  CLIENT_DELETED
+  TOKEN_REUSE
+  INACTIVE
+}
+
+enum OAuthTokenKind {
+  ACCESS
+  REFRESH
+}
+
+model OAuthClient {
+  id                String          @id @default(cuid())
+  // tpc_… para los registrados a mano; la URL del documento para los CIMD.
+  clientId          String          @unique
+  kind              OAuthClientKind
+  name              String
+  redirectUris      String[]
+  ownerUserId       String?
+  metadataFetchedAt DateTime?
+  createdAt         DateTime        @default(now())
+  deletedAt         DateTime?
+
+  owner          User?                       @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  grants         AgentGrant[]
+  authorizations OAuthAuthorizationRequest[]
+
+  @@index([ownerUserId])
+}
+
+model AgentGrant {
+  id            String                   @id @default(cuid())
+  userId        String
+  clientId      String
+  name          String
+  allTrips      Boolean
+  scopes        String[]
+  createdAt     DateTime                 @default(now())
+  lastUsedAt    DateTime                 @default(now())
+  revokedAt     DateTime?
+  revokedReason AgentGrantRevokedReason?
+
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client OAuthClient      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  trips  AgentGrantTrip[]
+  codes  OAuthCode[]
+  tokens OAuthToken[]
+
+  @@index([userId])
+  @@index([clientId])
+}
+
+model AgentGrantTrip {
+  grantId String
+  tripId  String
+
+  grant AgentGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  trip  Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@id([grantId, tripId])
+  @@index([tripId])
+}
+
+model OAuthAuthorizationRequest {
+  id              String    @id
+  userId          String
+  clientId        String
+  redirectUri     String
+  codeChallenge   String
+  state           String?
+  resource        String
+  requestedScopes String[]
+  csrfTokenHash   String
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+  consumedAt      DateTime?
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([clientId])
+}
+
+model OAuthCode {
+  codeHash      String    @id
+  grantId       String
+  redirectUri   String
+  codeChallenge String
+  resource      String
+  expiresAt     DateTime
+  usedAt        DateTime?
+
+  grant AgentGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId])
+}
+
+model OAuthToken {
+  tokenHash String         @id
+  kind      OAuthTokenKind
+  grantId   String
+  resource  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  grant AgentGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId])
 }
