@@ -8,23 +8,24 @@ import { listPendingSuggestions } from "@/lib/services/suggestions";
 import type { SuggestionItem } from "@/components/agents/agent-suggestions";
 import type { WebTKeys } from "@/i18n";
 
-// The pending suggestions of a trip's section, as the cards of its block show
-// them. One whose data no longer passes the schema still shows, to dismiss it.
+// The first pending suggestions of a trip's section, as the cards of its block
+// show them, and whether there are more. One whose data no longer passes the
+// schema still shows, to dismiss it.
 export async function getSuggestionItems(
   userId: string,
   tripId: string,
   kind: AgentSuggestionKind,
   t: WebTKeys,
   currency: string,
-): Promise<SuggestionItem[]> {
-  const suggestions = await listPendingSuggestions(userId, tripId, kind);
+): Promise<{ items: SuggestionItem[]; more: boolean }> {
+  const { suggestions, more } = await listPendingSuggestions(userId, tripId, kind);
   const locale = t.locale === "es" ? esLocale : enUS;
   const day = (value: string) => format(parseISO(value), "PP", { locale });
   const price = (value: number | null | undefined) =>
     value === null || value === undefined ? [] : [formatCurrency(value, currency, t.dateLocale)];
   const text = (...values: (string | null | undefined)[]) => values.filter((v): v is string => !!v);
 
-  return suggestions.map((suggestion): SuggestionItem => {
+  const items = suggestions.map((suggestion): SuggestionItem => {
     const base = { id: suggestion.id, by: suggestion.grantName, title: null, details: [], notes: null };
     if (kind === "ACCOMMODATION") {
       const parsed = accommodationInputSchema.safeParse(suggestion.payload);
@@ -51,4 +52,5 @@ export async function getSuggestionItems(
       notes: a.description ?? a.notes ?? null,
     };
   });
+  return { items, more };
 }

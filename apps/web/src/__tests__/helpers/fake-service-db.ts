@@ -75,15 +75,18 @@ const models = Object.fromEntries(keys.map((key) => [key, table(state[key], defa
   [K in keyof Tables]: ReturnType<typeof table>;
 };
 
-// The raw queries and the counts of the register, in the order they run: what
-// a test needs to see that the connection is locked before counting.
+// The raw queries and the counts of the register and the suggestions, in the
+// order they run: what a test needs to see that the connection is locked
+// before counting.
 export const dbCalls: string[] = [];
 
-const countEntries = models.agentAuditEntry.count;
-models.agentAuditEntry.count = async (args) => {
-  dbCalls.push("count agentAuditEntry");
-  return countEntries(args);
-};
+for (const key of ["agentAuditEntry", "agentSuggestion"] as const) {
+  const count = models[key].count;
+  models[key].count = async (args) => {
+    dbCalls.push(`count ${key}`);
+    return count(args);
+  };
+}
 
 async function queryRaw(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]> {
   dbCalls.push(`${strings.join("?")} ${JSON.stringify(values)}`);

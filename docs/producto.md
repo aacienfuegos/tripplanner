@@ -140,7 +140,9 @@ los que se creen después) y los permisos marcados.
 - Sugerir alojamientos y actividades sin añadirlos: esperan en el bloque "Sugerencias de agentes"
   de su pantalla en el viaje, fuera del mapa, la cronología y los gastos, hasta que el usuario las
   acepta (pasan a ser un alojamiento o una actividad normal, con su punto en el mapa y la marca
-  "Añadido por") o las descarta. El agente ve en qué estado está cada una.
+  "Añadido por") o las descarta. El agente ve en qué estado está cada una. Cada conexión puede
+  tener como mucho 50 pendientes en un viaje: con esas, no sugiere más hasta que el usuario
+  resuelva alguna.
 - Lo que crea o edita un agente lleva en su lista y en su ficha la marca "Añadido por" o "Editado
   por" con el nombre de la conexión; editarlo desde la web la quita. Lo que escribe un agente se
   muestra siempre como texto.

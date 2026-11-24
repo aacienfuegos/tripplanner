@@ -78,7 +78,8 @@ En alojamientos y actividades del viaje, el bloque "Sugerencias de agentes"
 sugerencias pendientes de ese tipo. Cada tarjeta trae los datos de la sugerencia, quién la hizo y
 "Aceptar" y "Descartar", con un toast de `sonner` al terminar. Aceptarla la convierte en un
 alojamiento o una actividad de la lista, con la marca "Añadido por"; descartarla la quita del
-bloque. Las sugerencias no salen en el mapa, la cronología, los gastos, el panel ni los contadores
+bloque. Enseña las 20 más antiguas y, si hay más, una línea que lo dice: salen al resolver
+estas. Las sugerencias no salen en el mapa, la cronología, los gastos, el panel ni los contadores
 de la navegación del viaje.
 
 ### Rutas de API

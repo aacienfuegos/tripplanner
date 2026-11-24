@@ -1,5 +1,5 @@
 import "server-only";
-import type { AgentSuggestionKind } from "@prisma/client";
+import type { AgentSuggestion, AgentSuggestionKind } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { geocodeAccommodation, geocodeActivity } from "@/lib/geocode-items";
@@ -11,8 +11,8 @@ import {
 } from "@/lib/agent-schemas";
 import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
-import { auditEntryData, purgeOldEntries, toJson } from "@/lib/services/audit";
-import { NotFoundError, parseInput } from "@/lib/services/errors";
+import { AUDIT_RETENTION_MS, auditEntryData, purgeOldEntries, toJson } from "@/lib/services/audit";
+import { LimitError, NotFoundError, parseInput } from "@/lib/services/errors";
 import { accommodationData } from "@/lib/services/accommodations";
 import { activityData } from "@/lib/services/activities";
 import type { Page } from "@/lib/services/trip-reads";
@@ -29,8 +29,19 @@ type AgentActor = Extract<Actor, { kind: "agent" }>;
 const SECTION = { ACCOMMODATION: "accommodations", ACTIVITY: "activities" } as const;
 const ENTITY = { ACCOMMODATION: "Accommodation", ACTIVITY: "Activity" } as const;
 
+export const PENDING_LIMIT = 50;
+export const PENDING_SHOWN = 20;
+
+// A connection keeps at most PENDING_LIMIT pending in a trip, so an agent in a
+// loop can't bury the trip's pages. Its row is locked before counting, as for
+// deleting. The room comes back as the user accepts or dismisses, so the limit
+// error has no wait. The same write drops the user's suggestions resolved more
+// than 90 days ago, like the register.
 async function suggest(actor: AgentActor, tripId: string, kind: AgentSuggestionKind, payload: unknown) {
   const suggestion = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "AgentGrant" WHERE id = ${actor.grant.id} FOR UPDATE`;
+    const pending = await tx.agentSuggestion.count({ where: { tripId, grantId: actor.grant.id, status: "PENDING" } });
+    if (pending >= PENDING_LIMIT) throw new LimitError(null, "Too many pending suggestions in this trip; nothing was suggested");
     const created = await tx.agentSuggestion.create({
       data: { tripId, grantId: actor.grant.id, kind, payload: toJson(payload) },
     });
@@ -38,6 +49,9 @@ async function suggest(actor: AgentActor, tripId: string, kind: AgentSuggestionK
       data: auditEntryData(actor, { entity: ENTITY[kind], tripId }, created.id, "SUGGESTED"),
     });
     await purgeOldEntries(tx, actor.userId);
+    await tx.agentSuggestion.deleteMany({
+      where: { trip: { userId: actor.userId }, resolvedAt: { lt: new Date(Date.now() - AUDIT_RETENTION_MS) } },
+    });
     return created;
   });
   revalidatePath(`/trips/${tripId}/${SECTION[kind]}`);
@@ -71,20 +85,27 @@ export async function listSuggestions(actor: AgentActor, { tripId, cursor, limit
   });
 }
 
-// For the trip's page: what is pending of one kind, with the name of the
-// connection that suggested it.
-export async function listPendingSuggestions(userId: string, tripId: string, kind: AgentSuggestionKind) {
-  const suggestions = await prisma.agentSuggestion.findMany({
+// For the trip's page: the first PENDING_SHOWN pending of one kind, with the
+// name of the connection that suggested it, and whether there are more.
+export async function listPendingSuggestions(
+  userId: string,
+  tripId: string,
+  kind: AgentSuggestionKind,
+): Promise<{ suggestions: (AgentSuggestion & { grantName: string | null })[]; more: boolean }> {
+  const found = await prisma.agentSuggestion.findMany({
     where: { tripId, kind, status: "PENDING", trip: { userId } },
     orderBy: { createdAt: "asc" },
+    take: PENDING_SHOWN + 1,
   });
-  if (suggestions.length === 0) return [];
+  const more = found.length > PENDING_SHOWN;
+  const suggestions = found.slice(0, PENDING_SHOWN);
+  if (suggestions.length === 0) return { suggestions: [], more };
   const grants = await prisma.agentGrant.findMany({
     where: { id: { in: [...new Set(suggestions.map((s) => s.grantId))] }, userId },
     select: { id: true, name: true },
   });
   const names = new Map(grants.map((grant) => [grant.id, grant.name]));
-  return suggestions.map((s) => ({ ...s, grantName: names.get(s.grantId) ?? null }));
+  return { suggestions: suggestions.map((s) => ({ ...s, grantName: names.get(s.grantId) ?? null })), more };
 }
 
 const pendingOf = (actor: Actor, tripId: string, id: string) => ({

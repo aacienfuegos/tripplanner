@@ -55,7 +55,9 @@ Relaciones entre modelos, a alto nivel:
   añadirlo: `payload` lleva los datos con el mismo esquema que crearlo, y `status` es `PENDING`,
   `ACCEPTED` (con `resultId`, el elemento creado, que toma el ID de la sugerencia) o
   `DISMISSED`, con `resolvedAt`. No es un elemento del viaje: el mapa, la cronología, los gastos
-  y los contadores no la leen.
+  y los contadores no la leen. Cada conexión tiene como mucho 50 `PENDING` en un viaje, contadas
+  con su fila de `AgentGrant` bloqueada, y cada sugerencia nueva borra las del usuario resueltas
+  hace más de 90 días (`apps/web/src/lib/services/suggestions.ts`).
 - Los 15 modelos que puede escribir un agente (`Trip`, sus ocho secciones, `DiveArea`,
   `DiveSite`, `DiveLog`, `DiveEquipment`, `DiveEquipmentService` y `DiveCertification`) llevan
   `agentGrantId`, la marca de la conexión que los escribió la última vez. Va sin relación: una

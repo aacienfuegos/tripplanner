@@ -10,8 +10,8 @@ import { useT } from "@/contexts/LanguageContext";
 import { acceptAgentSuggestion, dismissAgentSuggestion, type SuggestionResult } from "@/actions/suggestions";
 
 // "Sugerencias de agentes", above the accommodations or the activities of a
-// trip, only while there are pending ones. What the agent wrote is always
-// React text.
+// trip, only while there are pending ones: the first ones, and a line if there
+// are more. What the agent wrote is always React text.
 
 export type SuggestionItem = {
   readonly id: string;
@@ -71,7 +71,15 @@ function SuggestionCard({ tripId, item }: { tripId: string; item: SuggestionItem
   );
 }
 
-export function AgentSuggestions({ tripId, items }: { tripId: string; items: readonly SuggestionItem[] }) {
+export function AgentSuggestions({
+  tripId,
+  items,
+  more,
+}: {
+  tripId: string;
+  items: readonly SuggestionItem[];
+  more: boolean;
+}) {
   const { t } = useT();
   if (items.length === 0) return null;
   return (
@@ -86,6 +94,7 @@ export function AgentSuggestions({ tripId, items }: { tripId: string; items: rea
       {items.map((item) => (
         <SuggestionCard key={item.id} tripId={tripId} item={item} />
       ))}
+      {more && <p className="text-sm text-muted-foreground">{t.agentsSuggestionsMore}</p>}
     </section>
   );
 }

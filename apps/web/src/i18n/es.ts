@@ -915,6 +915,7 @@ export const es = {
   agentsEntityCertification: "Certificación",
   agentsSuggestionsTitle: "Sugerencias de agentes",
   agentsSuggestionsIntro: "Propuestas de tus agentes. No salen en el mapa, la cronología ni los gastos hasta que las aceptes.",
+  agentsSuggestionsMore: "Hay más sugerencias pendientes: salen aquí al aceptar o descartar estas.",
   agentsSuggestionBy: "Sugerido por {name}",
   agentsSuggestionAccept: "Aceptar",
   agentsSuggestionDismiss: "Descartar",

@@ -38,7 +38,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ tri
         icon={<Star className="h-5 w-5" />}
         counts={counts}
       />
-      <AgentSuggestions tripId={trip.id} items={suggestions} />
+      <AgentSuggestions tripId={trip.id} items={suggestions.items} more={suggestions.more} />
       <AgentLabelsProvider labels={agentLabels}>
         <ActivitiesList tripId={trip.id} activities={trip.activities} tripStartDate={trip.startDate} currency={trip.currency} />
       </AgentLabelsProvider>

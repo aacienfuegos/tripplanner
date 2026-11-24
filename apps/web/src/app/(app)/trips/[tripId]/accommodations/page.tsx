@@ -38,7 +38,7 @@ export default async function AccommodationsPage({ params }: { params: Promise<{
         icon={<Hotel className="h-5 w-5" />}
         counts={counts}
       />
-      <AgentSuggestions tripId={trip.id} items={suggestions} />
+      <AgentSuggestions tripId={trip.id} items={suggestions.items} more={suggestions.more} />
       <AgentLabelsProvider labels={agentLabels}>
         <AccommodationsList tripId={trip.id} accommodations={trip.accommodations} tripStartDate={trip.startDate} currency={trip.currency} />
       </AgentLabelsProvider>

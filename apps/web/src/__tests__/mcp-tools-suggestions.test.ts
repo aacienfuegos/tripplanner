@@ -1,10 +1,16 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { geocodeAccommodation, geocodeActivity } from "@/lib/geocode-items";
-import { acceptSuggestion, dismissSuggestion, listPendingSuggestions } from "@/lib/services/suggestions";
+import {
+  PENDING_LIMIT,
+  PENDING_SHOWN,
+  acceptSuggestion,
+  dismissSuggestion,
+  listPendingSuggestions,
+} from "@/lib/services/suggestions";
 import { getAgentLabels } from "@/lib/agent-labels";
 import { NotFoundError } from "@/lib/services/errors";
-import { A, B, fakeServiceDb, fakeServicePrisma } from "./helpers/fake-service-db";
+import { A, B, dbCalls, fakeServiceDb, fakeServicePrisma } from "./helpers/fake-service-db";
 import { agentActor, webActorOf } from "./helpers/actors";
 import { call, seedForTools } from "./helpers/mcp-tools";
 
@@ -32,6 +38,25 @@ async function suggested(user: string, tool: string, args: Record<string, unknow
   const result = await call(as(user, trips), tool, { tripId: `trip-${user}`, ...args });
   expect(result.isError, JSON.stringify(result.out)).toBe(false);
   return (result.out.suggestion as { id: string }).id;
+}
+
+// Suggestions already stored, one minute apart from the start of 2026.
+let storedCount = 0;
+function stored(user: string, n: number, rest: Record<string, unknown> = {}) {
+  const rows = Array.from({ length: n }, (_, i) => ({
+    id: `stored-${user}-${++storedCount}`,
+    tripId: `trip-${user}`,
+    grantId: `grant-${user}`,
+    kind: "ACTIVITY",
+    payload: dinner,
+    status: "PENDING",
+    createdAt: new Date(2026, 0, 1, 0, i),
+    resolvedAt: null,
+    resultId: null,
+    ...rest,
+  }));
+  fakeServiceDb.rows("agentSuggestion").push(...rows);
+  return rows.map((row) => row.id);
 }
 
 async function expectNotFound(run: Promise<unknown>, entity: string) {
@@ -108,7 +133,7 @@ describe.each([
     expect(await getAgentLabels(me, [{ id: kept, agentGrantId: `grant-${me}` }])).toEqual({
       [kept]: { name: `Agente de ${me}`, added: true },
     });
-    expect(await listPendingSuggestions(me, `trip-${me}`, "ACCOMMODATION")).toEqual([]);
+    expect(await listPendingSuggestions(me, `trip-${me}`, "ACCOMMODATION")).toEqual({ suggestions: [], more: false });
 
     const listed = await call(as(me, "all"), "list_suggestions", {});
     expect(listed.out.nextCursor).toBeNull();
@@ -155,6 +180,63 @@ describe.each([
       data: expect.objectContaining({ status: "DISMISSED" }),
     });
     expect(suggestion(theirs)).toMatchObject({ status: "PENDING" });
+  });
+
+  it("locks the connection's row before counting its pending suggestions", async () => {
+    await suggested(me, "suggest_activity", dinner);
+
+    expect(dbCalls.slice(0, 2)).toEqual([
+      `SELECT id FROM "AgentGrant" WHERE id = ? FOR UPDATE ${JSON.stringify([`grant-${me}`])}`,
+      "count agentSuggestion",
+    ]);
+  });
+
+  it(`the ${PENDING_LIMIT + 1}st pending one of a connection in a trip is refused; resolved ones, other trips and other connections don't count`, async () => {
+    const mine = stored(me, PENDING_LIMIT - 1);
+    stored(me, 5, { status: "DISMISSED", resolvedAt: new Date() });
+    stored(me, 5, { tripId: `trip-${me}-2` });
+    stored(me, 5, { grantId: `grant-${me}-other` });
+    await suggested(me, "suggest_activity", dinner);
+
+    const before = fakeServiceDb.dump();
+    expect(await call(as(me, "all"), "suggest_accommodation", { tripId: `trip-${me}`, ...hotel })).toEqual({
+      isError: true,
+      out: { code: "limit", message: "Too many pending suggestions in this trip; nothing was suggested" },
+    });
+    expect(fakeServiceDb.dump()).toEqual(before);
+
+    // Another trip still has room, and resolving one makes room again.
+    await suggested(me, "suggest_activity", { tripId: `trip-${me}-2`, ...dinner });
+    await dismissSuggestion(webActorOf(me), `trip-${me}`, mine[0]);
+    await suggested(me, "suggest_accommodation", hotel);
+  });
+
+  it("suggesting drops the user's suggestions resolved more than 90 days ago, and nothing else", async () => {
+    const ago = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const old = stored(me, 2, { status: "ACCEPTED", resolvedAt: ago(91) });
+    const oldOtherTrip = stored(me, 1, { tripId: `trip-${me}-2`, status: "DISMISSED", resolvedAt: ago(91) });
+    const recent = stored(me, 1, { status: "DISMISSED", resolvedAt: ago(89) });
+    const pending = stored(me, 1, { createdAt: ago(200) });
+    const theirs = stored(other, 1, { status: "DISMISSED", resolvedAt: ago(91) });
+
+    await suggested(me, "suggest_activity", dinner);
+
+    const ids = fakeServiceDb.rows("agentSuggestion").map((row) => row.id);
+    for (const id of [...old, ...oldOtherTrip]) expect(ids).not.toContain(id);
+    for (const id of [...recent, ...pending, ...theirs]) expect(ids).toContain(id);
+  });
+
+  it(`the trip's page gets the ${PENDING_SHOWN} oldest pending ones and knows there are more`, async () => {
+    const ids = stored(me, PENDING_SHOWN + 1);
+    stored(other, 3);
+
+    const { suggestions, more } = await listPendingSuggestions(me, `trip-${me}`, "ACTIVITY");
+    expect(suggestions.map((s) => s.id)).toEqual(ids.slice(0, PENDING_SHOWN));
+    expect(more).toBe(true);
+
+    await dismissSuggestion(webActorOf(me), `trip-${me}`, ids[0]);
+    expect(await listPendingSuggestions(me, `trip-${me}`, "ACTIVITY")).toMatchObject({ more: false });
+    expect(await listPendingSuggestions(me, `trip-${me}`, "ACCOMMODATION")).toEqual({ suggestions: [], more: false });
   });
 
   it("list_suggestions gives only the connection's, in the trips it reaches and of its user (Filtros de propiedad)", async () => {

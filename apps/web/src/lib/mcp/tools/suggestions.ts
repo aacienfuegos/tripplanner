@@ -2,11 +2,11 @@ import "server-only";
 import { z } from "zod";
 import type { AgentSuggestion } from "@prisma/client";
 import { accommodationInputSchema, activityInputSchema } from "@/lib/agent-schemas";
-import { listSuggestions, suggestAccommodation, suggestActivity } from "@/lib/services/suggestions";
+import { PENDING_LIMIT, listSuggestions, suggestAccommodation, suggestActivity } from "@/lib/services/suggestions";
 import { CREATE, PAGE, READ, defineTool, idInput, listOutput, page, pageInput, recordOutput } from "@/lib/mcp/tool";
 
 const WAITS =
-  "It isn't added to the trip: it waits in the trip's agent suggestions, off the map, the timeline and the expenses, until the user accepts it (it then becomes a normal one) or dismisses it. list_suggestions gives its status.";
+  `It isn't added to the trip: it waits in the trip's agent suggestions, off the map, the timeline and the expenses, until the user accepts it (it then becomes a normal one) or dismisses it. list_suggestions gives its status. At most ${PENDING_LIMIT} pending per connection in a trip: past that, the error limit and nothing is suggested until the user resolves some.`;
 
 const suggestionOutput = (s: AgentSuggestion) => ({
   id: s.id,
