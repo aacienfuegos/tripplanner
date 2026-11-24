@@ -13,7 +13,14 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { foldText, importPayloadSchema, ImportPayload } from "@tripplanner/shared";
 import { requireTripOwner } from "@/lib/action-auth";
-import { normalize, isFuzzyMatch } from "@/lib/fuzzy-match";
+import {
+  isDuplicateAccommodation,
+  isDuplicateActivity,
+  isDuplicateDocument,
+  isDuplicateExpense,
+  isDuplicateFlight,
+  isDuplicatePackingItem,
+} from "@/lib/duplicates";
 import { ensureSuitcases } from "@/lib/suitcases";
 
 export type ImportResult = {
@@ -150,7 +157,7 @@ export async function bulkImport(tripId: string, payload: ImportPayload): Promis
 }
 
 // ─── Duplicate detection ──────────────────────────────────────────────────────
-// normalize/isFuzzyMatch live in @/lib/fuzzy-match — shared with dive-import.ts.
+// The criteria per element live in @/lib/duplicates — shared with the agents.
 
 export type DuplicateFlags = {
   flights:        boolean[];
@@ -167,13 +174,6 @@ export async function checkDuplicates(
 ): Promise<DuplicateFlags> {
   await requireTripOwner(tripId);
   const data = importPayloadSchema.parse(payload);
-
-  // Use local-time components so the comparison is consistent with how
-  // new Date("2024-06-15T07:30:00") was parsed (local time) when storing.
-  // toISOString() returns UTC and would give the wrong day in non-UTC timezones.
-  const localDay = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const isoDay = (s: string) => s.slice(0, 10);
 
   const [existingFlights, existingAccoms, existingActs, existingExp, existingPacking, existingDocs] =
     await Promise.all([
@@ -198,59 +198,11 @@ export async function checkDuplicates(
     ]);
 
   return {
-    // Flight numbers must match exactly after normalization — "IB1234" ≠ "IB1235"
-    flights: data.flights.map((f) =>
-      existingFlights.some((e) => {
-        // If either side lacks a flight number, fall back to route+date match
-        if (e.flightNumber && f.flightNumber) {
-          return (
-            normalize(e.flightNumber) === normalize(f.flightNumber) &&
-            (!e.departureAt || !f.departureAt ||
-              localDay(e.departureAt) === isoDay(f.departureAt))
-          );
-        }
-        return (
-          (!e.departureAt || !f.departureAt ||
-            localDay(e.departureAt) === isoDay(f.departureAt))
-        );
-      }),
-    ),
-    accommodations: data.accommodations.map((a) =>
-      existingAccoms.some(
-        (e) =>
-          isFuzzyMatch(e.name, a.name) &&
-          (!e.checkIn || !a.checkIn ||
-            localDay(e.checkIn) === isoDay(a.checkIn)),
-      ),
-    ),
-    activities: data.activities.map((act) =>
-      existingActs.some(
-        (e) =>
-          isFuzzyMatch(e.name, act.name) &&
-          (!act.scheduledAt || !e.scheduledAt ||
-            localDay(e.scheduledAt) === isoDay(act.scheduledAt)),
-      ),
-    ),
-    expenses: data.expenses.map((exp) =>
-      existingExp.some(
-        (e) =>
-          isFuzzyMatch(e.description, exp.description) &&
-          e.amount === exp.amount &&
-          localDay(e.date) === isoDay(exp.date),
-      ),
-    ),
-    packing: data.packing.map((p) =>
-      existingPacking.some(
-        (e) =>
-          isFuzzyMatch(e.name, p.name) &&
-          normalize(e.category) === normalize(p.category),
-      ),
-    ),
-    documents: data.documents.map((d) =>
-      existingDocs.some(
-        (e) =>
-          isFuzzyMatch(e.name, d.name) && normalize(e.type) === normalize(d.type),
-      ),
-    ),
+    flights:        data.flights.map((f) => existingFlights.some((e) => isDuplicateFlight(e, f))),
+    accommodations: data.accommodations.map((a) => existingAccoms.some((e) => isDuplicateAccommodation(e, a))),
+    activities:     data.activities.map((act) => existingActs.some((e) => isDuplicateActivity(e, act))),
+    expenses:       data.expenses.map((exp) => existingExp.some((e) => isDuplicateExpense(e, exp))),
+    packing:        data.packing.map((p) => existingPacking.some((e) => isDuplicatePackingItem(e, p))),
+    documents:      data.documents.map((d) => existingDocs.some((e) => isDuplicateDocument(e, d))),
   };
 }
