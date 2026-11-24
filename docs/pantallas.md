@@ -61,11 +61,17 @@ El layout `apps/web/src/app/(app)/layout.tsx` redirige antes de pintar nada: sin
 | `/dives/sites/areas/[id]` | `dives/sites/areas/[id]/page.tsx` | Pestaña Puntos de inmersión (`apps/web/src/components/dives/dive-site-list.tsx`) | Ficha del área; editar o borrar |
 | `/dives/equipment/[id]` | `dives/equipment/[id]/page.tsx` | Pestaña Equipo | Ficha del equipo y su mantenimiento |
 | `/profile` | `profile/page.tsx` | Menú de usuario | Editar nombre, imagen y unidades; tarjeta "Conexiones de agentes" con las activas y enlace a `/profile/agents` |
-| `/profile/agents` | `profile/agents/page.tsx` | Tarjeta del perfil, error de límite del consentimiento | Dirección del servidor MCP; pestaña "Conexiones" (revocar, con confirmación) y "Clientes" (registrar en un diálogo, copiar `client_id`, borrar con confirmación que dice cuántas conexiones se revocan) (`apps/web/src/components/agents/`) |
+| `/profile/agents` | `profile/agents/page.tsx` | Tarjeta del perfil, error de límite del consentimiento | Dirección del servidor MCP; pestaña "Conexiones" (revocar, con confirmación), "Clientes" (registrar en un diálogo, copiar `client_id`, borrar con confirmación que dice cuántas conexiones se revocan) y "Registro" (lo escrito por los agentes en los últimos 90 días, lo más reciente primero, 50 por página, filtrable por conexión; en las ediciones, cada campo con su valor de antes y de después). La pestaña se elige con `?tab=`, y el filtro y la página con `?grant=` y `?page=` (`apps/web/src/components/agents/`) |
 | `/admin` | `admin/page.tsx` | Menú de usuario, solo administrador | Aprobar, denegar o revocar usuarios; abrir o cerrar el registro. Si no eres administrador, redirige a `/dashboard` |
 
 Las secciones de un viaje ajeno o inexistente devuelven 404 (`notFound()` en cada `page.tsx` de
 `trips/[tripId]/`).
+
+Lo que creó o editó un agente lleva junto a su nombre, en las listas y en las fichas, la marca
+"Añadido por" o "Editado por" con el nombre de la conexión
+(`apps/web/src/components/agents/agent-badge.tsx`): en la lista de viajes y su ficha, en las ocho
+secciones del viaje y sus inmersiones, y en el registro, los sitios, las zonas, el equipo, su
+mantenimiento y las certificaciones de `/dives`. Editarlo desde la web la quita.
 
 ### Rutas de API
 
@@ -77,9 +83,10 @@ Las secciones de un viaje ajeno o inexistente devuelven 404 (`notFound()` en cad
 | `/api/oauth/token` | `api/oauth/token/route.ts` | `POST` de formulario: canje del código (con PKCE) y refresco; responde los tokens o un error RFC 6749 |
 | `/api/oauth/revoke` | `api/oauth/revoke/route.ts` | `POST` de formulario (RFC 7009): revoca un token; siempre 200, salvo 429 pasadas 20 por minuto e IP |
 | `/.well-known/oauth-authorization-server` | `.well-known/oauth-authorization-server/route.ts` | Metadatos del servidor de autorización (RFC 8414) |
-| `/.well-known/oauth-protected-resource` y `…/api/mcp` | `.well-known/oauth-protected-resource/route.ts` y `api/mcp/route.ts` | Metadatos del recurso protegido (RFC 9728) |
+| `/.well-known/oauth-protected-resource` y `…/api/mcp` | `.well-known/oauth-protected-resource/route.ts` y `.well-known/oauth-protected-resource/api/mcp/route.ts` | Metadatos del recurso protegido (RFC 9728) |
+| `/api/mcp` | `api/mcp/route.ts` | Servidor MCP de los agentes: `POST` con token bearer; `GET` y `DELETE`, 405 (`docs/tecnico.md`, "Servidor MCP") |
 
-Las rutas de OAuth responden 503 si `AUTH_URL` no es una URL `https` (`docs/tecnico.md`).
+Las rutas de OAuth y `/api/mcp` responden 503 si `AUTH_URL` no es una URL `https` (`docs/tecnico.md`).
 
 ### Formularios, borrado y estados
 

@@ -17,6 +17,7 @@ Fuente: `apps/web/prisma/schema.prisma`. Los identificadores son cadenas `cuid()
 | Buceo | `DiveArea`, `DiveSite`, `DiveLog`, `DiveProfileSample`, `DiveEquipment`, `DiveEquipmentService`, `DiveCertification` | Todos llevan `userId` salvo `DiveProfileSample`, que cuelga de `DiveLog` |
 | Vídeos | `MediaClip`, `MediaClipLink`, `MediaSiteOffset` | `MediaClip` y `MediaSiteOffset` llevan `userId`; `MediaClipLink` une un clip con una inmersión |
 | Agentes (OAuth) | `OAuthClient`, `AgentGrant`, `AgentGrantTrip`, `OAuthAuthorizationRequest`, `OAuthCode`, `OAuthToken` | `AgentGrant` (conexión) y `OAuthAuthorizationRequest` llevan `userId`; un `OAuthClient` manual lleva `ownerUserId` y uno CIMD no tiene dueño; `AgentGrantTrip`, `OAuthCode` y `OAuthToken` cuelgan de la conexión |
+| Agentes (registro) | `AgentAuditEntry` | Lleva `userId`; la conexión (`grantId`) y el viaje (`tripId`) van sin relación |
 
 Relaciones entre modelos, a alto nivel:
 
@@ -41,6 +42,17 @@ Relaciones entre modelos, a alto nivel:
   hasta que el usuario decide en la pantalla de consentimiento. `OAuthCode` y `OAuthToken`
   (acceso y refresco) tienen como clave la huella SHA-256 del valor: el valor no se guarda, ni
   el del token CSRF de la petición (`csrfTokenHash`).
+- `AgentAuditEntry` es el registro de lo que escribe un agente: la conexión, la acción
+  (`CREATED`, `UPDATED`, `DELETED`, `SUGGESTED`), el tipo y el ID del elemento, el viaje si lo
+  hay y, en una edición, `changes` con `{campo: [antes, después]}` de los campos que cambian
+  (`snapshot` y `restoredAt` son para los borrados de la fase 4). El viaje va sin relación para
+  que la entrada sobreviva al viaje; cada escritura de un agente borra las entradas del usuario de
+  más de 90 días (`apps/web/src/lib/services/audit.ts`).
+- Los 15 modelos que puede escribir un agente (`Trip`, sus ocho secciones, `DiveArea`,
+  `DiveSite`, `DiveLog`, `DiveEquipment`, `DiveEquipmentService` y `DiveCertification`) llevan
+  `agentGrantId`, la marca de la conexión que los escribió la última vez. Va sin relación: una
+  conexión no se borra salvo con su usuario, que se lleva todo. Cualquier escritura de la web en
+  el elemento la pone a `null`.
 
 ### Borrados
 
@@ -51,8 +63,9 @@ Leídos de los `onDelete` del esquema:
   `MediaClip` y `MediaSiteOffset`. Borrar un `Trip` borra sus nueve modelos hijos. Borrar un
   `DiveLog` borra sus `DiveProfileSample` y `MediaClipLink`; borrar un `DiveEquipment`, su
   historial; borrar un `MediaClip`, sus `MediaClipLink`. Borrar un `User` borra también sus
-  clientes manuales, conexiones y peticiones de autorización; una conexión se lleva sus viajes,
-  códigos y tokens, y un viaje borrado sale de las conexiones que lo tenían.
+  clientes manuales, conexiones, peticiones de autorización y entradas del registro de agentes;
+  una conexión se lleva sus viajes, códigos y tokens, y un viaje borrado sale de las conexiones
+  que lo tenían.
 - **Borrado lógico.** Un `OAuthClient` no se borra: se marca `deletedAt` y sus conexiones se
   revocan. Las conexiones tampoco se borran: se revocan (`revokedAt`).
 - **A nulo.** Borrar un `Trip` deja sus inmersiones sin viaje; borrar un `DiveSite`, sus
@@ -163,7 +176,8 @@ identifica con un documento CIMD, una URL `https` cuyo JSON lo describe.
 5. Cada token de acceso se comprueba en `apps/web/src/lib/oauth/verify.ts`: vigente, del recurso
    `${AUTH_URL}/api/mcp`, de una conexión sin revocar ni inactiva, de un cliente sin borrar y de un
    usuario `APPROVED` en ese momento. Pasar a pendiente o a denegado no revoca nada; volver a
-   aprobado devuelve el acceso. Lo usará la ruta `/api/mcp`, que todavía no existe.
+   aprobado devuelve el acceso. Lo usa la ruta `/api/mcp` en cada llamada
+   (`docs/tecnico.md`, "Servidor MCP").
 
 El código, el refresco y la petición de autorización se consumen con un `updateMany`
 condicionado (`usedAt` o `consumedAt` nulos y sin caducar) dentro de la transacción que emite o
@@ -217,6 +231,16 @@ la primera vez que se detecta; no hay proceso programado.
   - `oauth/token/route.ts` y `oauth/revoke/route.ts`: no usan sesión; la credencial es el
     código con su `code_verifier`, el token de refresco o el token a revocar, del mismo
     `client_id`.
+  - `mcp/route.ts`: no usa sesión; la credencial es el token de acceso de la cabecera
+    `Authorization`, comprobado en cada llamada como dice el paso 5 de arriba. Cada herramienta
+    trabaja con el actor de agente de esa conexión sobre la capa de servicio, y antes de ejecutar
+    nada la ruta rechaza las herramientas cuyos scopes no tiene la conexión.
+- **Lecturas de los agentes** (`apps/web/src/lib/services/trip-reads.ts` y `dive-reads.ts`): cada
+  consulta lleva el usuario del actor; `list_trips`, además, la lista de viajes de la conexión, y
+  una inmersión de un viaje fuera de ella solo enseña su `tripId`.
+- **Marca y registro en las páginas** (`apps/web/src/lib/agent-labels.ts`,
+  `apps/web/src/lib/agent-audit.ts`): los nombres de las conexiones se buscan solo entre las del
+  usuario, y el filtro por conexión del registro, también: una ajena da la lista vacía.
 - **Metadatos OAuth** (`apps/web/src/app/.well-known/`): públicos, sin sesión.
 
 ### Administración

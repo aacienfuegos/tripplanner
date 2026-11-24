@@ -50,8 +50,8 @@ recoge solo lo que no está allí y sale del código.
 Las escrituras de viajes, de sus secciones y de buceo están en `apps/web/src/lib/services/`, un
 fichero por área, con `import "server-only"`. Las server actions de `apps/web/src/actions/` son una
 capa fina: parsean el formulario con su esquema de `apps/web/src/lib/schemas.ts`, lo convierten a la
-entrada tipada y llaman al servicio con el actor web. La misma capa es la que usarán las
-herramientas MCP del acceso de agentes, con el actor de agente.
+entrada tipada y llaman al servicio con el actor web. Las herramientas MCP del acceso de agentes
+usan la misma capa con el actor de agente (ver "Servidor MCP").
 
 - **Entrada tipada**: `apps/web/src/lib/agent-schemas.ts`, con números, booleanos y fechas locales
   (`YYYY-MM-DD` o `YYYY-MM-DDTHH:mm`, como los formularios), los mismos obligatorios y enums que los
@@ -63,15 +63,22 @@ herramientas MCP del acceso de agentes, con el actor de agente.
   válido. Solo se lee lo guardado cuando un efecto lo necesita: importe y moneda de un gasto,
   dirección de un sitio, día y hora de una inmersión.
 - **Errores** (`apps/web/src/lib/services/errors.ts`): `NotFoundError`, `InputError` (campo y
-  motivo), y `DuplicateError`, `LimitError`, `ConflictError` y `ScopeError` para las fases
-  siguientes. Un P2025 de Prisma se convierte en `NotFoundError`.
+  motivo), `DuplicateError` (el existente), `LimitError`, `ScopeError` y `ConflictError` (este, para
+  los borrados de la fase 4). Un P2025 de Prisma se convierte en `NotFoundError`.
 - **Efectos**: los servicios hacen lo que hacían las acciones: geocodificar alojamientos,
   actividades y sitios, convertir gastos a la moneda del viaje y recalcularlos al cambiarla,
   reordenar destinos, renumerar inmersiones, desmarcar el equipaje que cambia de maleta y
   `revalidatePath`. Con un agente, el equipaje va a "Sin maleta" y su edición no cambia la maleta.
 - **Duplicados**: los criterios por tipo de elemento son funciones puras en
   `apps/web/src/lib/duplicates.ts`; `checkDuplicates` de la importación IA usa las de sus seis
-  secciones.
+  secciones, y las herramientas de crear de los agentes, todas
+  (`apps/web/src/lib/services/agent-duplicates.ts`). La web no busca duplicados al crear.
+- **Registro y marca** (`apps/web/src/lib/services/audit.ts`): con un agente, la escritura y su
+  entrada de `AgentAuditEntry` van en una transacción interactiva; en una edición, la entrada
+  guarda los campos que cambian con su valor de antes y de después, sin los que deriva el propio
+  servicio (coordenadas, conversión, número de inmersión, orden). La web escribe sin transacción,
+  como antes, y pone `agentGrantId` a `null` en todo lo que toca, interruptores incluidos. Cada
+  escritura de agente borra las entradas del usuario de más de 90 días, sin proceso programado.
 - **Tests**: los de servicios usan `apps/web/src/__tests__/helpers/fake-service-db.ts`, una base
   en memoria con dos usuarios, y corren cada caso como los dos. Vitest resuelve `server-only` a
   un módulo vacío (`apps/web/vitest.config.ts`), como hace Next en el servidor.
@@ -109,8 +116,47 @@ condiciona el despliegue y el mantenimiento (`apps/web/src/lib/oauth/`).
 - **Logs.** Las rutas de OAuth no registran cabeceras, cuerpos, URL con query ni valores de token
   o código, tampoco los inválidos. Un error inesperado se registra con su clase
   (`[oauth/token] server_error`), no con su mensaje.
-- **Metadatos.** Se escriben a mano en `apps/web/src/lib/oauth/config.ts`; el SDK de MCP llega con
-  la ruta `/api/mcp`.
+- **Metadatos.** Se escriben a mano en `apps/web/src/lib/oauth/config.ts`. Del SDK de MCP, el
+  servidor de autorización no usa nada.
+
+## Servidor MCP
+
+Lo que pueden hacer los agentes está en `docs/producto.md`, "Acceso de agentes (MCP)". Aquí, cómo
+está hecho (`apps/web/src/lib/mcp/` y `apps/web/src/app/api/mcp/route.ts`).
+
+- **SDK.** `@modelcontextprotocol/server` 2.4.0, versión exacta en `dependencies` de
+  `apps/web/package.json`: entra en la imagen. Ya estaba en el lockfile como dependencia de
+  desarrollo de `shadcn`; trae `@modelcontextprotocol/core` y usa el `zod` de la web.
+- **Sin estado.** La pasarela de Paperclip habla la revisión `2025-11-25`, que el SDK sirve con
+  `createMcpHandler(..., { legacy: "stateless" })`: un `McpServer` nuevo por petición, y `GET` y
+  `DELETE` responden 405 en la ruta. La revisión `2026-07-28` va con `responseMode: "json"`, que el
+  SDK avisa por consola una vez al cargar el módulo.
+- **Orden de las comprobaciones** (`apps/web/src/lib/mcp/server.ts`), antes de que el SDK vea la
+  petición: 503 sin emisor; 403 con un `Origin` presente que no sea el de `AUTH_URL`; 400 con el
+  token en la query; el token bearer con `requireBearerAuth` del SDK y el verificador propio
+  (`mcpTokenVerifier` en `apps/web/src/lib/oauth/verify.ts`), que da 401 con `resource_metadata`
+  (y `error="invalid_token"` si había token); 429 con `Retry-After` pasadas 120 llamadas por minuto
+  y conexión; un cuerpo de más de 1 MB, 413; y un `tools/call` de una herramienta del catálogo
+  cuyo scope no tiene la conexión, 403 `insufficient_scope` con el scope que falta, sin ejecutar
+  nada (en un lote, basta con una). `create_trip` y `update_trip` con una lista de viajes, 403
+  `forbidden` sin desafío: no se arregla pidiendo más scopes.
+- **El actor.** El verificador deja en `AuthInfo.token` la huella, nunca el valor, y el actor de
+  agente en un `WeakMap` con `AuthInfo.extra` de clave, del que lo saca la fábrica del servidor:
+  nada que llegue de fuera puede pasar por un actor.
+- **Herramientas** (`apps/web/src/lib/mcp/tools/`, el catálogo en `index.ts`): cada una con nombre
+  en `snake_case`, título, descripción en inglés, esquemas de entrada y de salida, anotaciones y
+  su scope. El servidor de cada petición solo registra las que permiten los scopes de la
+  conexión, las de crear y editar viajes solo con todos los viajes, y las de vídeos solo para un
+  administrador con biblioteca. Los argumentos los valida la herramienta con
+  `apps/web/src/lib/agent-schemas.ts`, no el SDK, para que un campo malo sea `invalid_input` con
+  su nombre. La respuesta va en `structuredContent` y el mismo JSON en texto.
+- **Lecturas** (`apps/web/src/lib/services/trip-reads.ts` y `dive-reads.ts`): con el usuario del
+  actor en cada consulta, y la lista de viajes de la conexión en `list_trips`. Paginadas por `id`
+  (`cursor` y `nextCursor`, 50 por defecto y 100 como máximo); `get_trip`, 500 elementos por
+  sección como mucho, con `truncated`. Las fechas salen en el formato en que entran.
+- **Logs.** `onerror` del SDK registra solo `error.name` y `error.message`; un error inesperado de
+  una herramienta, su nombre y su clase (`[mcp] tool_error`). Nada de cabeceras, cuerpos ni
+  tokens.
 
 ## Integraciones externas
 
@@ -150,11 +196,13 @@ base de datos de Android depende de `country-names.ts` en su migración 7
 
 - Web: `apps/web/src/__tests__/`, con Vitest (`apps/web/package.json`, script `test`). Cómo se
   lanzan: `CLAUDE.md`, "Comandos de desarrollo".
-- Los de OAuth (`oauth-*.test.ts`, `agents-actions.test.ts`) corren en el entorno `node` de
-  Vitest (`// @vitest-environment node`), con el `Request` y el `Response` de Node: los de
-  happy-dom filtran cabeceras. Usan `apps/web/src/__tests__/helpers/fake-oauth-db.ts`, una base en
-  memoria en la que dos peticiones a la vez se intercalan en cada `await`, como dos peticiones
-  reales; las carreras contra PostgreSQL se comprueban en staging.
+- Los de OAuth y MCP (`oauth-*.test.ts`, `mcp-*.test.ts`, `agents-actions.test.ts`) corren en el
+  entorno `node` de Vitest (`// @vitest-environment node`), con el `Request` y el `Response` de
+  Node: los de happy-dom filtran cabeceras. Usan `apps/web/src/__tests__/helpers/fake-oauth-db.ts`,
+  una base en memoria en la que dos peticiones a la vez se intercalan en cada `await`, como dos
+  peticiones reales; las carreras contra PostgreSQL se comprueban en staging. Las llamadas MCP las
+  hace `apps/web/src/__tests__/helpers/mcp-client.ts` contra la ruta, como la pasarela de
+  Paperclip; las herramientas, una a una, van sobre `fake-service-db.ts`.
 - Android y `packages/shared`: no tienen tests propios ni script `test` en su `package.json`. Los
   esquemas compartidos se prueban desde `apps/web/src/__tests__/`.
 

@@ -104,8 +104,37 @@ Fuente: `apps/web/src/app/(app)/dives/` y `apps/web/src/actions/dive*.ts`.
   borrar, desmarcados por defecto). Cada autorización es una conexión que se ve en el perfil con
   todo menos los tokens y se puede revocar. Si el agente no publica un documento de metadatos
   (CIMD), se registra antes como cliente (como mucho 5); borrar un cliente revoca sus
-  conexiones. Como mucho 10 conexiones activas, y una conexión caduca a los 90 días sin uso. Lo
-  que un agente puede hacer con ellas llega con la ruta `/api/mcp`, que todavía no existe.
+  conexiones. Como mucho 10 conexiones activas, y una conexión caduca a los 90 días sin uso. La
+  pestaña Registro muestra, por conexión, lo que han creado y editado los agentes en los últimos
+  90 días, con el valor de antes y el de después de cada campo editado.
+
+### Acceso de agentes (MCP)
+
+Un agente con una conexión usa la cuenta por el servidor MCP de `/api/mcp`
+(`apps/web/src/lib/mcp/`), solo dentro de lo que se concedió: los viajes elegidos (o todos, también
+los que se creen después) y los permisos marcados.
+
+- Leer viajes: la lista y la ficha de cada viaje con todas sus secciones y el resumen de sus
+  inmersiones (fecha, sitio, profundidad y tiempo).
+- Escribir en un viaje: crear y editar destinos, vuelos, alojamientos, actividades, documentos,
+  gastos, tareas y objetos del equipaje, con los mismos efectos que desde la web (el punto en el
+  mapa, la conversión de moneda, el orden de los destinos). El equipaje se crea sin maleta y su
+  edición no cambia la maleta. Crear un viaje o editar sus datos solo con una conexión a todos los
+  viajes.
+- Leer el buceo: inmersiones (con filtro por viaje y por fechas), perfil, sitios y zonas, equipo
+  con su mantenimiento, certificaciones y estadísticas; los vídeos, solo el administrador con
+  biblioteca.
+- Escribir en el buceo: registrar y editar inmersiones, vincularlas a un viaje de la conexión o
+  desvincularlas, sitios, zonas, equipo, mantenimientos y certificaciones, y para el
+  administrador, qué vídeos van con una inmersión. De un viaje fuera de la conexión, una inmersión
+  solo enseña su identificador, y no se puede mover de ahí.
+- Al crear algo igual a lo que ya hay, no se crea y el agente recibe el existente; puede repetirlo
+  indicando que lo cree igualmente.
+- No hay forma de borrar un viaje ni una inmersión. Los borrados con Restaurar y las sugerencias
+  llegan en la fase 4.
+- Lo que crea o edita un agente lleva en su lista y en su ficha la marca "Añadido por" o "Editado
+  por" con el nombre de la conexión; editarlo desde la web la quita. Lo que escribe un agente se
+  muestra siempre como texto.
 
 ### Android: qué hay y qué no respecto a la web
 
