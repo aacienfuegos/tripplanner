@@ -159,7 +159,10 @@ export async function callTool(tool: ToolDefinition, context: ToolContext, args:
     if (error instanceof InputError) return result({ code: "invalid_input", field: error.field, message: error.message }, true);
     if (error instanceof NotFoundError) return result({ code: "not_found", message: error.message }, true);
     if (error instanceof DuplicateError) return result({ code: "duplicate", existing: error.existing }, true);
-    if (error instanceof LimitError) return result({ code: "limit", retryAfterSeconds: error.retryAfterSeconds }, true);
+    if (error instanceof LimitError) {
+      const detail = error.retryAfterSeconds === null ? { message: error.message } : { retryAfterSeconds: error.retryAfterSeconds };
+      return result({ code: "limit", ...detail }, true);
+    }
     if (error instanceof ConflictError) {
       return result({ code: "conflict", message: "It has linked records; nothing was deleted", linked: error.linked }, true);
     }

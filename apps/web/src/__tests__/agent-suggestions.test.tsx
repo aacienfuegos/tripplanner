@@ -17,7 +17,7 @@ beforeEach(() => {
 
 describe("the Agent suggestions block (CA19, CA22, CA27)", () => {
   it("shows nothing without pending suggestions", () => {
-    const { container } = render(<AgentSuggestions tripId="trip-a" items={[]} />);
+    const { container } = render(<AgentSuggestions tripId="trip-a" items={[]} more={false} />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -29,6 +29,7 @@ describe("the Agent suggestions block (CA19, CA22, CA27)", () => {
           { id: "s1", title: "Ryokan Kurashiki", details: ["Kurashiki", "Apr 5, 2026 – Apr 6, 2026"], notes: HTML, by: "Investigador" },
           { id: "s2", title: null, details: [], notes: null, by: null },
         ]}
+        more={false}
       />,
     );
 
@@ -39,10 +40,16 @@ describe("the Agent suggestions block (CA19, CA22, CA27)", () => {
     expect(screen.getByText(HTML)).toBeInTheDocument();
     expect(screen.getByText("Suggestion without valid data")).toBeInTheDocument();
     expect(container.querySelector("img")).toBeNull();
+    expect(screen.queryByText(/more pending suggestions/)).toBeNull();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Accept" })[0]);
     await waitFor(() => expect(acceptAgentSuggestion).toHaveBeenCalledWith("trip-a", "s1"));
     fireEvent.click(screen.getAllByRole("button", { name: "Dismiss" })[1]);
     await waitFor(() => expect(dismissAgentSuggestion).toHaveBeenCalledWith("trip-a", "s2"));
+  });
+
+  it("says when there are more pending than it shows", () => {
+    render(<AgentSuggestions tripId="trip-a" items={[{ id: "s1", title: "Ryokan", details: [], notes: null, by: null }]} more />);
+    expect(screen.getByText("There are more pending suggestions: they show here as you accept or dismiss these.")).toBeInTheDocument();
   });
 });

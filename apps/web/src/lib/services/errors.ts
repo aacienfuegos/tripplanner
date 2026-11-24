@@ -53,9 +53,10 @@ export class DuplicateError extends Error {
   }
 }
 
+// Without retryAfterSeconds when the room doesn't come back with time.
 export class LimitError extends Error {
-  constructor(readonly retryAfterSeconds: number) {
-    super("Limit reached");
+  constructor(readonly retryAfterSeconds: number | null, message = "Limit reached") {
+    super(message);
     this.name = "LimitError";
   }
 }

@@ -916,6 +916,7 @@ export const en: WebTKeys = {
   agentsEntityCertification: "Certification",
   agentsSuggestionsTitle: "Agent suggestions",
   agentsSuggestionsIntro: "Proposals from your agents. They aren't on the map, the timeline or the expenses until you accept them.",
+  agentsSuggestionsMore: "There are more pending suggestions: they show here as you accept or dismiss these.",
   agentsSuggestionBy: "Suggested by {name}",
   agentsSuggestionAccept: "Accept",
   agentsSuggestionDismiss: "Dismiss",
