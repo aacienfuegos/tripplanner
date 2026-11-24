@@ -68,10 +68,11 @@ Las secciones de un viaje ajeno o inexistente devuelven 404 (`notFound()` en cad
 `trips/[tripId]/`).
 
 Lo que creó o editó un agente lleva junto a su nombre, en las listas y en las fichas, la marca
-"Añadido por" o "Editado por" con el nombre de la conexión
-(`apps/web/src/components/agents/agent-badge.tsx`): en la lista de viajes y su ficha, en las ocho
-secciones del viaje y sus inmersiones, y en el registro, los sitios, las zonas, el equipo, su
-mantenimiento y las certificaciones de `/dives`. Editarlo desde la web la quita.
+"Añadido por" o "Editado por" con el nombre de la conexión, o solo "Por" si su entrada del
+registro tiene más de 90 días (`apps/web/src/components/agents/agent-badge.tsx`): en la lista de
+viajes y su ficha, en las ocho secciones del viaje y sus inmersiones, y en el registro, los sitios,
+las zonas, el equipo, su mantenimiento y las certificaciones de `/dives`. Editarlo desde la web la
+quita.
 
 En alojamientos y actividades del viaje, el bloque "Sugerencias de agentes"
 (`apps/web/src/components/agents/agent-suggestions.tsx`) sale encima de la lista solo si hay

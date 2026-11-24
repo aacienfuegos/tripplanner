@@ -899,6 +899,7 @@ export const en: WebTKeys = {
   agentsAuditRestoreParentMissing: "It can't be restored: the trip or the equipment it belonged to no longer exists.",
   agentsBadgeAddedBy: "Added by {name}",
   agentsBadgeEditedBy: "Edited by {name}",
+  agentsBadgeBy: "By {name}",
   agentsEntityTrip: "Trip",
   agentsEntityDestination: "Destination",
   agentsEntityFlight: "Flight",

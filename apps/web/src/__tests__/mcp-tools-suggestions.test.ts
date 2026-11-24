@@ -131,7 +131,7 @@ describe.each([
     expect(geocodeActivity).not.toHaveBeenCalled();
     expect(inTrip("activity", `trip-${me}`).some((row) => row.id === dropped)).toBe(false);
     expect(await getAgentLabels(me, [{ id: kept, agentGrantId: `grant-${me}` }])).toEqual({
-      [kept]: { name: `Agente de ${me}`, added: true },
+      [kept]: { name: `Agente de ${me}`, action: "CREATED" },
     });
     expect(await listPendingSuggestions(me, `trip-${me}`, "ACCOMMODATION")).toEqual({ suggestions: [], more: false });
 
