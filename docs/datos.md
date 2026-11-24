@@ -16,6 +16,7 @@ Fuente: `apps/web/prisma/schema.prisma`. Los identificadores son cadenas `cuid()
 | Viajes | `Trip`; hijos `Destination`, `Flight`, `Accommodation`, `Activity`, `Document`, `Expense`, `Task`, `PackingItem`, `Suitcase` | `Trip` pertenece a un `User`; los hijos, a un `Trip` |
 | Buceo | `DiveArea`, `DiveSite`, `DiveLog`, `DiveProfileSample`, `DiveEquipment`, `DiveEquipmentService`, `DiveCertification` | Todos llevan `userId` salvo `DiveProfileSample`, que cuelga de `DiveLog` |
 | Vídeos | `MediaClip`, `MediaClipLink`, `MediaSiteOffset` | `MediaClip` y `MediaSiteOffset` llevan `userId`; `MediaClipLink` une un clip con una inmersión |
+| Agentes (OAuth) | `OAuthClient`, `AgentGrant`, `AgentGrantTrip`, `OAuthAuthorizationRequest`, `OAuthCode`, `OAuthToken` | `AgentGrant` (conexión) y `OAuthAuthorizationRequest` llevan `userId`; un `OAuthClient` manual lleva `ownerUserId` y uno CIMD no tiene dueño; `AgentGrantTrip`, `OAuthCode` y `OAuthToken` cuelgan de la conexión |
 
 Relaciones entre modelos, a alto nivel:
 
@@ -33,6 +34,13 @@ Relaciones entre modelos, a alto nivel:
   inmersión se calculan al leer (comentario del modelo en el esquema).
 - `Trip`, `DiveSite`, `DiveLog` y `DiveCertification` tienen `externalId` único por usuario, para
   reimportar sin duplicar (`@@unique([userId, externalId])`).
+- Una `AgentGrant` es la conexión de un agente: un cliente (`OAuthClient`), un nombre, los viajes
+  (todos, `allTrips`, o la lista de `AgentGrantTrip`), los scopes concedidos, el último uso y, si
+  está revocada, cuándo y por qué (`USER`, `CLIENT_DELETED`, `TOKEN_REUSE`, `INACTIVE`).
+- `OAuthAuthorizationRequest` guarda una petición de autorización validada durante 10 minutos,
+  hasta que el usuario decide en la pantalla de consentimiento. `OAuthCode` y `OAuthToken`
+  (acceso y refresco) tienen como clave la huella SHA-256 del valor: el valor no se guarda, ni
+  el del token CSRF de la petición (`csrfTokenHash`).
 
 ### Borrados
 
@@ -42,7 +50,11 @@ Leídos de los `onDelete` del esquema:
   `DiveSite`, `DiveLog`, `DiveEquipment`, `DiveEquipmentService`, `DiveCertification`,
   `MediaClip` y `MediaSiteOffset`. Borrar un `Trip` borra sus nueve modelos hijos. Borrar un
   `DiveLog` borra sus `DiveProfileSample` y `MediaClipLink`; borrar un `DiveEquipment`, su
-  historial; borrar un `MediaClip`, sus `MediaClipLink`.
+  historial; borrar un `MediaClip`, sus `MediaClipLink`. Borrar un `User` borra también sus
+  clientes manuales, conexiones y peticiones de autorización; una conexión se lleva sus viajes,
+  códigos y tokens, y un viaje borrado sale de las conexiones que lo tenían.
+- **Borrado lógico.** Un `OAuthClient` no se borra: se marca `deletedAt` y sus conexiones se
+  revocan. Las conexiones tampoco se borran: se revocan (`revokedAt`).
 - **A nulo.** Borrar un `Trip` deja sus inmersiones sin viaje; borrar un `DiveSite`, sus
   inmersiones sin sitio; borrar una `DiveArea`, sus sitios sin área; borrar una `Suitcase`, sus
   objetos sin maleta. Al borrar una maleta desde la app, la acción elige qué pasa con sus objetos:
@@ -126,11 +138,52 @@ usuario (`events.createUser` en `apps/web/src/lib/auth.ts`):
 Un usuario `DENIED` no puede iniciar sesión (`callbacks.signIn`). `PENDING` sí obtiene sesión, pero
 el layout protegido lo manda a `/auth/pending`.
 
+### Acceso de agentes (OAuth)
+
+TripPlanner es su propio servidor de autorización OAuth 2.1 para los agentes que acceden por MCP
+(`apps/web/src/lib/oauth/`). Clientes públicos, sin secreto, con PKCE S256 obligatorio y sin
+registro dinámico: un cliente se registra a mano en `/profile/agents` (`client_id` `tpc_…`) o se
+identifica con un documento CIMD, una URL `https` cuyo JSON lo describe.
+
+1. El agente abre `/oauth/authorize` en el navegador. Sin sesión, el proxy manda a
+   `/auth/signin?callbackUrl=…` y, al iniciar sesión, se vuelve a la petición.
+2. La petición se valida en este orden (`apps/web/src/lib/oauth/authorize.ts`): usuario
+   `APPROVED` releído de la base de datos, antes de descargar nada; cliente conocido y
+   `redirect_uri` idéntica a una registrada; un cliente manual solo lo autoriza su dueño. Hasta
+   aquí los errores son una página propia, sin redirigir. Después vuelven a la `redirect_uri` con
+   `error`, `state` e `iss`: `response_type`, PKCE, `resource` y scopes. Por último, como mucho
+   10 conexiones activas.
+3. La pantalla de consentimiento guarda la petición y un token CSRF. El usuario elige nombre,
+   viajes, buceo y permisos; solo se concede lo que el cliente pidió. Al autorizar se crea la
+   conexión y un código `tpac_` de un solo uso y 60 segundos (`apps/web/src/lib/oauth/consent.ts`).
+4. El agente canjea el código en `/api/oauth/token` con su `code_verifier` y recibe un token de
+   acceso `tpat_` de 1 hora y, si pidió `offline_access`, uno de refresco `tprt_` de 90 días. El
+   refresco rota: cada uso da un par nuevo, y reutilizar uno ya gastado revoca la conexión
+   entera (`apps/web/src/lib/oauth/token-exchange.ts`).
+5. Cada token de acceso se comprueba en `apps/web/src/lib/oauth/verify.ts`: vigente, del recurso
+   `${AUTH_URL}/api/mcp`, de una conexión sin revocar ni inactiva, de un cliente sin borrar y de un
+   usuario `APPROVED` en ese momento. Pasar a pendiente o a denegado no revoca nada; volver a
+   aprobado devuelve el acceso. Lo usará la ruta `/api/mcp`, que todavía no existe.
+
+El código, el refresco y la petición de autorización se consumen con un `updateMany`
+condicionado (`usedAt` o `consumedAt` nulos y sin caducar) dentro de la transacción que emite o
+crea la conexión, y solo se emite con `count === 1`: de dos peticiones simultáneas, solo una gana.
+Una conexión sin uso en 90 días cuenta como revocada en cada comprobación y se marca `INACTIVE`
+la primera vez que se detecta; no hay proceso programado.
+
 ### Dónde se comprueba el acceso
 
 - **Proxy** (`apps/web/src/proxy.ts` con `authorized` de `apps/web/src/lib/auth.config.ts`): exige
   sesión en todo salvo `/auth/*`; solo mira que haya sesión, no el estado. Su `matcher` deja fuera
-  `/api`.
+  `/api` y `/.well-known`. Sin sesión en `/oauth/authorize`, guarda la petición en `callbackUrl`;
+  la página de inicio de sesión la vuelve a comprobar en cada una de sus cuatro server actions
+  (`apps/web/src/app/auth/signin/actions.ts` con `apps/web/src/lib/oauth/callback-url.ts`): solo
+  una ruta relativa a `/oauth/authorize?`; si no, `/dashboard`.
+- **Consentimiento** (`apps/web/src/app/oauth/authorize/`): fuera del layout protegido, relee el
+  estado del usuario. Su server action usa `requireUser` y solo acepta una petición del propio
+  usuario, sin caducar ni usar y con su token CSRF.
+- **Conexiones de agentes** (`apps/web/src/actions/agents.ts`): revocar y borrar un cliente van con
+  el usuario de la sesión en el `where`; con el ID de otro no encuentran nada.
 - **Layout protegido** (`apps/web/src/app/(app)/layout.tsx`): lee el usuario en la base de datos y
   redirige si no existe o está `DENIED`, si está `PENDING` o si no tiene nombre.
 - **Páginas de un viaje** (`apps/web/src/app/(app)/trips/[tripId]/**/page.tsx`): comparan el
@@ -161,6 +214,10 @@ el layout protegido lo manda a `/auth/pending`.
   - `auth/[...nextauth]/route.ts`: los manejadores de NextAuth.
   - `dives/import/route.ts`: exige que `Origin` coincida con `Host` y llama a `requireUser`.
   - `health/route.ts`: no comprueba sesión; responde el estado de la base de datos.
+  - `oauth/token/route.ts` y `oauth/revoke/route.ts`: no usan sesión; la credencial es el
+    código con su `code_verifier`, el token de refresco o el token a revocar, del mismo
+    `client_id`.
+- **Metadatos OAuth** (`apps/web/src/app/.well-known/`): públicos, sin sesión.
 
 ### Administración
 

@@ -98,6 +98,14 @@ Fuente: `apps/web/src/app/(app)/dives/` y `apps/web/src/actions/dive*.ts`.
   las maletas: se escribe y se ve en kg o en lb, y se guarda en gramos, así que cambiarlo no cambia
   el peso guardado (`packages/shared/packing.ts`). El idioma y el tema no están en el perfil:
   se cambian desde la barra de navegación (`apps/web/src/components/layout/navbar.tsx`).
+- Conexiones de agentes (`/profile/agents`): un usuario aprobado autoriza a un agente de IA a
+  usar su cuenta por MCP desde una pantalla de consentimiento, eligiendo nombre, viajes (todos o
+  algunos), buceo (sin acceso, lectura, o lectura y escritura) y permisos (sugerir, escribir y
+  borrar, desmarcados por defecto). Cada autorización es una conexión que se ve en el perfil con
+  todo menos los tokens y se puede revocar. Si el agente no publica un documento de metadatos
+  (CIMD), se registra antes como cliente (como mucho 5); borrar un cliente revoca sus
+  conexiones. Como mucho 10 conexiones activas, y una conexión caduca a los 90 días sin uso. Lo
+  que un agente puede hacer con ellas llega con la ruta `/api/mcp`, que todavía no existe.
 
 ### Android: qué hay y qué no respecto a la web
 
