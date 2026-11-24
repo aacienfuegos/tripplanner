@@ -25,10 +25,14 @@ function matches(row: Row, where: Where = {}): boolean {
   });
 }
 
-let sequence = 0;
-const nextId = (prefix: string) => `${prefix}-new-${++sequence}`;
+// Like Prisma's error for an update or delete whose where matched nothing.
+const recordNotFound = (operation: string) =>
+  Object.assign(new Error(`fake db: record to ${operation} not found (P2025)`), { code: "P2025" });
 
-function table(rows: Row[], defaults: () => Row) {
+let sequence = 0;
+export const nextId = (prefix: string) => `${prefix}-new-${++sequence}`;
+
+export function table(rows: Row[], defaults: () => Row) {
   const build = (data: Row) => ({ ...defaults(), ...data });
   return {
     findUnique: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
@@ -50,7 +54,7 @@ function table(rows: Row[], defaults: () => Row) {
     },
     update: async ({ where, data }: { where: Where; data: Row }) => {
       const i = rows.findIndex((r) => matches(r, where));
-      if (i === -1) throw new Error("fake db: record to update not found (P2025)");
+      if (i === -1) throw recordNotFound("update");
       rows[i] = { ...rows[i], ...data };
       return rows[i];
     },
@@ -66,7 +70,7 @@ function table(rows: Row[], defaults: () => Row) {
     },
     delete: async ({ where }: { where: Where }) => {
       const i = rows.findIndex((r) => matches(r, where));
-      if (i === -1) throw new Error("fake db: record to delete not found (P2025)");
+      if (i === -1) throw recordNotFound("delete");
       return rows.splice(i, 1)[0];
     },
     deleteMany: async ({ where }: { where: Where }) => {
