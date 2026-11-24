@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMediaConfig } from "@/lib/media-config";
 import { ManifestError, scanMediaLibrary } from "@/lib/media-library";
+import { setDiveClipLinks, type ClipLinkChange } from "@/lib/services/dive-media";
+import { NotFoundError } from "@/lib/services/errors";
 import {
   clipsNearDives,
   dateToDayKey,
@@ -94,41 +96,15 @@ async function refreshSiteOffsets(userId: string) {
   }
 }
 
-// `included: null` borra el override y devuelve el clip al automático. Se
-// aplican en bloque: el selector deja hacer decenas de cambios antes de guardar
-// y una action por clip repintaría la ficha entera entre medias.
-export type ClipLinkChange = { readonly clipId: string; readonly included: boolean | null };
-
 export async function setClipLinks(diveLogId: string, changes: readonly ClipLinkChange[]) {
+  // Not webActor(): the media actions check isAdmin and not the status, as always.
   const userId = await requireMediaOwner();
-  const dive = await prisma.diveLog.findFirst({ where: { id: diveLogId, userId }, select: { id: true } });
-  if (!dive) redirect("/dives");
-
-  const owned = await prisma.mediaClip.findMany({
-    where: { userId, id: { in: changes.map((change) => change.clipId) } },
-    select: { id: true },
-  });
-  const ownedIds = new Set(owned.map((clip) => clip.id));
-  const valid = changes.filter((change) => ownedIds.has(change.clipId));
-
-  await prisma.$transaction([
-    prisma.mediaClipLink.deleteMany({
-      where: {
-        diveLogId,
-        clipId: { in: valid.filter((change) => change.included === null).map((change) => change.clipId) },
-      },
-    }),
-    ...valid
-      .filter((change) => change.included !== null)
-      .map((change) =>
-        prisma.mediaClipLink.upsert({
-          where: { clipId_diveLogId: { clipId: change.clipId, diveLogId } },
-          create: { clipId: change.clipId, diveLogId, included: change.included! },
-          update: { included: change.included! },
-        }),
-      ),
-  ]);
-  revalidatePath(`/dives/${diveLogId}`);
+  try {
+    await setDiveClipLinks({ kind: "web", userId }, diveLogId, changes);
+  } catch (error) {
+    if (error instanceof NotFoundError) redirect("/dives");
+    throw error;
+  }
 }
 
 export async function setDaySiteOffset(day: string, offsetMinutes: number) {
