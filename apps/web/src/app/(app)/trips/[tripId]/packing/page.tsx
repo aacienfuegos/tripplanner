@@ -1,27 +1,37 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PackingList } from "@/components/packing/packing-list";
+import { PackingList, type PackingView } from "@/components/packing/packing-list";
 import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
+import { listTripsToCopyFrom } from "@/lib/packing-trips";
 import { ShoppingBag } from "lucide-react";
 import { getT } from "@/lib/locale";
 
 export default async function PackingPage({ params }: { params: Promise<{ tripId: string }> }) {
   const { tripId } = await params;
   const session = await auth();
-  const [trip, t] = await Promise.all([
+  const userId = session!.user!.id!;
+  const [trip, t, cookieStore] = await Promise.all([
     prisma.trip.findUnique({
       where: { id: tripId },
-      include: { packingItems: { orderBy: [{ category: "asc" }, { name: "asc" }] } },
+      include: {
+        packingItems: { orderBy: [{ category: "asc" }, { name: "asc" }] },
+        suitcases: { orderBy: { createdAt: "asc" } },
+      },
     }),
     getT(),
+    cookies(),
   ]);
-  if (!trip || trip.userId !== session!.user!.id) notFound();
-  const [counts, ownedEquipmentCount] = await Promise.all([
+  if (!trip || trip.userId !== userId) notFound();
+  const [counts, ownedEquipmentCount, user, tripsToCopy] = await Promise.all([
     getTripNavCounts(tripId),
-    prisma.diveEquipment.count({ where: { userId: session!.user!.id, status: "OWNED" } }),
+    prisma.diveEquipment.count({ where: { userId, status: "OWNED" } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { unitSystem: true } }),
+    listTripsToCopyFrom(userId, tripId),
   ]);
+  const initialView: PackingView = cookieStore.get("packingView")?.value === "suitcase" ? "suitcase" : "category";
 
   return (
     <div className="space-y-6">
@@ -33,7 +43,15 @@ export default async function PackingPage({ params }: { params: Promise<{ tripId
         icon={<ShoppingBag className="h-5 w-5" />}
         counts={counts}
       />
-      <PackingList tripId={trip.id} items={trip.packingItems} hasDiveEquipment={ownedEquipmentCount > 0} />
+      <PackingList
+        tripId={trip.id}
+        items={trip.packingItems}
+        suitcases={trip.suitcases}
+        unitSystem={user?.unitSystem ?? "METRIC"}
+        tripsToCopy={tripsToCopy}
+        initialView={initialView}
+        hasDiveEquipment={ownedEquipmentCount > 0}
+      />
     </div>
   );
 }
