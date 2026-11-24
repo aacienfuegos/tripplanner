@@ -18,8 +18,8 @@ async function requireMediaAdmin(actor: Actor) {
 export type ClipLinkChange = { readonly clipId: string; readonly included: boolean | null };
 
 // What an agent changes is the clip's state on this dive: included, excluded
-// or automatic.
-async function mediaAuditEntry(
+// or automatic. The entry goes into the same transaction as the links.
+async function mediaAuditData(
   actor: Extract<Actor, { kind: "agent" }>,
   diveLogId: string,
   changes: readonly ClipLinkChange[],
@@ -37,7 +37,7 @@ async function mediaAuditEntry(
       [state(before.get(change.clipId)), state(change.included)],
     ]),
   );
-  return prisma.agentAuditEntry.create({ data: auditEntryData(actor, { entity: "Dive" }, diveLogId, "UPDATED", diff) });
+  return auditEntryData(actor, { entity: "Dive" }, diveLogId, "UPDATED", diff);
 }
 
 export async function setDiveClipLinks(actor: Actor, diveLogId: string, changes: readonly ClipLinkChange[]) {
@@ -51,7 +51,10 @@ export async function setDiveClipLinks(actor: Actor, diveLogId: string, changes:
   });
   const ownedIds = new Set(owned.map((clip) => clip.id));
   const valid = changes.filter((change) => ownedIds.has(change.clipId));
-  const audit = actor.kind === "agent" ? [await mediaAuditEntry(actor, diveLogId, valid)] : [];
+  const audit =
+    actor.kind === "agent"
+      ? [prisma.agentAuditEntry.create({ data: await mediaAuditData(actor, diveLogId, valid) })]
+      : [];
 
   await prisma.$transaction([
     ...audit,

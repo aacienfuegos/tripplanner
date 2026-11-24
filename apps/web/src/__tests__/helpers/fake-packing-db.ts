@@ -33,6 +33,10 @@ function matches(row: Row, where: Where = {}): boolean {
   return Object.entries(where).every(([key, cond]) => {
     if (cond === undefined) return true;
     if (key === "OR" && Array.isArray(cond)) return cond.some((w: Where) => matches(row, w));
+    // A compound unique key, as clipId_diveLogId.
+    if (!(key in row) && typeof cond === "object" && cond !== null && key.split("_").every((k) => k in row)) {
+      return matches(row, cond as Where);
+    }
     if (!(key in row)) throw new Error(`fake db: unknown field ${key}`);
     return matchesField(row[key], cond);
   });
@@ -91,6 +95,16 @@ export function table(rows: Row[], defaults: () => Row) {
         }
       });
       return { count };
+    },
+    upsert: async ({ where, create, update }: { where: Where; create: Row; update: Row }) => {
+      const i = rows.findIndex((r) => matches(r, where));
+      if (i === -1) {
+        const row = build(create);
+        rows.push(row);
+        return row;
+      }
+      rows[i] = { ...rows[i], ...defined(update) };
+      return rows[i];
     },
     delete: async ({ where }: { where: Where }) => {
       const i = rows.findIndex((r) => matches(r, where));

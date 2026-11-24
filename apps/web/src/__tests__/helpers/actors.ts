@@ -6,7 +6,7 @@ export function webActorOf(userId: string): Actor {
 
 // A connection of `userId` with every scope: the services don't look at
 // scopes, the trip list is what they check.
-export function agentActor(userId: string, trips: readonly string[] | "all"): Actor {
+export function agentActor(userId: string, trips: readonly string[] | "all"): Extract<Actor, { kind: "agent" }> {
   return {
     kind: "agent",
     userId,

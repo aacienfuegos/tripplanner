@@ -30,6 +30,8 @@ const defaults = {
   diveEquipmentService: (): Row => ({ id: nextId("service"), userId: "", equipmentId: "" }),
   diveCertification: (): Row => ({ id: nextId("certification"), userId: "" }),
   diveProfileSample: (): Row => ({ id: nextId("sample"), diveLogId: "", seconds: 0, depth: 0, temp: null, ndlMinutes: null }),
+  mediaClip: (): Row => ({ id: nextId("clip"), userId: "" }),
+  mediaClipLink: (): Row => ({ clipId: "", diveLogId: "", included: true }),
   agentGrant: (): Row => ({ id: nextId("grant"), userId: "", name: "" }),
   agentAuditEntry: (): Row => ({
     id: nextId("entry"),
@@ -55,8 +57,11 @@ const models = Object.fromEntries(keys.map((key) => [key, table(state[key], defa
   [K in keyof Tables]: ReturnType<typeof table>;
 };
 
-// Interactive transactions roll back on throw, like Prisma's.
-async function transaction<T>(fn: (tx: typeof models) => Promise<T>): Promise<T> {
+// Interactive transactions roll back on throw, like Prisma's. The array form
+// gets the writes already started, as Prisma's would get them queued.
+async function transaction<T>(fn: ((tx: typeof models) => Promise<T>) | readonly Promise<unknown>[]): Promise<T | unknown[]> {
+  if (Array.isArray(fn)) return Promise.all(fn);
+  if (typeof fn !== "function") throw new Error("fake db: unsupported transaction");
   const snapshot = structuredClone(state);
   try {
     return await fn(models);
