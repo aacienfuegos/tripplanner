@@ -19,7 +19,20 @@ const DAY = 24 * 60 * 60 * 1000;
 const CONFIG = { issuer: "https://trips.example.com", resource: "https://trips.example.com/api/mcp" };
 
 function grant(id: string, userId: string, clientId: string, extra: Record<string, unknown> = {}) {
-  return { id, userId, clientId, name: id, allTrips: true, scopes: ["trips:read"], lastUsedAt: new Date(), ...extra };
+  // Complete rows: the tests that push them straight into the fake skip its defaults.
+  return {
+    id,
+    userId,
+    clientId,
+    name: id,
+    allTrips: true,
+    scopes: ["trips:read"],
+    createdAt: new Date(),
+    lastUsedAt: new Date(),
+    revokedAt: null,
+    revokedReason: null,
+    ...extra,
+  };
 }
 
 function seed() {
