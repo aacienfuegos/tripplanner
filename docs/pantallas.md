@@ -120,10 +120,26 @@ de aviso y las acciones de edición abren una alerta
 En cada sección: botón flotante de alta (`apps/android/src/components/SectionFAB.tsx`), iconos de
 mapa, importación y edición en la cabecera (`apps/android/src/components/SectionHeaderRight.tsx`)
 y formularios como modales `Modal` con `presentationStyle="pageSheet"`
-(`apps/android/src/components/forms/*FormModal.tsx`, los 13). La importación
+(`apps/android/src/components/forms/*FormModal.tsx`, los 14). La importación
 con IA es un asistente de tres pasos, Prompt, Pegar y Revisar
 (`apps/android/src/components/import/ImportWizard.tsx`), disponible en vuelos, alojamientos,
 actividades, gastos, maleta, documentos y tareas.
+
+Maleta (`trips/[id]/packing.tsx`, con sus trozos en `apps/android/src/components/packing/`): en
+la cabecera de la lista, el progreso total, la búsqueda (sin distinguir mayúsculas ni tildes), el
+selector "Por categoría / Por maleta" (recordado en AsyncStorage, `@tripplanner/packing-view`), el
+interruptor "Solo lo que falta por meter" (se quita al volver a la sección) y una fila de acciones:
+"Nueva maleta", "Lista predeterminada" (solo con la lista vacía), "Copiar de otro viaje" (si hay
+viajes con algo que copiar), "Seleccionar" y "Desmarcar todo". En "Por categoría", cada objeto
+muestra su maleta; en "Por maleta", una sección por maleta con tipo, peso, progreso e iconos de
+editar, desmarcar todo, compartir (`Share.share`) y borrar, y al final "Sin maleta". Las opciones
+de la maleta son iconos y no un `Alert` porque Android pinta como mucho tres botones en un
+`Alert`. Borrar una maleta con objetos pregunta con "Cancelar", "Sacarlos de la maleta" y
+"Borrarlos también". Con "Seleccionar", tocar un objeto lo selecciona y el botón flotante deja
+sitio a una barra con "Seleccionar todo", "Mover a una maleta", "Marcar como metidos",
+"Desmarcar", "Borrar" y "Salir". Elegir la maleta de destino y copiar de otro viaje son modales en
+hoja. El formulario de objeto lleva una fila de maleta y el de maleta, nombre, tipo y peso en la
+unidad de Ajustes.
 
 ### Buceo
 
@@ -137,7 +153,8 @@ Pestañas inferiores en `apps/android/app/dives/_layout.tsx`: "Registro" (`dives
 ### Ajustes
 
 `settings.tsx`: plan gratuito o Pro con botón "Actualizar a Pro" (aviso de próximamente),
-apariencia, idioma, interruptor para simular Pro solo en desarrollo e información de versión.
+apariencia, idioma, sistema de unidades (métrico o imperial, para el peso de las maletas),
+interruptor para simular Pro solo en desarrollo e información de versión.
 
 ### Estados
 

@@ -105,7 +105,11 @@ Fuente: `apps/web/src/app/(app)/dives/` y `apps/web/src/actions/dive*.ts`.
   inmersiones vinculadas y mapa (`apps/android/app/trips/[id]/`); módulo de buceo con inmersiones,
   sitios, equipo, certificaciones y estadísticas (`apps/android/app/dives/`); importación con IA
   en modo manual de tres pasos (`apps/android/src/components/import/`), también con la maleta de
-  cada objeto como en la web (`apps/android/src/db/packing.ts`); ajustes de tema, idioma, sistema
+  cada objeto como en la web (`apps/android/src/db/packing.ts`); maletas en la sección de
+  equipaje, con las vistas por categoría y por maleta, búsqueda, filtro de pendientes, selección
+  múltiple, copiar de otro viaje, compartir una maleta y la misma lista predeterminada que la web
+  (`apps/android/app/trips/[id]/packing.tsx`, `DEFAULT_PACKING_ITEMS` de
+  `packages/shared/packing.ts`); ajustes de tema, idioma, sistema
   de unidades (métrico o imperial, para el peso de las maletas) y plan
   (`apps/android/app/settings.tsx`, `apps/android/src/contexts/UnitsContext.tsx`).
 - No hay: cuenta ni autenticación; destinos como sección (no existe tabla, ver `docs/datos.md`);
