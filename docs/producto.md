@@ -48,6 +48,17 @@ Fuente: `apps/web/src/app/(app)/trips/` y `apps/web/src/actions/`.
   destinos (`destinations`), maleta (`packing`), documentos (`documents`), tareas (`tasks`, con
   las reservas pendientes de `apps/web/src/components/tasks/pending-bookings.tsx`), inmersiones
   vinculadas al viaje (`dives`) y mapa (`map`).
+- Equipaje con maletas (`apps/web/src/components/packing/`, acciones en
+  `apps/web/src/actions/packing.ts` y `suitcases.ts`): cada maleta tiene nombre, tipo (cabina,
+  facturada, mochila u otro) y peso opcional, y cada objeto va en una maleta o en "Sin maleta". Dos
+  vistas, por categoría y por maleta, con el progreso de cada maleta; la vista elegida se recuerda
+  en la cookie `packingView`. Los objetos se crean, se editan (nombre, categoría, cantidad y maleta;
+  al cambiar de maleta se desmarcan) y se tachan al meterlos. Hay búsqueda sin distinguir
+  mayúsculas ni tildes, filtro de lo que falta por meter, selección múltiple (mover, marcar,
+  desmarcar y borrar), "Desmarcar todo" de una maleta o de la sección, copiar las maletas y los
+  objetos de otro viaje del usuario y compartir una maleta como texto en el portapapeles. Al borrar
+  una maleta con objetos se eligen sacarlos de la maleta o borrarlos también. La lista
+  predeterminada y el equipo de buceo preguntan a qué maleta van si el viaje tiene alguna.
 - Panel de inicio con el viaje en curso o el próximo y los próximos vuelos y alojamientos
   (`apps/web/src/app/(app)/dashboard/page.tsx`).
 
@@ -83,7 +94,9 @@ Fuente: `apps/web/src/app/(app)/dives/` y `apps/web/src/actions/dive*.ts`.
 - Inicio de sesión, alta, estados de usuario y panel de administración: ver `docs/datos.md`,
   sección "Autenticación".
 - Perfil: nombre, imagen y sistema de unidades métrico o imperial
-  (`apps/web/src/components/profile/profile-form.tsx`). El idioma y el tema no están en el perfil:
+  (`apps/web/src/components/profile/profile-form.tsx`). El sistema de unidades se aplica al peso de
+  las maletas: se escribe y se ve en kg o en lb, y se guarda en gramos, así que cambiarlo no cambia
+  el peso guardado (`packages/shared/packing.ts`). El idioma y el tema no están en el perfil:
   se cambian desde la barra de navegación (`apps/web/src/components/layout/navbar.tsx`).
 
 ### Android: qué hay y qué no respecto a la web
