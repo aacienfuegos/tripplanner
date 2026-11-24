@@ -93,10 +93,10 @@ condiciona el despliegue y el mantenimiento (`apps/web/src/lib/oauth/`).
 - **Límites de uso** (`apps/web/src/lib/rate-limit.ts`): ventana deslizante en memoria sobre
   `BoundedCache`. `/api/oauth/token`: 20 por minuto e IP, con todas las peticiones, y 60 por
   minuto y cliente, contando solo las fallidas y mirado después de comprobar la credencial, así
-  que un código o un refresco válidos nunca reciben 429 por el cliente. `/oauth/authorize`: 30 por
-  minuto e IP. La IP sale de `CF-Connecting-IP` y, si falta, de `X-Real-IP`. Valen para el
-  contenedor único de hoy: se reinician con él y, con varias réplicas, habría que moverlos a la
-  base de datos.
+  que un código o un refresco válidos nunca reciben 429 por el cliente. `/api/oauth/revoke`: 20
+  por minuto e IP, antes de leer el cuerpo. `/oauth/authorize`: 30 por minuto e IP. La IP sale de
+  `CF-Connecting-IP` y, si falta, de `X-Real-IP`. Valen para el contenedor único de hoy: se
+  reinician con él y, con varias réplicas, habría que moverlos a la base de datos.
 - **Salida a Internet nueva: CIMD** (`apps/web/src/lib/oauth/cimd.ts`). Un `client_id` con forma de
   URL `https` hace que el servidor descargue ese documento, con `node:https`: solo el puerto 443,
   sin seguir redirecciones, 5 segundos y 64 KB como máximo, `application/json`. Un `lookup` propio

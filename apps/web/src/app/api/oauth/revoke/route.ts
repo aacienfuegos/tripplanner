@@ -3,13 +3,21 @@ import { NO_STORE, getOAuthConfig, notConfiguredResponse } from "@/lib/oauth/con
 import { revokeGrant } from "@/lib/oauth/grants";
 import { readForm } from "@/lib/oauth/token-exchange";
 import { secretHash } from "@/lib/oauth/tokens";
+import { RateLimiter, clientIp, tooManyRequests } from "@/lib/rate-limit";
 
 // RFC 7009. A token that doesn't exist or belongs to another client gets the
 // same 200 and nothing happens, so the endpoint tells nobody what exists.
 // Revoking a refresh token ends the connection with all its tokens (2.1).
+// Anyone can call it without credentials, and each call is a hash and a
+// lookup: limited per IP like the token endpoint.
+const perIp = new RateLimiter(20, 60_000);
+
 export async function POST(request: Request): Promise<Response> {
   const config = getOAuthConfig();
   if (!config) return notConfiguredResponse();
+
+  const ipLimit = perIp.hit(clientIp(request.headers));
+  if (ipLimit.limited) return tooManyRequests(ipLimit.retryAfterSeconds, NO_STORE);
 
   const params = await readForm(request);
   const token = params?.get("token");

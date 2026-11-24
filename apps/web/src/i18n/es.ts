@@ -833,6 +833,8 @@ export const es = {
   agentsAuthorizeLimit: "Ya tienes 10 conexiones activas. Revoca alguna para autorizar otra.",
   agentsAuthorizeUnavailable: "El acceso de agentes no está configurado en este servidor.",
   agentsAuthorizeTooMany: "Demasiadas peticiones. Espera un minuto y vuelve a intentarlo.",
+  agentsAuthorizeClientError: "La petición del agente no es válida ({error}). No se ha autorizado nada.",
+  agentsAuthorizeBackTo: "Volver a {host}",
   agentsGoToConnections: "Ir a las conexiones",
   agentsBackHome: "Volver al inicio",
   agentsCardTitle: "Conexiones de agentes",

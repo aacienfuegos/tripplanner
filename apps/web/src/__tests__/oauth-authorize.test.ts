@@ -107,6 +107,28 @@ describe("prepareAuthorization", () => {
     expect(fakeOAuthDb.rows("oAuthAuthorizationRequest")).toHaveLength(0);
   });
 
+  it.each([
+    ["with another response type", { response_type: "x" }, "unsupported_response_type"],
+    ["without PKCE", { code_challenge: undefined }, "invalid_request"],
+    ["with an unknown scope", { scope: "admin" }, "invalid_scope"],
+  ])("doesn't send a CIMD client back on its own %s: its redirect URI is the publisher's (RFC 9700, 4.11.2)", async (_label, overrides, error) => {
+    vi.mocked(fetchClientMetadata).mockResolvedValue({ name: "Phish", redirectUris: ["https://evil.example/phish"] });
+    const outcome = await prepareAuthorization(
+      CONFIG,
+      A,
+      params({ client_id: "https://evil.example/c.json", redirect_uri: "https://evil.example/phish", ...overrides }),
+      NOW,
+    );
+    expect(outcome.kind).toBe("client_error");
+    if (outcome.kind !== "client_error") return;
+    expect(outcome.error).toBe(error);
+    const url = new URL(outcome.location);
+    expect(url.origin + url.pathname).toBe("https://evil.example/phish");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ error, state: "st4te", iss: CONFIG.issuer });
+    expect(fakeOAuthDb.rows("oAuthClient")).toHaveLength(2);
+    expect(fakeOAuthDb.rows("oAuthAuthorizationRequest")).toHaveLength(0);
+  });
+
   it("stores a CIMD client only when the request passes every step", async () => {
     await prepareAuthorization(CONFIG, A, params({ client_id: CIMD_ID, code_challenge: undefined }), NOW);
     expect(fakeOAuthDb.rows("oAuthClient")).toHaveLength(2);
@@ -220,6 +242,13 @@ describe("decideConsent", () => {
     expect("location" in result && new URL(result.location).searchParams.get("error")).toBe("access_denied");
     expect(fakeOAuthDb.rows("agentGrant")).toHaveLength(0);
     await expect(decideConsent(CONFIG, A, allow(view), NOW)).resolves.toEqual({ error: "expired" });
+  });
+
+  it("cancelling sends a CIMD client back too: it takes a click", async () => {
+    const outcome = await prepareAuthorization(CONFIG, A, params({ client_id: CIMD_ID }), NOW);
+    if (outcome.kind !== "consent") throw new Error(`no consent: ${outcome.kind}`);
+    const result = await decideConsent(CONFIG, A, { ...allow(outcome.view), decision: "deny" }, NOW);
+    expect("location" in result && new URL(result.location).searchParams.get("error")).toBe("access_denied");
   });
 
   it("refuses dives with delete but no access, and no access at all", async () => {

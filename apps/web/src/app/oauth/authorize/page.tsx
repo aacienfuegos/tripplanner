@@ -19,7 +19,9 @@ import type { WebTKeys } from "@/i18n";
 
 const perIp = new RateLimiter(30, 60_000);
 
-function Message({ t, text, toConnections = false }: { t: WebTKeys; text: string; toConnections?: boolean }) {
+type BackLink = { readonly href: string; readonly host: string };
+
+function Message({ t, text, toConnections = false, back }: { t: WebTKeys; text: string; toConnections?: boolean; back?: BackLink }) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
       <Card className="w-full max-w-lg text-center">
@@ -31,9 +33,15 @@ function Message({ t, text, toConnections = false }: { t: WebTKeys; text: string
           <CardDescription>{text}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Link href={toConnections ? "/profile/agents" : "/dashboard"} className={buttonVariants({ variant: "outline" })}>
-            {toConnections ? t.agentsGoToConnections : t.agentsBackHome}
-          </Link>
+          {back ? (
+            <a href={back.href} rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
+              {t.agentsAuthorizeBackTo.replace("{host}", back.host)}
+            </a>
+          ) : (
+            <Link href={toConnections ? "/profile/agents" : "/dashboard"} className={buttonVariants({ variant: "outline" })}>
+              {toConnections ? t.agentsGoToConnections : t.agentsBackHome}
+            </Link>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -108,6 +116,10 @@ export default async function AuthorizePage({
   if (outcome.kind === "error") return <Message t={t} text={errorText(t, outcome.reason)} />;
   if (outcome.kind === "limit") return <Message t={t} text={t.agentsAuthorizeLimit} toConnections />;
   if (outcome.kind === "redirect") redirect(outcome.location);
+  if (outcome.kind === "client_error") {
+    const back = { href: outcome.location, host: hostOf(outcome.location) };
+    return <Message t={t} text={t.agentsAuthorizeClientError.replace("{error}", outcome.error)} back={back} />;
+  }
 
   const { view } = outcome;
   const trips = await prisma.trip.findMany({

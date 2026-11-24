@@ -30,7 +30,7 @@ proxy la exige en todo lo demás (`apps/web/src/lib/auth.config.ts`, `authorized
 | `/auth/pending` | `auth/pending/page.tsx` | Aviso de cuenta pendiente de aprobación y botón de cerrar sesión; si el usuario ya está aprobado va a `/dashboard`, si está denegado a `/auth/error` |
 | `/auth/error` | `auth/error/page.tsx` | Mensaje según el parámetro `error` y enlace a `/auth/signin` |
 | `/onboarding` | `onboarding/page.tsx` | Pide nombre e imagen la primera vez; exige sesión y, si ya hay nombre, va a `/dashboard` |
-| `/oauth/authorize` | `oauth/authorize/page.tsx` | Consentimiento de un agente: dominio del cliente y de la vuelta (con aviso si es `localhost`), nombre de la conexión, viajes (todos o los elegidos), buceo y permisos; "Autorizar" vuelve al cliente con el código y "Cancelar" con `access_denied`. Estados: petición inválida, cuenta no aprobada, demasiadas peticiones, límite de 10 conexiones (enlace a `/profile/agents`) y servidor sin configurar. Tarjeta `max-w-lg`; exige sesión (el proxy vuelve aquí tras iniciar sesión) |
+| `/oauth/authorize` | `oauth/authorize/page.tsx` | Consentimiento de un agente: dominio del cliente y de la vuelta (con aviso si es `localhost`), nombre de la conexión, viajes (todos o los elegidos), buceo y permisos; "Autorizar" vuelve al cliente con el código y "Cancelar" con `access_denied`. Si la petición falla después de comprobar el cliente y su dirección de vuelta, un cliente registrado a mano vuelve solo con el error; uno con documento CIMD ve el error y un enlace "Volver a <host>", porque cualquiera puede publicar uno con su propia dirección (RFC 9700, 4.11.2). Estados: petición inválida, cuenta no aprobada, demasiadas peticiones, límite de 10 conexiones (enlace a `/profile/agents`) y servidor sin configurar. Tarjeta `max-w-lg`; exige sesión (el proxy vuelve aquí tras iniciar sesión) |
 
 ### Protegidas (`(app)`)
 
@@ -75,7 +75,7 @@ Las secciones de un viaje ajeno o inexistente devuelven 404 (`notFound()` en cad
 | `/api/dives/import` | `api/dives/import/route.ts` | `POST` del fichero de Diving Log; devuelve el contenido parseado para revisarlo |
 | `/api/health` | `api/health/route.ts` | Estado de la conexión a la base de datos |
 | `/api/oauth/token` | `api/oauth/token/route.ts` | `POST` de formulario: canje del código (con PKCE) y refresco; responde los tokens o un error RFC 6749 |
-| `/api/oauth/revoke` | `api/oauth/revoke/route.ts` | `POST` de formulario (RFC 7009): revoca un token; siempre 200 |
+| `/api/oauth/revoke` | `api/oauth/revoke/route.ts` | `POST` de formulario (RFC 7009): revoca un token; siempre 200, salvo 429 pasadas 20 por minuto e IP |
 | `/.well-known/oauth-authorization-server` | `.well-known/oauth-authorization-server/route.ts` | Metadatos del servidor de autorización (RFC 8414) |
 | `/.well-known/oauth-protected-resource` y `…/api/mcp` | `.well-known/oauth-protected-resource/route.ts` y `api/mcp/route.ts` | Metadatos del recurso protegido (RFC 9728) |
 
