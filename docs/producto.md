@@ -142,8 +142,8 @@ los que se creen después) y los permisos marcados.
   acepta (pasan a ser un alojamiento o una actividad normal, con su punto en el mapa y la marca
   "Añadido por") o las descarta. El agente ve en qué estado está cada una.
 - Lo que crea o edita un agente lleva en su lista y en su ficha la marca "Añadido por" o "Editado
-  por" con el nombre de la conexión; editarlo desde la web la quita. Lo que escribe un agente se
-  muestra siempre como texto.
+  por" con el nombre de la conexión ("Por" si su entrada del registro ya tiene más de 90 días);
+  editarlo desde la web la quita. Lo que escribe un agente se muestra siempre como texto.
 
 ### Android: qué hay y qué no respecto a la web
 

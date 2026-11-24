@@ -48,7 +48,7 @@ function entry(userId: string, grantId: string, entityId: string, action: string
 describe("the mark of an agent's element (CA21, CA22)", () => {
   it("says who added it, as text even if the name carries HTML", () => {
     const { container } = render(
-      <AgentLabelsProvider labels={{ "acc-1": { name: HTML, added: true } }}>
+      <AgentLabelsProvider labels={{ "acc-1": { name: HTML, action: "CREATED" } }}>
         <AgentBadge id="acc-1" />
       </AgentLabelsProvider>,
     );
@@ -58,7 +58,7 @@ describe("the mark of an agent's element (CA21, CA22)", () => {
 
   it("says who edited it, and there is no mark without a label", () => {
     render(
-      <AgentLabelsProvider labels={{ "acc-1": { name: "Investigador", added: false } }}>
+      <AgentLabelsProvider labels={{ "acc-1": { name: "Investigador", action: "UPDATED" } }}>
         <AgentBadge id="acc-1" />
         <AgentBadge id="acc-2" />
       </AgentLabelsProvider>,
@@ -67,19 +67,57 @@ describe("the mark of an agent's element (CA21, CA22)", () => {
     expect(screen.getByText("Edited by Investigador")).toBeInTheDocument();
   });
 
+  it("says only who when the register no longer says what", () => {
+    render(
+      <AgentLabelsProvider labels={{ "acc-1": { name: "Investigador", action: null } }}>
+        <AgentBadge id="acc-1" />
+      </AgentLabelsProvider>,
+    );
+    expect(screen.getByText("By Investigador")).toBeInTheDocument();
+  });
+
   it.each([
     [A, "grant-a", "grant-b"],
     [B, "grant-b", "grant-a"],
   ])("only %s's connections name a mark; added if the connection created it", async (me, mine, theirs) => {
-    fakeServiceDb.rows("agentAuditEntry").push(entry(me, mine, "created", "CREATED"));
+    fakeServiceDb.rows("agentAuditEntry").push(
+      entry(me, mine, "created", "CREATED"),
+      entry(me, mine, "edited", "UPDATED"),
+      entry(me, mine, "suggested", "SUGGESTED"),
+    );
     const labels = await getAgentLabels(me, [
       { id: "created", agentGrantId: mine },
       { id: "edited", agentGrantId: mine },
+      { id: "suggested", agentGrantId: mine },
       { id: "foreign", agentGrantId: theirs },
       { id: "web", agentGrantId: null },
     ]);
     const name = me === A ? "Investigador" : "Otro agente";
-    expect(labels).toEqual({ created: { name, added: true }, edited: { name, added: false } });
+    // An accepted suggestion keeps the suggestion's id: its entry is the creation.
+    expect(labels).toEqual({
+      created: { name, action: "CREATED" },
+      edited: { name, action: "UPDATED" },
+      suggested: { name, action: "CREATED" },
+    });
+  });
+
+  it("doesn't say edited of what an agent created once its entry is past 90 days", async () => {
+    const old = new Date(Date.now() - AUDIT_RETENTION_MS - 24 * 60 * 60 * 1000);
+    fakeServiceDb.rows("agentAuditEntry").push(
+      entry(A, "grant-a", "old", "CREATED", old),
+      entry(A, "grant-a", "old-then-edited", "CREATED", old),
+      entry(A, "grant-a", "old-then-edited", "UPDATED"),
+    );
+    const labels = await getAgentLabels(A, [
+      { id: "old", agentGrantId: "grant-a" },
+      { id: "old-then-edited", agentGrantId: "grant-a" },
+      { id: "purged", agentGrantId: "grant-a" },
+    ]);
+    expect(labels).toEqual({
+      old: { name: "Investigador", action: null },
+      "old-then-edited": { name: "Investigador", action: "UPDATED" },
+      purged: { name: "Investigador", action: null },
+    });
   });
 });
 

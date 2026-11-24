@@ -898,6 +898,7 @@ export const es = {
   agentsAuditRestoreParentMissing: "No se puede restaurar: el viaje o el equipo al que pertenecía ya no existe.",
   agentsBadgeAddedBy: "Añadido por {name}",
   agentsBadgeEditedBy: "Editado por {name}",
+  agentsBadgeBy: "Por {name}",
   agentsEntityTrip: "Viaje",
   agentsEntityDestination: "Destino",
   agentsEntityFlight: "Vuelo",

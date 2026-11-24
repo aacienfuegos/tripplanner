@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { useT } from "@/contexts/LanguageContext";
 
 // The mark of an element an agent wrote last: the name of its connection, and
-// whether it created it or edited it. The page resolves the names
-// (lib/agent-labels.ts) and the lists only say where the mark goes.
+// whether it created it or edited it, or null once the register no longer
+// says. The page resolves the names (lib/agent-labels.ts) and the lists only
+// say where the mark goes.
 
-export type AgentLabel = { readonly name: string; readonly added: boolean };
+export type AgentLabel = { readonly name: string; readonly action: "CREATED" | "UPDATED" | null };
 export type AgentLabels = Readonly<Record<string, AgentLabel>>;
 
 const AgentLabelsContext = createContext<AgentLabels>({});
@@ -23,10 +24,16 @@ export function AgentBadge({ id }: { id: string }) {
   const label = useContext(AgentLabelsContext)[id];
   const { t } = useT();
   if (!label) return null;
+  const text =
+    label.action === "CREATED"
+      ? t.agentsBadgeAddedBy
+      : label.action === "UPDATED"
+        ? t.agentsBadgeEditedBy
+        : t.agentsBadgeBy;
   return (
     <Badge variant="outline" className="gap-1 font-normal">
       <Bot className="h-3 w-3" aria-hidden />
-      {(label.added ? t.agentsBadgeAddedBy : t.agentsBadgeEditedBy).replace("{name}", label.name)}
+      {text.replace("{name}", label.name)}
     </Badge>
   );
 }
