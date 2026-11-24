@@ -50,7 +50,7 @@ export default function PackingFormModal({ tripId, visible, onClose, onSaved, on
       quantity: Math.max(1, parseInt(quantity) || 1),
     };
     if (initialData) {
-      updatePackingItem(initialData.id, data);
+      updatePackingItem(tripId, initialData.id, { ...data, suitcase_id: initialData.suitcase_id });
     } else {
       createPackingItem(tripId, { ...data, packed: 0 });
     }

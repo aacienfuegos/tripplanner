@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import { ProProvider } from "@/contexts/ProContext";
 import { I18nProvider } from "@/contexts/I18nContext";
+import { UnitsProvider } from "@/contexts/UnitsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { initDatabase } from "@/db/database";
 import { seedDevData } from "@/db/seed";
@@ -50,11 +51,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <I18nProvider>
-        <ThemeProvider>
-          <ProProvider>
-            <AppRoot />
-          </ProProvider>
-        </ThemeProvider>
+        <UnitsProvider>
+          <ThemeProvider>
+            <ProProvider>
+              <AppRoot />
+            </ProProvider>
+          </ThemeProvider>
+        </UnitsProvider>
       </I18nProvider>
     </SafeAreaProvider>
   );
