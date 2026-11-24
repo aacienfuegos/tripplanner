@@ -63,7 +63,7 @@ describe("which tools a connection gets (CA5, CA10, CA13)", () => {
             has(tool.scope) && (!tool.allTripsOnly || allTrips) && (!tool.mediaAdminOnly || mediaAdmin);
           expect(names.includes(tool.name), `${tool.name} with ${scopes.join(" ")}`).toBe(expected);
         }
-        if (!has("dives:read")) expect(names.filter((name) => name.includes("dive"))).toEqual([]);
+        if (!has("dives:read") && !has("dives:write")) expect(names.filter((name) => name.includes("dive"))).toEqual([]);
         if (!has("trips:write")) expect(names.filter((name) => /^(create|update)_(trip|accommodation)$/.test(name))).toEqual([]);
         // Always the catalog's order.
         expect(names).toEqual(order.filter((name) => names.includes(name)));

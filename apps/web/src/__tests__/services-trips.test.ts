@@ -95,7 +95,7 @@ describe.each([
 });
 
 describe("documents (CA8)", () => {
-  it("an agent creates a document with type, title, link, expiry and notes, stored as the web stores it", async () => {
+  it("an agent creates a document with type, title, link, expiry and notes, stored as the web stores it but for the mark", async () => {
     const input = {
       type: "VISA" as const,
       name: "Visado Japón",
@@ -110,7 +110,8 @@ describe("documents (CA8)", () => {
     const { id: agentId, ...agentRow } = byAgent;
     const { id: webId, ...webRow } = byWeb;
     expect(agentId).not.toBe(webId);
-    expect(agentRow).toEqual(webRow);
+    expect(agentRow).toEqual({ ...webRow, agentGrantId: `grant-${A}` });
+    expect(webRow).toMatchObject({ agentGrantId: null });
     expect(agentRow).toMatchObject({ tripId: `trip-${A}`, fileUrl: input.fileUrl, expiresAt: new Date("2027-01-31") });
   });
 
@@ -143,7 +144,11 @@ describe("partial edits", () => {
 
     await flights.updateFlight(agentActor(A, "all"), `trip-${A}`, flight?.id as string, { notes: "Ventanilla" });
 
-    expect(fakeServiceDb.rows("flight").find((f) => f.id === flight?.id)).toEqual({ ...flight, notes: "Ventanilla" });
+    expect(fakeServiceDb.rows("flight").find((f) => f.id === flight?.id)).toEqual({
+      ...flight,
+      notes: "Ventanilla",
+      agentGrantId: `grant-${A}`,
+    });
   });
 });
 
