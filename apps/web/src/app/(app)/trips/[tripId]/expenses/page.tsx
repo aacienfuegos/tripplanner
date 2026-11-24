@@ -6,6 +6,8 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { DollarSign } from "lucide-react";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function ExpensesPage({ params }: { params: Promise<{ tripId: string }> }) {
   const { tripId } = await params;
@@ -18,7 +20,10 @@ export default async function ExpensesPage({ params }: { params: Promise<{ tripI
     getT(),
   ]);
   if (!trip || trip.userId !== session!.user!.id) notFound();
-  const counts = await getTripNavCounts(tripId);
+  const [counts, agentLabels] = await Promise.all([
+    getTripNavCounts(tripId),
+    getAgentLabels(trip.userId, trip.expenses),
+  ]);
 
   const amountInTripCurrency = (e: (typeof trip.expenses)[number]) =>
     e.currency === trip.currency ? e.amount : (e.convertedAmount ?? e.amount);
@@ -36,15 +41,17 @@ export default async function ExpensesPage({ params }: { params: Promise<{ tripI
         icon={<DollarSign className="h-5 w-5" />}
         counts={counts}
       />
-      <ExpensesList
-        tripId={trip.id}
-        expenses={trip.expenses}
-        currency={trip.currency}
-        budget={trip.budget}
-        total={total}
-        paid={paid}
-        tripStartDate={trip.startDate}
-      />
+      <AgentLabelsProvider labels={agentLabels}>
+        <ExpensesList
+          tripId={trip.id}
+          expenses={trip.expenses}
+          currency={trip.currency}
+          budget={trip.budget}
+          total={total}
+          paid={paid}
+          tripStartDate={trip.startDate}
+        />
+      </AgentLabelsProvider>
     </div>
   );
 }

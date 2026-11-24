@@ -11,12 +11,14 @@ import {
 import type { Actor } from "@/lib/services/actor";
 import { resolveDiveAreaId } from "@/lib/services/access";
 import { NotFoundError, orNotFound, parseInput } from "@/lib/services/errors";
+import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
 
 export async function createDiveSite(actor: Actor, input: DiveSiteInput) {
   const { diveAreaId, ...data } = parseInput(diveSiteInputSchema, input);
-  const site = await prisma.diveSite.create({
-    data: { ...data, userId: actor.userId, diveAreaId: await resolveDiveAreaId(actor, diveAreaId) },
-  });
+  const resolvedAreaId = await resolveDiveAreaId(actor, diveAreaId);
+  const site = await auditedCreate(actor, { entity: "Dive site" }, (db, mark) =>
+    db.diveSite.create({ data: { ...data, ...mark, userId: actor.userId, diveAreaId: resolvedAreaId } }),
+  );
   void geocodeDiveSite(site.id);
   revalidatePath("/dives");
   return site;
@@ -32,12 +34,23 @@ export async function updateDiveSite(actor: Actor, id: string, input: Partial<Di
   // se limpian y se reintenta el geocoding.
   const addressChanged = data.address !== undefined && previous.address !== data.address;
 
-  await orNotFound(
-    "Dive site",
-    prisma.diveSite.update({
-      where: { id, userId: actor.userId },
-      data: { ...data, diveAreaId: resolvedAreaId, ...(addressChanged ? { latitude: null, longitude: null } : {}) },
-    }),
+  await auditedUpdate(
+    actor,
+    { entity: "Dive site", id },
+    (db) => db.diveSite.findUnique({ where: { id, userId: actor.userId } }),
+    (db, mark) =>
+      orNotFound(
+        "Dive site",
+        db.diveSite.update({
+          where: { id, userId: actor.userId },
+          data: {
+            ...data,
+            ...mark,
+            diveAreaId: resolvedAreaId,
+            ...(addressChanged ? { latitude: null, longitude: null } : {}),
+          },
+        }),
+      ),
   );
 
   if (addressChanged) void geocodeDiveSite(id);
@@ -53,14 +66,22 @@ export async function deleteDiveSite(actor: Actor, id: string) {
 
 export async function createDiveArea(actor: Actor, input: DiveAreaInput) {
   const data = parseInput(diveAreaInputSchema, input);
-  const area = await prisma.diveArea.create({ data: { ...data, userId: actor.userId } });
+  const area = await auditedCreate(actor, { entity: "Dive area" }, (db, mark) =>
+    db.diveArea.create({ data: { ...data, ...mark, userId: actor.userId } }),
+  );
   revalidatePath("/dives");
   return area;
 }
 
 export async function updateDiveArea(actor: Actor, id: string, input: Partial<DiveAreaInput>) {
   const data = parseInput(diveAreaInputSchema.partial(), input);
-  await orNotFound("Dive area", prisma.diveArea.update({ where: { id, userId: actor.userId }, data }));
+  await auditedUpdate(
+    actor,
+    { entity: "Dive area", id },
+    (db) => db.diveArea.findUnique({ where: { id, userId: actor.userId } }),
+    (db, mark) =>
+      orNotFound("Dive area", db.diveArea.update({ where: { id, userId: actor.userId }, data: { ...data, ...mark } })),
+  );
   revalidatePath("/dives");
 }
 

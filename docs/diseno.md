@@ -104,7 +104,10 @@ shadcn de `CLAUDE.md`):
 `section-header.tsx` (miga de pan, título con icono y navegación del viaje),
 `theme-provider.tsx`, `theme-toggle.tsx`, `language-toggle.tsx` y `ClientProviders.tsx`
 (idioma). Fuera de `ui/`, `apps/web/src/components/trips/trip-status-badge.tsx` mapea el estado
-del viaje a una variante de `Badge`.
+del viaje a una variante de `Badge`, y `apps/web/src/components/agents/agent-badge.tsx` es la marca
+de agente: un `Badge` `outline` con el icono `Bot` de lucide y "Añadido por <nombre>" o "Editado
+por <nombre>". La página resuelve los nombres y los da con `AgentLabelsProvider`; cada lista pone
+`<AgentBadge id={…} />` junto al nombre del elemento, que no pinta nada si no lo marcó un agente.
 
 ### Iconos
 

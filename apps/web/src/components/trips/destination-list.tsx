@@ -14,6 +14,7 @@ import { DestinationForm } from "./destination-form";
 import { deleteDestination } from "@/actions/destinations";
 import type { Destination } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 export function DestinationList({ tripId, destinations, tripStartDate }: { tripId: string; destinations: Destination[]; tripStartDate: Date }) {
   const { t, locale } = useT();
@@ -58,6 +59,7 @@ export function DestinationList({ tripId, destinations, tripStartDate }: { tripI
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-lg">{destination.city}</span>
                       <span className="text-sm text-muted-foreground">{countryCodeToName(destination.country, locale)}</span>
+                      <AgentBadge id={destination.id} />
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {format(destination.arrivalDate, "d MMM yyyy", { locale: dfLocale })}

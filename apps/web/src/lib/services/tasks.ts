@@ -6,11 +6,14 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
+import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
 
 export async function createTask(actor: Actor, tripId: string, input: TaskInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(taskInputSchema, input);
-  const created = await prisma.task.create({ data: { ...data, tripId, dueDate: toDate(data.dueDate) } });
+  const created = await auditedCreate(actor, { entity: "Task", tripId }, (db, mark) =>
+    db.task.create({ data: { ...data, ...mark, tripId, dueDate: toDate(data.dueDate) } }),
+  );
   revalidatePath(`/trips/${tripId}/tasks`);
   return created;
 }
@@ -18,13 +21,22 @@ export async function createTask(actor: Actor, tripId: string, input: TaskInput)
 export async function updateTask(actor: Actor, tripId: string, id: string, input: Partial<TaskInput>) {
   await requireTrip(actor, tripId);
   const data = parseInput(taskInputSchema.partial(), input);
-  await orNotFound("Task", prisma.task.update({ where: { id, tripId }, data: { ...data, dueDate: toDate(data.dueDate) } }));
+  await auditedUpdate(
+    actor,
+    { entity: "Task", tripId, id },
+    (db) => db.task.findFirst({ where: { id, tripId } }),
+    (db, mark) =>
+      orNotFound(
+        "Task",
+        db.task.update({ where: { id, tripId }, data: { ...data, ...mark, dueDate: toDate(data.dueDate) } }),
+      ),
+  );
   revalidatePath(`/trips/${tripId}/tasks`);
 }
 
 export async function toggleTaskDone(actor: Actor, tripId: string, id: string, done: boolean) {
   await requireTrip(actor, tripId);
-  await orNotFound("Task", prisma.task.update({ where: { id, tripId }, data: { done } }));
+  await orNotFound("Task", prisma.task.update({ where: { id, tripId }, data: { done, ...markOf(actor) } }));
   revalidatePath(`/trips/${tripId}/tasks`);
 }
 

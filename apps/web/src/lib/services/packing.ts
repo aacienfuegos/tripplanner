@@ -8,6 +8,7 @@ import { packingItemInputSchema, type PackingItemInput } from "@/lib/agent-schem
 import type { Actor } from "@/lib/services/actor";
 import { requireSuitcase, requireTrip } from "@/lib/services/access";
 import { NotFoundError, orNotFound, parseInput } from "@/lib/services/errors";
+import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
 
 const DIVE_EQUIPMENT_PACKING_CATEGORY = "Buceo";
 
@@ -30,7 +31,9 @@ export async function createPackingItem(
   const data = parseInput(packingItemInputSchema, input);
   const target = webBag(actor, nullableIdSchema.parse(suitcaseId)) ?? null;
   await requireSuitcase(tripId, target);
-  const created = await prisma.packingItem.create({ data: { ...data, tripId, suitcaseId: target } });
+  const created = await auditedCreate(actor, { entity: "Packing item", tripId }, (db, mark) =>
+    db.packingItem.create({ data: { ...data, ...mark, tripId, suitcaseId: target } }),
+  );
   revalidatePacking(tripId);
   return created;
 }
@@ -51,16 +54,20 @@ export async function updatePackingItem(
   const requested = webBag(actor, nullableIdSchema.optional().parse(suitcaseId));
   const target = requested === undefined ? current.suitcaseId : requested;
   await requireSuitcase(tripId, target);
-  await prisma.packingItem.update({
-    where: { id: itemId, tripId },
-    data: current.suitcaseId === target ? { ...data, suitcaseId: target } : { ...data, suitcaseId: target, packed: false },
-  });
+  const bag = current.suitcaseId === target ? { suitcaseId: target } : { suitcaseId: target, packed: false };
+  await auditedUpdate(
+    actor,
+    { entity: "Packing item", tripId, id: itemId },
+    (db) => db.packingItem.findFirst({ where: { id: itemId, tripId } }),
+    (db, mark) =>
+      orNotFound("Packing item", db.packingItem.update({ where: { id: itemId, tripId }, data: { ...data, ...bag, ...mark } })),
+  );
   revalidatePacking(tripId);
 }
 
 export async function togglePackingItem(actor: Actor, tripId: string, id: string, packed: boolean) {
   await requireTrip(actor, tripId);
-  await orNotFound("Packing item", prisma.packingItem.update({ where: { id, tripId }, data: { packed } }));
+  await orNotFound("Packing item", prisma.packingItem.update({ where: { id, tripId }, data: { packed, ...markOf(actor) } }));
   revalidatePacking(tripId);
 }
 
@@ -134,7 +141,7 @@ export async function movePackingItems(actor: Actor, tripId: string, ids: string
         ? { suitcaseId: { not: null } }
         : { OR: [{ suitcaseId: null }, { suitcaseId: { not: target } }] }),
     },
-    data: { suitcaseId: target, packed: false },
+    data: { suitcaseId: target, packed: false, ...markOf(actor) },
   });
   revalidatePacking(tripId);
 }
@@ -150,7 +157,7 @@ export async function setPackedPackingItems(actor: Actor, tripId: string, ids: s
   await requireTrip(actor, tripId);
   const itemIds = idListSchema.parse(ids);
   const value = z.boolean().parse(packed);
-  await prisma.packingItem.updateMany({ where: { id: { in: itemIds }, tripId }, data: { packed: value } });
+  await prisma.packingItem.updateMany({ where: { id: { in: itemIds }, tripId }, data: { packed: value, ...markOf(actor) } });
   revalidatePacking(tripId);
 }
 
@@ -159,6 +166,6 @@ export async function unpackAllPackingItems(actor: Actor, tripId: string, suitca
   await requireTrip(actor, tripId);
   const target = nullableIdSchema.optional().parse(suitcaseId);
   if (target) await requireSuitcase(tripId, target);
-  await prisma.packingItem.updateMany({ where: { tripId, suitcaseId: target, packed: true }, data: { packed: false } });
+  await prisma.packingItem.updateMany({ where: { tripId, suitcaseId: target, packed: true }, data: { packed: false, ...markOf(actor) } });
   revalidatePacking(tripId);
 }

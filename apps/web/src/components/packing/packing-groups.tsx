@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PackingItem, Suitcase } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 import { suitcaseTypeLabel } from "./suitcase-form-dialog";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 export type PackingView = "category" | "suitcase";
 
@@ -174,6 +175,7 @@ function ItemRow({ item, suitcaseName, selecting, selected, onToggle, onSelect, 
           {item.name}
           {item.quantity > 1 && <span className="text-muted-foreground ml-1">×{item.quantity}</span>}
         </span>
+        <AgentBadge id={item.id} />
         {suitcaseName && <span className="shrink-0 text-xs text-muted-foreground">{suitcaseName}</span>}
       </label>
       {!selecting && (

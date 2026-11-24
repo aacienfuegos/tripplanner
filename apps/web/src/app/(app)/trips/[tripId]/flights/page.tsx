@@ -6,6 +6,8 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { Plane } from "lucide-react";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function FlightsPage({ params }: { params: Promise<{ tripId: string }> }) {
   const { tripId } = await params;
@@ -18,7 +20,10 @@ export default async function FlightsPage({ params }: { params: Promise<{ tripId
     getT(),
   ]);
   if (!trip || trip.userId !== session!.user!.id) notFound();
-  const counts = await getTripNavCounts(tripId);
+  const [counts, agentLabels] = await Promise.all([
+    getTripNavCounts(tripId),
+    getAgentLabels(trip.userId, trip.flights),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -30,7 +35,9 @@ export default async function FlightsPage({ params }: { params: Promise<{ tripId
         icon={<Plane className="h-5 w-5" />}
         counts={counts}
       />
-      <FlightsList tripId={trip.id} flights={trip.flights} tripStartDate={trip.startDate} currency={trip.currency} />
+      <AgentLabelsProvider labels={agentLabels}>
+        <FlightsList tripId={trip.id} flights={trip.flights} tripStartDate={trip.startDate} currency={trip.currency} />
+      </AgentLabelsProvider>
     </div>
   );
 }

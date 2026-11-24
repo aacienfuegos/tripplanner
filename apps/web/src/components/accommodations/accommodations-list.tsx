@@ -16,6 +16,7 @@ import type { Accommodation } from "@/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/currency";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 export function AccommodationsList({ tripId, accommodations, tripStartDate, currency }: { tripId: string; accommodations: Accommodation[]; tripStartDate: Date; currency: string }) {
   const { t } = useT();
@@ -62,6 +63,7 @@ export function AccommodationsList({ tripId, accommodations, tripStartDate, curr
                         <span className="font-semibold">{a.name}</span>
                         <Badge variant="secondary">{a.type}</Badge>
                         <span className="text-muted-foreground text-sm">{a.city}</span>
+                        <AgentBadge id={a.id} />
                       </div>
                       <div className="text-sm text-muted-foreground space-y-0.5">
                         {a.checkIn && <p>{t.checkInDate}: {format(a.checkIn, "d MMM yyyy", { locale: dfLocale })}</p>}

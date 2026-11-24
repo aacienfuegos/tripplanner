@@ -21,6 +21,7 @@ import type { DiveLogWithSite, DiveSite, DiveEquipment, GasMix } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 import { DIVE_TYPE_KEYS, diveTypeKeyLabels, diveTypeLabel } from "@/lib/dive-type";
 import { formatDiveDate } from "@/lib/dive-date";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 const FILTER_ALL = "ALL";
 
@@ -204,6 +205,7 @@ export function DiveLogList({
                       <span className="font-semibold">{dive.diveSite?.name ?? t.diveSiteNone}</span>
                       {dive.diveType && <Badge variant="outline">{diveTypeLabel(dive.diveType, t)}</Badge>}
                       <Badge variant="outline">{gasMixLabels[dive.gasMix]}</Badge>
+                      <AgentBadge id={dive.id} />
                       {clipCounts?.[dive.id] && (
                         <Badge variant="outline" className="gap-1">
                           <Film className="h-3 w-3" />

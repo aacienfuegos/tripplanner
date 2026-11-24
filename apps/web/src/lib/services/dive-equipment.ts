@@ -10,30 +10,45 @@ import {
 import type { Actor } from "@/lib/services/actor";
 import { requireEquipment } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
+import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
 import { toDate } from "@/lib/services/dates";
 
 export async function createDiveEquipment(actor: Actor, input: DiveEquipmentInput) {
   const data = parseInput(diveEquipmentInputSchema, input);
-  const created = await prisma.diveEquipment.create({
-    data: {
-      ...data,
-      userId: actor.userId,
-      purchaseDate: toDate(data.purchaseDate),
-      lastServiceDate: toDate(data.lastServiceDate),
-    },
-  });
+  const created = await auditedCreate(actor, { entity: "Equipment" }, (db, mark) =>
+    db.diveEquipment.create({
+      data: {
+        ...data,
+        ...mark,
+        userId: actor.userId,
+        purchaseDate: toDate(data.purchaseDate),
+        lastServiceDate: toDate(data.lastServiceDate),
+      },
+    }),
+  );
   revalidatePath("/dives");
   return created;
 }
 
 export async function updateDiveEquipment(actor: Actor, id: string, input: Partial<DiveEquipmentInput>) {
   const data = parseInput(diveEquipmentInputSchema.partial(), input);
-  await orNotFound(
-    "Equipment",
-    prisma.diveEquipment.update({
-      where: { id, userId: actor.userId },
-      data: { ...data, purchaseDate: toDate(data.purchaseDate), lastServiceDate: toDate(data.lastServiceDate) },
-    }),
+  await auditedUpdate(
+    actor,
+    { entity: "Equipment", id },
+    (db) => db.diveEquipment.findUnique({ where: { id, userId: actor.userId } }),
+    (db, mark) =>
+      orNotFound(
+        "Equipment",
+        db.diveEquipment.update({
+          where: { id, userId: actor.userId },
+          data: {
+            ...data,
+            ...mark,
+            purchaseDate: toDate(data.purchaseDate),
+            lastServiceDate: toDate(data.lastServiceDate),
+          },
+        }),
+      ),
   );
   revalidatePath("/dives");
   revalidatePath(`/dives/equipment/${id}`);
@@ -49,9 +64,9 @@ export async function deleteDiveEquipment(actor: Actor, id: string) {
 export async function createDiveEquipmentService(actor: Actor, input: DiveEquipmentServiceInput) {
   const data = parseInput(diveEquipmentServiceInputSchema, input);
   await requireEquipment(actor, data.equipmentId);
-  const created = await prisma.diveEquipmentService.create({
-    data: { ...data, userId: actor.userId, date: toDate(data.date) },
-  });
+  const created = await auditedCreate(actor, { entity: "Equipment service" }, (db, mark) =>
+    db.diveEquipmentService.create({ data: { ...data, ...mark, userId: actor.userId, date: toDate(data.date) } }),
+  );
   revalidatePath(`/dives/equipment/${data.equipmentId}`);
   return created;
 }

@@ -14,6 +14,7 @@ import { CertificationForm } from "./certification-form";
 import { deleteDiveCertification } from "@/actions/dive-certifications";
 import type { DiveCertification } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 export function CertificationList({ certifications }: { certifications: DiveCertification[] }) {
   const { t } = useT();
@@ -68,6 +69,7 @@ export function CertificationList({ certifications }: { certifications: DiveCert
                       <span className="font-semibold">{cert.level}</span>
                       <Badge variant="outline">{cert.agency}</Badge>
                       {cert.certNumber && <Badge variant="secondary">#{cert.certNumber}</Badge>}
+                      <AgentBadge id={cert.id} />
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">
                       {cert.issueDate && <p>{format(cert.issueDate, "d MMM yyyy", { locale: dfLocale })}</p>}

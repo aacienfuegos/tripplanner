@@ -13,6 +13,7 @@ import { EquipmentServiceForm } from "./equipment-service-form";
 import { deleteDiveEquipmentService } from "@/actions/dive-equipment";
 import type { DiveEquipmentService } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 export function EquipmentServiceList({ equipmentId, services }: { equipmentId: string; services: DiveEquipmentService[] }) {
   const { t } = useT();
@@ -63,6 +64,7 @@ export function EquipmentServiceList({ equipmentId, services }: { equipmentId: s
                 <span className="text-sm text-muted-foreground shrink-0">{format(s.date, "d MMM yyyy", { locale: dfLocale })}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{s.description}</p>
+                  <AgentBadge id={s.id} />
                   {s.notes && <p className="text-xs text-muted-foreground truncate">{s.notes}</p>}
                 </div>
                 {s.cost != null && <span className="text-sm text-muted-foreground shrink-0">{currencyFormatter.format(s.cost)}</span>}

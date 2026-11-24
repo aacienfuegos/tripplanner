@@ -6,11 +6,14 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
+import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
 
 export async function createDocument(actor: Actor, tripId: string, input: DocumentInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(documentInputSchema, input);
-  const created = await prisma.document.create({ data: { ...data, tripId, expiresAt: toDate(data.expiresAt) } });
+  const created = await auditedCreate(actor, { entity: "Document", tripId }, (db, mark) =>
+    db.document.create({ data: { ...data, ...mark, tripId, expiresAt: toDate(data.expiresAt) } }),
+  );
   revalidatePath(`/trips/${tripId}/documents`);
   return created;
 }
@@ -18,9 +21,15 @@ export async function createDocument(actor: Actor, tripId: string, input: Docume
 export async function updateDocument(actor: Actor, tripId: string, id: string, input: Partial<DocumentInput>) {
   await requireTrip(actor, tripId);
   const data = parseInput(documentInputSchema.partial(), input);
-  await orNotFound(
-    "Document",
-    prisma.document.update({ where: { id, tripId }, data: { ...data, expiresAt: toDate(data.expiresAt) } }),
+  await auditedUpdate(
+    actor,
+    { entity: "Document", tripId, id },
+    (db) => db.document.findFirst({ where: { id, tripId } }),
+    (db, mark) =>
+      orNotFound(
+        "Document",
+        db.document.update({ where: { id, tripId }, data: { ...data, ...mark, expiresAt: toDate(data.expiresAt) } }),
+      ),
   );
   revalidatePath(`/trips/${tripId}/documents`);
 }

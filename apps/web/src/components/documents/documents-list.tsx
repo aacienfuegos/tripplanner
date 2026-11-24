@@ -15,6 +15,7 @@ import { deleteDocument } from "@/actions/documents";
 import type { Document } from "@/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 const typeIcons: Record<string, React.ElementType> = {
   PASSPORT: IdCard, VISA: Stamp, INSURANCE: HeartPulse, TICKET: Ticket, VOUCHER: Receipt, OTHER: Paperclip,
@@ -76,6 +77,7 @@ export function DocumentsList({ tripId, documents }: { tripId: string; documents
                         <TypeIcon className="h-5 w-5 text-muted-foreground" />
                         <span className="font-semibold">{doc.name}</span>
                         <Badge variant="secondary">{typeLabels[doc.type]}</Badge>
+                        <AgentBadge id={doc.id} />
                       </div>
                       {doc.expiresAt && (
                         <p className={`text-sm flex items-center gap-1 ${isExpired ? "text-destructive" : isExpiringSoon ? "text-yellow-600" : "text-muted-foreground"}`}>

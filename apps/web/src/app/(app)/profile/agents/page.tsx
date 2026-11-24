@@ -8,6 +8,8 @@ import { isInactive, listManualClients, listUserGrants } from "@/lib/oauth/grant
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConnectionsList, type ConnectionItem } from "@/components/agents/connections-list";
 import { ClientsPanel, type ClientItem } from "@/components/agents/clients-panel";
+import { AuditLog, type AuditItem } from "@/components/agents/audit-log";
+import { listAuditEntries } from "@/lib/agent-audit";
 import type { WebTKeys } from "@/i18n";
 
 function scopeLabels(t: WebTKeys, scopes: readonly string[]): string[] {
@@ -23,9 +25,24 @@ function scopeLabels(t: WebTKeys, scopes: readonly string[]): string[] {
   return scopes.flatMap((scope) => (labels[scope] ? [labels[scope]] : []));
 }
 
-export default async function AgentConnectionsPage() {
+const TABS = ["connections", "clients", "audit"] as const;
+
+export default async function AgentConnectionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; grant?: string; page?: string }>;
+}) {
   const userId = await requireUser();
-  const [t, grants, clients] = await Promise.all([getT(), listUserGrants(userId), listManualClients(userId)]);
+  const params = await searchParams;
+  const tab = TABS.find((value) => value === params.tab) ?? "connections";
+  const auditPage = Math.max(0, Math.min(1000, Number.parseInt(params.page ?? "0", 10) || 0));
+  const auditGrant = params.grant || null;
+  const [t, grants, clients, audit] = await Promise.all([
+    getT(),
+    listUserGrants(userId),
+    listManualClients(userId),
+    listAuditEntries(userId, { grantId: auditGrant ?? undefined, page: auditPage }),
+  ]);
   const config = getOAuthConfig();
   const now = new Date();
   const dfLocale = t.locale === "es" ? esLocale : enUS;
@@ -75,6 +92,17 @@ export default async function AgentConnectionsPage() {
     activeConnections: activeByClient.get(client.id) ?? 0,
   }));
 
+  const grantNames = new Map(grants.map((grant) => [grant.id, grant.name]));
+  const auditItems: AuditItem[] = audit.entries.map((entry) => ({
+    id: entry.id,
+    when: format(entry.createdAt, "PPp", { locale: dfLocale }),
+    connection: grantNames.get(entry.grantId) ?? "",
+    action: entry.action,
+    entityType: entry.entityType,
+    trip: entry.tripId ? (audit.tripNames.get(entry.tripId) ?? null) : null,
+    changes: entry.changes,
+  }));
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -93,16 +121,27 @@ export default async function AgentConnectionsPage() {
         </p>
       )}
 
-      <Tabs defaultValue="connections">
+      <Tabs defaultValue={tab}>
         <TabsList>
           <TabsTrigger value="connections">{t.agentsTabConnections}</TabsTrigger>
           <TabsTrigger value="clients">{t.agentsTabClients}</TabsTrigger>
+          <TabsTrigger value="audit">{t.agentsTabAudit}</TabsTrigger>
         </TabsList>
         <TabsContent value="connections" className="mt-4">
           <ConnectionsList connections={connections} />
         </TabsContent>
         <TabsContent value="clients" className="mt-4">
           <ClientsPanel clients={clientItems} />
+        </TabsContent>
+        <TabsContent value="audit" className="mt-4">
+          <AuditLog
+            t={t}
+            items={auditItems}
+            connections={grants.map((grant) => ({ id: grant.id, name: grant.name }))}
+            grant={auditGrant}
+            page={auditPage}
+            hasMore={audit.hasMore}
+          />
         </TabsContent>
       </Tabs>
     </div>

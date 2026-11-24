@@ -16,6 +16,7 @@ import type { Task, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 import type { Locale } from "date-fns";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 const priorityOrder: Record<TaskPriority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
@@ -170,6 +171,7 @@ function TaskRow({
               <Badge variant="outline" className={cn("text-xs h-4 px-1", pc.cls)}>
                 {pc.label}
               </Badge>
+              <AgentBadge id={task.id} />
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
               {task.dueDate && (

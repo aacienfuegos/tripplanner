@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DiveAreaDetailActions } from "@/components/dives/dive-area-detail-actions";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentBadge, AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function DiveAreaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,6 +26,7 @@ export default async function DiveAreaDetailPage({ params }: { params: Promise<{
     }),
   ]);
   if (!area) notFound();
+  const agentLabels = await getAgentLabels(userId, [area]);
 
   return (
     <div className="space-y-6">
@@ -37,6 +40,9 @@ export default async function DiveAreaDetailPage({ params }: { params: Promise<{
             <MapPin className="h-5 w-5 text-primary" />
             <h1 className="text-2xl font-bold">{area.name}</h1>
             {area.country && <Badge variant="outline">{countryCodeToName(area.country, t.locale)}</Badge>}
+            <AgentLabelsProvider labels={agentLabels}>
+              <AgentBadge id={area.id} />
+            </AgentLabelsProvider>
           </div>
           {area.notes && <p className="text-sm italic text-muted-foreground max-w-prose">{area.notes}</p>}
         </div>

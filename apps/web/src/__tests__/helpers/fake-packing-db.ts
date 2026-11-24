@@ -13,6 +13,19 @@ function matchesField(value: unknown, cond: unknown): boolean {
   const arg = (cond as Record<string, unknown>)[key];
   if (rest.length === 0 && key === "in" && Array.isArray(arg)) return value !== null && arg.includes(value);
   if (rest.length === 0 && key === "not") return arg === null ? value !== null : value !== null && value !== arg;
+  const ops = Object.entries(cond as Record<string, unknown>);
+  if (!(cond instanceof Date) && ops.length > 0 && ops.every(([op]) => ["in", "gt", "lt", "gte"].includes(op))) {
+    return ops.every(([op, bound]) => {
+      if (op === "in" && Array.isArray(bound)) return value !== null && bound.includes(value);
+      if (value === null || value === undefined) return false;
+      const order = (x: unknown) => (x instanceof Date ? x.getTime() : x);
+      const v = order(value);
+      const b = order(bound);
+      if (typeof v === "number" && typeof b === "number") return op === "gt" ? v > b : op === "lt" ? v < b : v >= b;
+      if (typeof v === "string" && typeof b === "string") return op === "gt" ? v > b : op === "lt" ? v < b : v >= b;
+      throw new Error(`fake db: unsupported bound ${op}`);
+    });
+  }
   throw new Error(`fake db: unsupported filter ${JSON.stringify(cond)}`);
 }
 
@@ -20,6 +33,10 @@ function matches(row: Row, where: Where = {}): boolean {
   return Object.entries(where).every(([key, cond]) => {
     if (cond === undefined) return true;
     if (key === "OR" && Array.isArray(cond)) return cond.some((w: Where) => matches(row, w));
+    // A compound unique key, as clipId_diveLogId.
+    if (!(key in row) && typeof cond === "object" && cond !== null && key.split("_").every((k) => k in row)) {
+      return matches(row, cond as Where);
+    }
     if (!(key in row)) throw new Error(`fake db: unknown field ${key}`);
     return matchesField(row[key], cond);
   });
@@ -40,12 +57,19 @@ export function table(rows: Row[], defaults: () => Row) {
   return {
     findUnique: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
     findFirst: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
-    findMany: async ({ where, orderBy }: { where?: Where; orderBy?: Record<string, "asc" | "desc"> } = {}) => {
+    findMany: async ({
+      where,
+      orderBy,
+      skip = 0,
+      take,
+    }: { where?: Where; orderBy?: Record<string, "asc" | "desc">; skip?: number; take?: number } = {}) => {
       const found = rows.filter((r) => matches(r, where));
       const [key, direction] = Object.entries(orderBy ?? {})[0] ?? [];
-      if (!key) return found;
       const sign = direction === "desc" ? -1 : 1;
-      return found.sort((a, b) => (Number(a[key]) - Number(b[key])) * sign);
+      const compare = (a: unknown, b: unknown) =>
+        typeof a === "string" && typeof b === "string" ? a.localeCompare(b) : Number(a) - Number(b);
+      const sorted = key ? found.sort((a, b) => compare(a[key], b[key]) * sign) : found;
+      return sorted.slice(skip, take === undefined ? undefined : skip + take);
     },
     create: async ({ data }: { data: Row }) => {
       const row = build(data);
@@ -76,6 +100,16 @@ export function table(rows: Row[], defaults: () => Row) {
         }
       });
       return { count };
+    },
+    upsert: async ({ where, create, update }: { where: Where; create: Row; update: Row }) => {
+      const i = rows.findIndex((r) => matches(r, where));
+      if (i === -1) {
+        const row = build(create);
+        rows.push(row);
+        return row;
+      }
+      rows[i] = { ...rows[i], ...defined(update) };
+      return rows[i];
     },
     delete: async ({ where }: { where: Where }) => {
       const i = rows.findIndex((r) => matches(r, where));

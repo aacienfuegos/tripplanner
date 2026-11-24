@@ -17,6 +17,8 @@ const MODELS = [
   "oAuthAuthorizationRequest",
   "oAuthCode",
   "oAuthToken",
+  "accommodation",
+  "agentAuditEntry",
 ] as const;
 type Model = (typeof MODELS)[number];
 
@@ -53,6 +55,8 @@ const defaults: Record<Model, () => Row> = {
   oAuthAuthorizationRequest: () => ({ state: null, createdAt: new Date(), consumedAt: null }),
   oAuthCode: () => ({ usedAt: null }),
   oAuthToken: () => ({ usedAt: null, createdAt: new Date() }),
+  accommodation: () => ({ id: nextId("accommodation"), tripId: "", latitude: null, longitude: null }),
+  agentAuditEntry: () => ({ id: nextId("entry"), createdAt: new Date(), tripId: null, changes: null }),
 };
 
 // relation -> [target model, foreign key, one or many]
@@ -71,6 +75,9 @@ const relations: Partial<Record<Model, Record<string, [Model, string, "one" | "m
 const state = Object.fromEntries(MODELS.map((m) => [m, [] as Row[]])) as Record<Model, Row[]>;
 
 const time = (v: unknown) => (v instanceof Date ? v.getTime() : Number(v));
+// Ids are compared as text (cursors), the rest as numbers or instants.
+const compare = (a: unknown, b: unknown) =>
+  typeof a === "string" && typeof b === "string" ? (a < b ? -1 : a > b ? 1 : 0) : time(a) - time(b);
 
 function matchesField(value: unknown, cond: unknown): boolean {
   if (cond === null || typeof cond !== "object" || cond instanceof Date) {
@@ -78,9 +85,9 @@ function matchesField(value: unknown, cond: unknown): boolean {
   }
   return Object.entries(cond).every(([op, arg]) => {
     if (op === "in" && Array.isArray(arg)) return arg.includes(value);
-    if (op === "gt") return value !== null && time(value) > time(arg);
-    if (op === "lt") return value !== null && time(value) < time(arg);
-    if (op === "gte") return value !== null && time(value) >= time(arg);
+    if (op === "gt") return value !== null && compare(value, arg) > 0;
+    if (op === "lt") return value !== null && compare(value, arg) < 0;
+    if (op === "gte") return value !== null && compare(value, arg) >= 0;
     throw new Error(`fake oauth db: unsupported filter ${op}`);
   });
 }
@@ -120,7 +127,7 @@ function sortBy(rows: Row[], orderBy?: Record<string, "asc" | "desc">): Row[] {
   const [key, direction] = Object.entries(orderBy ?? {})[0] ?? [];
   if (!key) return rows;
   const sign = direction === "desc" ? -1 : 1;
-  return [...rows].sort((a, b) => (time(a[key]) - time(b[key])) * sign);
+  return [...rows].sort((a, b) => compare(a[key], b[key]) * sign);
 }
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -139,8 +146,10 @@ function table(model: Model) {
       const found = rows().find((r) => matches(r, args.where));
       return found ? shape(model, found, args) : null;
     },
-    findMany: async (args: { where?: Where; orderBy?: Record<string, "asc" | "desc"> } & Shape = {}) =>
-      sortBy(rows().filter((r) => matches(r, args.where)), args.orderBy).map((r) => shape(model, r, args)),
+    findMany: async (args: { where?: Where; orderBy?: Record<string, "asc" | "desc">; take?: number } & Shape = {}) =>
+      sortBy(rows().filter((r) => matches(r, args.where)), args.orderBy)
+        .slice(0, args.take)
+        .map((r) => shape(model, r, args)),
     count: async ({ where }: { where?: Where } = {}) => rows().filter((r) => matches(r, where)).length,
     create: async (args: { data: Row } & Shape) => {
       const row = build(args.data);

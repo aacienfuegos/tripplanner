@@ -8,11 +8,14 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
+import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
 
 export async function createActivity(actor: Actor, tripId: string, input: ActivityInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(activityInputSchema, input);
-  const created = await prisma.activity.create({ data: { ...data, tripId, scheduledAt: toDate(data.scheduledAt) } });
+  const created = await auditedCreate(actor, { entity: "Activity", tripId }, (db, mark) =>
+    db.activity.create({ data: { ...data, ...mark, tripId, scheduledAt: toDate(data.scheduledAt) } }),
+  );
   void geocodeActivity(created.id);
   revalidatePath(`/trips/${tripId}/activities`);
   return created;
@@ -22,12 +25,18 @@ export async function createActivity(actor: Actor, tripId: string, input: Activi
 export async function updateActivity(actor: Actor, tripId: string, id: string, input: Partial<ActivityInput>) {
   await requireTrip(actor, tripId);
   const data = parseInput(activityInputSchema.partial(), input);
-  await orNotFound(
-    "Activity",
-    prisma.activity.update({
-      where: { id, tripId },
-      data: { ...data, scheduledAt: toDate(data.scheduledAt), latitude: null, longitude: null },
-    }),
+  await auditedUpdate(
+    actor,
+    { entity: "Activity", tripId, id },
+    (db) => db.activity.findFirst({ where: { id, tripId } }),
+    (db, mark) =>
+      orNotFound(
+        "Activity",
+        db.activity.update({
+          where: { id, tripId },
+          data: { ...data, ...mark, scheduledAt: toDate(data.scheduledAt), latitude: null, longitude: null },
+        }),
+      ),
   );
   void geocodeActivity(id);
   revalidatePath(`/trips/${tripId}/activities`);
@@ -36,7 +45,7 @@ export async function updateActivity(actor: Actor, tripId: string, id: string, i
 export async function updateActivityStatus(actor: Actor, tripId: string, id: string, status: string) {
   await requireTrip(actor, tripId);
   const parsed = parseInput(bookingStatusSchema, status);
-  await orNotFound("Activity", prisma.activity.update({ where: { id, tripId }, data: { status: parsed } }));
+  await orNotFound("Activity", prisma.activity.update({ where: { id, tripId }, data: { status: parsed, ...markOf(actor) } }));
   revalidatePath(`/trips/${tripId}/activities`);
 }
 

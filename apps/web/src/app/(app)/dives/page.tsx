@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Waves, Award, MapPin, Anchor, BarChart3, Film } from "lucide-react";
 import { getT } from "@/lib/locale";
 import { computeDiveStats } from "@/lib/dive-stats";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 const TAB_VALUES = ["log", "sites", "equipment", "certifications", "stats", "media"] as const;
 
@@ -59,6 +61,7 @@ export default async function DivesPage({
     getMediaLibrary(userId),
   ]);
   const clipCounts = Object.fromEntries(clipCountMap);
+  const agentLabels = await getAgentLabels(userId, dives, areas, sitesWithCount, allEquipment, certifications);
   // Sin biblioteca (no configurada o usuario no admin) la pestaña no existe, y
   // un ?tab=media en la URL no debe dejar la página sin ninguna pestaña activa.
   const defaultTab = requestedTab === "media" && !mediaDays ? "log" : requestedTab;
@@ -123,16 +126,24 @@ export default async function DivesPage({
           )}
         </TabsList>
         <TabsContent value="log" className="mt-4">
-          <DiveLogList dives={dives} sites={sites} equipment={equipment} clipCounts={clipCounts} />
+          <AgentLabelsProvider labels={agentLabels}>
+            <DiveLogList dives={dives} sites={sites} equipment={equipment} clipCounts={clipCounts} />
+          </AgentLabelsProvider>
         </TabsContent>
         <TabsContent value="sites" className="mt-4">
-          <DiveSiteList areas={areas} sites={sitesWithCount} sitePoints={sitePoints} />
+          <AgentLabelsProvider labels={agentLabels}>
+            <DiveSiteList areas={areas} sites={sitesWithCount} sitePoints={sitePoints} />
+          </AgentLabelsProvider>
         </TabsContent>
         <TabsContent value="equipment" className="mt-4">
-          <EquipmentList equipment={allEquipment} />
+          <AgentLabelsProvider labels={agentLabels}>
+            <EquipmentList equipment={allEquipment} />
+          </AgentLabelsProvider>
         </TabsContent>
         <TabsContent value="certifications" className="mt-4">
-          <CertificationList certifications={certifications} />
+          <AgentLabelsProvider labels={agentLabels}>
+            <CertificationList certifications={certifications} />
+          </AgentLabelsProvider>
         </TabsContent>
         <TabsContent value="stats" className="mt-4">
           <DiveStatsView stats={diveStats} t={t} />

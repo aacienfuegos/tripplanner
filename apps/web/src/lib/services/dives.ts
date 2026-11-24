@@ -12,6 +12,7 @@ import {
   resolveEquipmentIds,
 } from "@/lib/services/access";
 import { NotFoundError, orNotFound, parseInput } from "@/lib/services/errors";
+import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const localDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -50,18 +51,21 @@ export async function createDiveLog(actor: Actor, input: DiveLogInput) {
 
   // diveNumber es un valor temporal — renumberDives lo recalcula por fecha
   // justo después de insertar la fila.
-  const created = await prisma.diveLog.create({
-    data: {
-      userId: actor.userId,
-      tripId,
-      diveNumber: 0,
-      diveSiteId,
-      ...diveFields(data),
-      gasMix: data.gasMix ?? "AIR",
-      date: diveDate(data.date, data.time),
-      equipment: { connect: equipmentIds.map((id) => ({ id })) },
-    },
-  });
+  const created = await auditedCreate(actor, { entity: "Dive", tripId }, (db, mark) =>
+    db.diveLog.create({
+      data: {
+        userId: actor.userId,
+        tripId,
+        diveNumber: 0,
+        diveSiteId,
+        ...diveFields(data),
+        ...mark,
+        gasMix: data.gasMix ?? "AIR",
+        date: diveDate(data.date, data.time),
+        equipment: { connect: equipmentIds.map((id) => ({ id })) },
+      },
+    }),
+  );
   await renumberDives(actor.userId);
 
   revalidatePath("/dives");
@@ -92,18 +96,27 @@ export async function updateDiveLog(actor: Actor, id: string, input: Partial<Div
     date = diveDate(day, data.time !== undefined ? data.time : stored ? localTime(stored.date) : null);
   }
 
-  await orNotFound(
-    "Dive",
-    prisma.diveLog.update({
-      where: { id, userId: actor.userId },
-      data: {
-        ...diveFields(data),
-        tripId,
-        diveSiteId,
-        date,
-        equipment: equipmentIds === undefined ? undefined : { set: equipmentIds.map((eid) => ({ id: eid })) },
-      },
-    }),
+  const withEquipment = { equipment: { select: { id: true } } } as const;
+  await auditedUpdate(
+    actor,
+    { entity: "Dive", tripId: tripId ?? stored?.tripId, id },
+    (db) => db.diveLog.findUnique({ where: { id, userId: actor.userId }, include: withEquipment }),
+    (db, mark) =>
+      orNotFound(
+        "Dive",
+        db.diveLog.update({
+          where: { id, userId: actor.userId },
+          data: {
+            ...diveFields(data),
+            ...mark,
+            tripId,
+            diveSiteId,
+            date,
+            equipment: equipmentIds === undefined ? undefined : { set: equipmentIds.map((eid) => ({ id: eid })) },
+          },
+          include: withEquipment,
+        }),
+      ),
   );
   // La edición puede haber cambiado la fecha, así que reordena por si afecta
   // a la posición cronológica de esta u otras inmersiones.
@@ -124,7 +137,13 @@ export async function linkDiveToTrip(actor: Actor, diveId: string, tripId: strin
   await requireTrip(actor, tripId);
   if (actor.kind === "agent") await requireAgentCanMoveDive(actor, diveId);
 
-  await orNotFound("Dive", prisma.diveLog.update({ where: { id: diveId, userId: actor.userId }, data: { tripId } }));
+  await auditedUpdate(
+    actor,
+    { entity: "Dive", tripId, id: diveId },
+    (db) => db.diveLog.findUnique({ where: { id: diveId, userId: actor.userId } }),
+    (db, mark) =>
+      orNotFound("Dive", db.diveLog.update({ where: { id: diveId, userId: actor.userId }, data: { tripId, ...mark } })),
+  );
 
   revalidatePath("/dives");
   revalidatePath(`/trips/${tripId}/dives`);
@@ -136,7 +155,13 @@ export async function unlinkDiveFromTrip(actor: Actor, diveId: string) {
       ? await requireAgentCanMoveDive(actor, diveId)
       : await prisma.diveLog.findUnique({ where: { id: diveId, userId: actor.userId }, select: { tripId: true } });
 
-  await orNotFound("Dive", prisma.diveLog.update({ where: { id: diveId, userId: actor.userId }, data: { tripId: null } }));
+  await auditedUpdate(
+    actor,
+    { entity: "Dive", tripId: dive?.tripId, id: diveId },
+    (db) => db.diveLog.findUnique({ where: { id: diveId, userId: actor.userId } }),
+    (db, mark) =>
+      orNotFound("Dive", db.diveLog.update({ where: { id: diveId, userId: actor.userId }, data: { tripId: null, ...mark } })),
+  );
 
   revalidatePath("/dives");
   if (dive?.tripId) revalidatePath(`/trips/${dive.tripId}/dives`);
