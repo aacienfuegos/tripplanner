@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_MS, type OAuthConfig } from "@/lib/oauth/config";
 import { isInactive, revokeGrant, type TxClient } from "@/lib/oauth/grants";
 import { generateSecret, secretHash, verifyPkce } from "@/lib/oauth/tokens";
+import { readCapped } from "@/lib/read-capped";
 
 export type TokenErrorCode =
   | "invalid_request"
@@ -25,37 +26,13 @@ const fail = (error: TokenErrorCode): TokenResult => ({ ok: false, error });
 
 const MAX_BODY_BYTES = 8 * 1024;
 
-// Counts the bytes as they arrive and stops at the limit: a chunked body has
-// no Content-Length, and Next puts no cap on Route Handlers.
-async function readCapped(request: Request): Promise<string | null> {
-  if (!request.body) return "";
-  const reader = request.body.getReader();
-  const decoder = new TextDecoder();
-  let total = 0;
-  let text = "";
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) return text + decoder.decode();
-      total += value.byteLength;
-      if (total > MAX_BODY_BYTES) {
-        reader.cancel().catch(() => {});
-        return null;
-      }
-      text += decoder.decode(value, { stream: true });
-    }
-  } catch {
-    return null;
-  }
-}
-
 // application/x-www-form-urlencoded, small, and each parameter at most once
 // (RFC 6749, section 3.2).
 export async function readForm(request: Request): Promise<URLSearchParams | null> {
   const type = request.headers.get("content-type") ?? "";
   if (!/^application\/x-www-form-urlencoded\s*(;|$)/i.test(type)) return null;
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return null;
-  const text = await readCapped(request);
+  const text = await readCapped(request, MAX_BODY_BYTES);
   if (text === null) return null;
   const params = new URLSearchParams(text);
   for (const key of new Set(params.keys())) {

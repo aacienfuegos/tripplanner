@@ -1,6 +1,7 @@
 import "server-only";
+import { OAuthError, OAuthErrorCode, type AuthInfo, type OAuthTokenVerifier } from "@modelcontextprotocol/server";
 import { prisma } from "@/lib/prisma";
-import type { AgentGrant, Scope } from "@/lib/services/actor";
+import type { Actor, AgentGrant, Scope } from "@/lib/services/actor";
 import { LAST_USED_GRANULARITY_MS, isScope, type OAuthConfig } from "@/lib/oauth/config";
 import { isInactive, revokeGrant } from "@/lib/oauth/grants";
 import { secretHash } from "@/lib/oauth/tokens";
@@ -59,4 +60,36 @@ export async function verifyAccessToken(
     clientId: grant.client.clientId,
     expiresAt: row.expiresAt,
   };
+}
+
+export type AgentActor = Extract<Actor, { kind: "agent" }>;
+
+// The actor of a verified token, keyed by the AuthInfo.extra object the
+// verifier made: nothing that reaches the SDK from outside can stand for one.
+const actors = new WeakMap<object, AgentActor>();
+
+// The verifier of /api/mcp. AuthInfo.token carries the hash, never the value:
+// AuthInfo travels into the SDK and its handlers.
+export function mcpTokenVerifier(config: OAuthConfig, resourceMetadataUrl: string): OAuthTokenVerifier {
+  return {
+    async verifyAccessToken(token: string): Promise<AuthInfo> {
+      const verified = await verifyAccessToken(config, token);
+      if (!verified) throw new OAuthError(OAuthErrorCode.InvalidToken, "Invalid or expired token");
+      const extra = {};
+      actors.set(extra, { kind: "agent", userId: verified.userId, grant: verified.grant });
+      return {
+        token: verified.tokenHash,
+        clientId: verified.clientId,
+        scopes: [...verified.grant.scopes],
+        expiresAt: Math.floor(verified.expiresAt.getTime() / 1000),
+        resource: new URL(config.resource),
+        resourceMetadataUrl,
+        extra,
+      };
+    },
+  };
+}
+
+export function actorOf(authInfo: AuthInfo | undefined): AgentActor | null {
+  return (authInfo?.extra && actors.get(authInfo.extra)) || null;
 }

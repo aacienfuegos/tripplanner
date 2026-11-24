@@ -29,6 +29,7 @@ const defaults = {
   diveEquipment: (): Row => ({ id: nextId("equipment"), userId: "", name: "", status: "OWNED" }),
   diveEquipmentService: (): Row => ({ id: nextId("service"), userId: "", equipmentId: "" }),
   diveCertification: (): Row => ({ id: nextId("certification"), userId: "" }),
+  diveProfileSample: (): Row => ({ id: nextId("sample"), diveLogId: "", seconds: 0, depth: 0, temp: null, ndlMinutes: null }),
   agentGrant: (): Row => ({ id: nextId("grant"), userId: "", name: "" }),
   agentAuditEntry: (): Row => ({
     id: nextId("entry"),
