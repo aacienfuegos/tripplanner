@@ -7,15 +7,19 @@ import { prisma } from "@/lib/prisma";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Bot } from "lucide-react";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { getT } from "@/lib/locale";
+import { countActiveGrants } from "@/lib/oauth/grants";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const [t, user] = await Promise.all([
+  const [t, activeConnections, user] = await Promise.all([
     getT(),
+    countActiveGrants(session.user.id, new Date()),
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -81,6 +85,23 @@ export default async function ProfilePage() {
           />
         </div>
       </div>
+
+      <Card>
+        <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Bot className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="font-medium">{t.agentsCardTitle}</p>
+              <p className="text-sm text-muted-foreground">
+                {t.agentsCardActive.replace("{n}", String(activeConnections))}
+              </p>
+            </div>
+          </div>
+          <Link href="/profile/agents" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {t.agentsCardManage}
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }
