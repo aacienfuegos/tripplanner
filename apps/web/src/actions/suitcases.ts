@@ -37,7 +37,7 @@ export async function deleteSuitcase(tripId: string, id: string, mode: "unassign
     if (deleteMode === "unassign") {
       await tx.packingItem.updateMany({
         where: { suitcaseId, tripId },
-        data: { suitcaseId: null, packed: false },
+        data: { suitcaseId: null, packed: false, agentGrantId: null },
       });
     } else {
       await tx.packingItem.deleteMany({ where: { suitcaseId, tripId } });

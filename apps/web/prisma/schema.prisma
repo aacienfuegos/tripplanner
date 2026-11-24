@@ -47,6 +47,7 @@ model User {
   oauthClients               OAuthClient[]
   agentGrants                AgentGrant[]
   oauthAuthorizationRequests OAuthAuthorizationRequest[]
+  agentAuditEntries          AgentAuditEntry[]
 }
 
 model Settings {
@@ -93,20 +94,21 @@ model VerificationToken {
 // ─── Core ───────────────────────────────────────────────────────────────────
 
 model Trip {
-  id          String     @id @default(cuid())
-  userId      String
-  name        String
-  description String?
-  coverImage  String?
-  startDate   DateTime
-  endDate     DateTime
-  status      TripStatus @default(PLANNING)
-  currency    String     @default("EUR")
-  budget      Float?
-  source      DiveSource @default(MANUAL)
-  externalId  String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id           String     @id @default(cuid())
+  userId       String
+  name         String
+  description  String?
+  coverImage   String?
+  startDate    DateTime
+  endDate      DateTime
+  status       TripStatus @default(PLANNING)
+  currency     String     @default("EUR")
+  budget       Float?
+  source       DiveSource @default(MANUAL)
+  externalId   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  agentGrantId String?
 
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   destinations   Destination[]
@@ -141,6 +143,7 @@ model Destination {
   departureDate DateTime
   notes         String?
   order         Int      @default(0)
+  agentGrantId  String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -166,6 +169,7 @@ model Flight {
   class           FlightClass @default(ECONOMY)
   price           Float?
   notes           String?
+  agentGrantId    String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -195,6 +199,7 @@ model Accommodation {
   latitude        Float?
   longitude       Float?
   notes           String?
+  agentGrantId    String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -227,6 +232,7 @@ model Activity {
   latitude        Float?
   longitude       Float?
   notes           String?
+  agentGrantId    String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -251,14 +257,15 @@ enum BookingStatus {
 // ─── Documents ──────────────────────────────────────────────────────────────
 
 model Document {
-  id        String       @id @default(cuid())
-  tripId    String
-  type      DocumentType
-  name      String
-  fileUrl   String?
-  expiresAt DateTime?
-  notes     String?
-  createdAt DateTime     @default(now())
+  id           String       @id @default(cuid())
+  tripId       String
+  type         DocumentType
+  name         String
+  fileUrl      String?
+  expiresAt    DateTime?
+  notes        String?
+  createdAt    DateTime     @default(now())
+  agentGrantId String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -286,6 +293,7 @@ model Expense {
   date            DateTime
   paid            Boolean         @default(false)
   notes           String?
+  agentGrantId    String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -303,14 +311,15 @@ enum ExpenseCategory {
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 
 model Task {
-  id        String       @id @default(cuid())
-  tripId    String
-  title     String
-  notes     String?
-  dueDate   DateTime?
-  priority  TaskPriority @default(MEDIUM)
-  done      Boolean      @default(false)
-  createdAt DateTime     @default(now())
+  id           String       @id @default(cuid())
+  tripId       String
+  title        String
+  notes        String?
+  dueDate      DateTime?
+  priority     TaskPriority @default(MEDIUM)
+  done         Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  agentGrantId String?
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
@@ -324,13 +333,14 @@ enum TaskPriority {
 // ─── Packing List ────────────────────────────────────────────────────────────
 
 model PackingItem {
-  id         String  @id @default(cuid())
-  tripId     String
-  suitcaseId String?
-  category   String
-  name       String
-  packed     Boolean @default(false)
-  quantity   Int     @default(1)
+  id           String  @id @default(cuid())
+  tripId       String
+  suitcaseId   String?
+  category     String
+  name         String
+  packed       Boolean @default(false)
+  quantity     Int     @default(1)
+  agentGrantId String?
 
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   // The database doesn't check that the bag belongs to the same trip: a composite
@@ -395,35 +405,37 @@ enum WaterType {
 }
 
 model DiveArea {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  country   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  country      String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  agentGrantId String?
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   diveSites DiveSite[]
 }
 
 model DiveSite {
-  id         String     @id @default(cuid())
-  userId     String
-  diveAreaId String?
-  name       String
-  address    String?
-  country    String?
-  region     String?
-  latitude   Float?
-  longitude  Float?
-  maxDepth   Float?
-  waterType  WaterType?
-  notes      String?
-  source     DiveSource @default(MANUAL)
-  externalId String?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id           String     @id @default(cuid())
+  userId       String
+  diveAreaId   String?
+  name         String
+  address      String?
+  country      String?
+  region       String?
+  latitude     Float?
+  longitude    Float?
+  maxDepth     Float?
+  waterType    WaterType?
+  notes        String?
+  source       DiveSource @default(MANUAL)
+  externalId   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  agentGrantId String?
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   diveArea DiveArea? @relation(fields: [diveAreaId], references: [id], onDelete: SetNull)
@@ -470,6 +482,7 @@ model DiveLog {
   externalId           String?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
+  agentGrantId         String?
 
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   trip           Trip?               @relation(fields: [tripId], references: [id], onDelete: SetNull)
@@ -532,6 +545,7 @@ model DiveEquipment {
   notes                 String?
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
+  agentGrantId          String?
 
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   diveLogs       DiveLog[]
@@ -539,14 +553,15 @@ model DiveEquipment {
 }
 
 model DiveEquipmentService {
-  id          String   @id @default(cuid())
-  userId      String
-  equipmentId String
-  date        DateTime
-  description String
-  cost        Float?
-  notes       String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  equipmentId  String
+  date         DateTime
+  description  String
+  cost         Float?
+  notes        String?
+  createdAt    DateTime @default(now())
+  agentGrantId String?
 
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   equipment DiveEquipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
@@ -565,6 +580,7 @@ model DiveCertification {
   externalId     String?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+  agentGrantId   String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -754,4 +770,32 @@ model OAuthToken {
   grant AgentGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
 
   @@index([grantId])
+}
+
+enum AgentAuditAction {
+  CREATED
+  UPDATED
+  DELETED
+  SUGGESTED
+}
+
+// What the agents write, by connection. tripId has no relation: the entry
+// outlives the trip until its 90 days are up.
+model AgentAuditEntry {
+  id         String           @id @default(cuid())
+  userId     String
+  grantId    String
+  createdAt  DateTime         @default(now())
+  tripId     String?
+  entityType String
+  entityId   String
+  action     AgentAuditAction
+  changes    Json?
+  snapshot   Json?
+  restoredAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([grantId, action, createdAt])
 }

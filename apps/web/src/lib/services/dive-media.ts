@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { Actor } from "@/lib/services/actor";
 import { NotFoundError } from "@/lib/services/errors";
+import { auditEntryData, type AuditChanges } from "@/lib/services/audit";
 
 // La biblioteca es una sola, la del servidor: solo el admin la ve (#311). The
 // flag is read again from the database on every call, for an agent too.
@@ -16,6 +17,29 @@ async function requireMediaAdmin(actor: Actor) {
 // y una action por clip repintaría la ficha entera entre medias.
 export type ClipLinkChange = { readonly clipId: string; readonly included: boolean | null };
 
+// What an agent changes is the clip's state on this dive: included, excluded
+// or automatic.
+async function mediaAuditEntry(
+  actor: Extract<Actor, { kind: "agent" }>,
+  diveLogId: string,
+  changes: readonly ClipLinkChange[],
+) {
+  const stored = await prisma.mediaClipLink.findMany({
+    where: { diveLogId, clipId: { in: changes.map((change) => change.clipId) } },
+    select: { clipId: true, included: true },
+  });
+  const state = (included: boolean | null | undefined) =>
+    included === true ? "included" : included === false ? "excluded" : "automatic";
+  const before = new Map(stored.map((link) => [link.clipId, link.included]));
+  const diff: AuditChanges = Object.fromEntries(
+    changes.map((change): [string, [string, string]] => [
+      `clip ${change.clipId}`,
+      [state(before.get(change.clipId)), state(change.included)],
+    ]),
+  );
+  return prisma.agentAuditEntry.create({ data: auditEntryData(actor, { entity: "Dive" }, diveLogId, "UPDATED", diff) });
+}
+
 export async function setDiveClipLinks(actor: Actor, diveLogId: string, changes: readonly ClipLinkChange[]) {
   await requireMediaAdmin(actor);
   const dive = await prisma.diveLog.findFirst({ where: { id: diveLogId, userId: actor.userId }, select: { id: true } });
@@ -27,8 +51,10 @@ export async function setDiveClipLinks(actor: Actor, diveLogId: string, changes:
   });
   const ownedIds = new Set(owned.map((clip) => clip.id));
   const valid = changes.filter((change) => ownedIds.has(change.clipId));
+  const audit = actor.kind === "agent" ? [await mediaAuditEntry(actor, diveLogId, valid)] : [];
 
   await prisma.$transaction([
+    ...audit,
     prisma.mediaClipLink.deleteMany({
       where: {
         diveLogId,

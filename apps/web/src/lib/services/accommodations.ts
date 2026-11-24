@@ -7,13 +7,16 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
+import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
 
 export async function createAccommodation(actor: Actor, tripId: string, input: AccommodationInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(accommodationInputSchema, input);
-  const created = await prisma.accommodation.create({
-    data: { ...data, tripId, checkIn: toDate(data.checkIn), checkOut: toDate(data.checkOut) },
-  });
+  const created = await auditedCreate(actor, { entity: "Accommodation", tripId }, (db, mark) =>
+    db.accommodation.create({
+      data: { ...data, ...mark, tripId, checkIn: toDate(data.checkIn), checkOut: toDate(data.checkOut) },
+    }),
+  );
   void geocodeAccommodation(created.id);
   revalidatePath(`/trips/${tripId}/accommodations`);
   return created;
@@ -23,12 +26,25 @@ export async function createAccommodation(actor: Actor, tripId: string, input: A
 export async function updateAccommodation(actor: Actor, tripId: string, id: string, input: Partial<AccommodationInput>) {
   await requireTrip(actor, tripId);
   const data = parseInput(accommodationInputSchema.partial(), input);
-  await orNotFound(
-    "Accommodation",
-    prisma.accommodation.update({
-      where: { id, tripId },
-      data: { ...data, checkIn: toDate(data.checkIn), checkOut: toDate(data.checkOut), latitude: null, longitude: null },
-    }),
+  await auditedUpdate(
+    actor,
+    { entity: "Accommodation", tripId, id },
+    (db) => db.accommodation.findFirst({ where: { id, tripId } }),
+    (db, mark) =>
+      orNotFound(
+        "Accommodation",
+        db.accommodation.update({
+          where: { id, tripId },
+          data: {
+            ...data,
+            ...mark,
+            checkIn: toDate(data.checkIn),
+            checkOut: toDate(data.checkOut),
+            latitude: null,
+            longitude: null,
+          },
+        }),
+      ),
   );
   void geocodeAccommodation(id);
   revalidatePath(`/trips/${tripId}/accommodations`);

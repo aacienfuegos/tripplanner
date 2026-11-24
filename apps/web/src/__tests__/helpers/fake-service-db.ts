@@ -29,6 +29,20 @@ const defaults = {
   diveEquipment: (): Row => ({ id: nextId("equipment"), userId: "", name: "", status: "OWNED" }),
   diveEquipmentService: (): Row => ({ id: nextId("service"), userId: "", equipmentId: "" }),
   diveCertification: (): Row => ({ id: nextId("certification"), userId: "" }),
+  agentGrant: (): Row => ({ id: nextId("grant"), userId: "", name: "" }),
+  agentAuditEntry: (): Row => ({
+    id: nextId("entry"),
+    userId: "",
+    grantId: "",
+    createdAt: new Date(),
+    tripId: null,
+    entityType: "",
+    entityId: "",
+    action: "CREATED",
+    changes: null,
+    snapshot: null,
+    restoredAt: null,
+  }),
 };
 
 type Tables = { [K in keyof typeof defaults]: Row[] };
@@ -36,9 +50,22 @@ type Tables = { [K in keyof typeof defaults]: Row[] };
 const state = Object.fromEntries(Object.keys(defaults).map((key) => [key, []])) as unknown as Tables;
 const keys = Object.keys(defaults) as (keyof Tables)[];
 
-export const fakeServicePrisma = Object.fromEntries(
-  keys.map((key) => [key, table(state[key], defaults[key])]),
-) as { [K in keyof Tables]: ReturnType<typeof table> };
+const models = Object.fromEntries(keys.map((key) => [key, table(state[key], defaults[key])])) as {
+  [K in keyof Tables]: ReturnType<typeof table>;
+};
+
+// Interactive transactions roll back on throw, like Prisma's.
+async function transaction<T>(fn: (tx: typeof models) => Promise<T>): Promise<T> {
+  const snapshot = structuredClone(state);
+  try {
+    return await fn(models);
+  } catch (error) {
+    for (const key of keys) state[key].splice(0, Infinity, ...snapshot[key]);
+    throw error;
+  }
+}
+
+export const fakeServicePrisma = { ...models, $transaction: transaction };
 
 export const fakeServiceDb = {
   reset(seed: Partial<Tables>) {

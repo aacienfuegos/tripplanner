@@ -203,7 +203,7 @@ describe("linkDiveToTrip — dive and trip ownership", () => {
     userFindUnique.mockResolvedValue({ status: "APPROVED" });
   });
 
-  it("links a dive the user owns to a trip the user owns", async () => {
+  it("links a dive the user owns to a trip the user owns, clearing an agent's mark", async () => {
     tripFindUnique.mockResolvedValue({ userId: "user-attacker" });
 
     const { linkDiveToTrip } = await import("@/actions/dives");
@@ -211,7 +211,7 @@ describe("linkDiveToTrip — dive and trip ownership", () => {
 
     expect(diveLogUpdate).toHaveBeenCalledWith({
       where: { id: "dive-1", userId: "user-attacker" },
-      data: { tripId: "trip-1" },
+      data: { tripId: "trip-1", agentGrantId: null },
     });
   });
 
@@ -249,13 +249,13 @@ describe("unlinkDiveFromTrip — clears tripId without deleting the record", () 
     diveLogFindUnique.mockResolvedValue({ tripId: "trip-1" });
   });
 
-  it("sets tripId to null, scoped by id and userId, without deleting", async () => {
+  it("sets tripId to null, scoped by id and userId, without deleting, and clears an agent's mark", async () => {
     const { unlinkDiveFromTrip } = await import("@/actions/dives");
     await unlinkDiveFromTrip("dive-1");
 
     expect(diveLogUpdate).toHaveBeenCalledWith({
       where: { id: "dive-1", userId: "user-attacker" },
-      data: { tripId: null },
+      data: { tripId: null, agentGrantId: null },
     });
     expect(diveLogDelete).not.toHaveBeenCalled();
   });

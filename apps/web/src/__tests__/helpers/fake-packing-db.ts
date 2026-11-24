@@ -13,6 +13,10 @@ function matchesField(value: unknown, cond: unknown): boolean {
   const arg = (cond as Record<string, unknown>)[key];
   if (rest.length === 0 && key === "in" && Array.isArray(arg)) return value !== null && arg.includes(value);
   if (rest.length === 0 && key === "not") return arg === null ? value !== null : value !== null && value !== arg;
+  if (rest.length === 0 && (key === "lt" || key === "gt" || key === "gte") && arg instanceof Date && value instanceof Date) {
+    if (key === "lt") return value < arg;
+    return key === "gt" ? value > arg : value >= arg;
+  }
   throw new Error(`fake db: unsupported filter ${JSON.stringify(cond)}`);
 }
 

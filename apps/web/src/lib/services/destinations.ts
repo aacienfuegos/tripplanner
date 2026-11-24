@@ -6,6 +6,7 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
+import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
 
 // El orden de la lista se deriva de arrivalDate en vez de pedirle al usuario
 // que reordene a mano — es lo que ya usa cityForDay() en el timeline del viaje.
@@ -30,9 +31,11 @@ function revalidateDestinationPaths(tripId: string) {
 export async function createDestination(actor: Actor, tripId: string, input: DestinationInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(destinationInputSchema, input);
-  const created = await prisma.destination.create({
-    data: { ...data, tripId, arrivalDate: toDate(data.arrivalDate), departureDate: toDate(data.departureDate) },
-  });
+  const created = await auditedCreate(actor, { entity: "Destination", tripId }, (db, mark) =>
+    db.destination.create({
+      data: { ...data, ...mark, tripId, arrivalDate: toDate(data.arrivalDate), departureDate: toDate(data.departureDate) },
+    }),
+  );
   await reorderDestinations(tripId);
   revalidateDestinationPaths(tripId);
   return created;
@@ -41,12 +44,18 @@ export async function createDestination(actor: Actor, tripId: string, input: Des
 export async function updateDestination(actor: Actor, tripId: string, id: string, input: Partial<DestinationInput>) {
   await requireTrip(actor, tripId);
   const data = parseInput(destinationInputSchema.partial(), input);
-  await orNotFound(
-    "Destination",
-    prisma.destination.update({
-      where: { id, tripId },
-      data: { ...data, arrivalDate: toDate(data.arrivalDate), departureDate: toDate(data.departureDate) },
-    }),
+  await auditedUpdate(
+    actor,
+    { entity: "Destination", tripId, id },
+    (db) => db.destination.findFirst({ where: { id, tripId } }),
+    (db, mark) =>
+      orNotFound(
+        "Destination",
+        db.destination.update({
+          where: { id, tripId },
+          data: { ...data, ...mark, arrivalDate: toDate(data.arrivalDate), departureDate: toDate(data.departureDate) },
+        }),
+      ),
   );
   await reorderDestinations(tripId);
   revalidateDestinationPaths(tripId);

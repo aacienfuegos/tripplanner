@@ -7,6 +7,7 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { NotFoundError, orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
+import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
 
 // What the database puts when an expense comes without a currency.
 const DEFAULT_CURRENCY = "EUR";
@@ -41,7 +42,9 @@ export async function createExpense(actor: Actor, tripId: string, input: Expense
   const trip = await requireTrip(actor, tripId);
   const data = parseInput(expenseInputSchema, input);
   const conversion = await resolveConversion(data.currency ?? DEFAULT_CURRENCY, trip.currency, data.amount);
-  const created = await prisma.expense.create({ data: { ...data, ...conversion, tripId, date: toDate(data.date) } });
+  const created = await auditedCreate(actor, { entity: "Expense", tripId }, (db, mark) =>
+    db.expense.create({ data: { ...data, ...conversion, ...mark, tripId, date: toDate(data.date) } }),
+  );
   revalidatePath(`/trips/${tripId}/expenses`);
   return created;
 }
@@ -64,16 +67,22 @@ export async function updateExpense(actor: Actor, tripId: string, id: string, in
     conversion = await resolveConversion(currency, trip.currency, amount);
   }
 
-  await orNotFound(
-    "Expense",
-    prisma.expense.update({ where: { id, tripId }, data: { ...data, ...conversion, date: toDate(data.date) } }),
+  await auditedUpdate(
+    actor,
+    { entity: "Expense", tripId, id },
+    (db) => db.expense.findFirst({ where: { id, tripId } }),
+    (db, mark) =>
+      orNotFound(
+        "Expense",
+        db.expense.update({ where: { id, tripId }, data: { ...data, ...conversion, ...mark, date: toDate(data.date) } }),
+      ),
   );
   revalidatePath(`/trips/${tripId}/expenses`);
 }
 
 export async function toggleExpensePaid(actor: Actor, tripId: string, id: string, paid: boolean) {
   await requireTrip(actor, tripId);
-  await orNotFound("Expense", prisma.expense.update({ where: { id, tripId }, data: { paid } }));
+  await orNotFound("Expense", prisma.expense.update({ where: { id, tripId }, data: { paid, ...markOf(actor) } }));
   revalidatePath(`/trips/${tripId}/expenses`);
 }
 
