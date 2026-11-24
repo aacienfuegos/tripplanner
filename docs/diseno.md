@@ -88,7 +88,7 @@ shadcn de `CLAUDE.md`):
 | `badge.tsx` | Etiqueta; `badgeVariants` con `default`, `secondary`, `destructive`, `success`, `warning`, `outline`, `ghost`, `link` |
 | `button.tsx` | Botón; `buttonVariants` con variantes `default`, `outline`, `secondary`, `ghost`, `destructive`, `link` y tamaños `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`. Para enlaces con aspecto de botón, `buttonVariants()` sobre `<Link>` |
 | `card.tsx` | Tarjeta con cabecera, título, descripción, acción, contenido y pie |
-| `confirm-dialog.tsx` | Hook `useConfirmDialog` que devuelve una promesa con la respuesta; todas sus llamadas son confirmaciones de borrado (`confirmLabel: t.delete`) |
+| `confirm-dialog.tsx` | Hook `useConfirmDialog` que devuelve una promesa con la respuesta; casi todas sus llamadas son confirmaciones de borrado (`confirmLabel: t.delete`, `destructive`); "Desmarcar todo" del equipaje lo usa con `t.packingUnpackAll` y sin `destructive`. El borrado de una maleta con objetos, que necesita tres botones, va en `components/packing/delete-suitcase-dialog.tsx` |
 | `country-select.tsx` | Selector de país con los códigos de `@tripplanner/shared` |
 | `dialog.tsx` | Diálogo modal; contenedor de los formularios de sección |
 | `dropdown-menu.tsx` | Menú desplegable (menú de usuario, tema, idioma, "Más" del viaje) |

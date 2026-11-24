@@ -49,7 +49,7 @@ El layout `apps/web/src/app/(app)/layout.tsx` redirige antes de pintar nada: sin
 | `/trips/[tripId]/activities` | `trips/[tripId]/activities/page.tsx` | Navegación del viaje | CRUD de actividades |
 | `/trips/[tripId]/expenses` | `trips/[tripId]/expenses/page.tsx` | Navegación del viaje | CRUD de gastos |
 | `/trips/[tripId]/destinations` | `trips/[tripId]/destinations/page.tsx` | "Más", destinos de la cabecera de la ficha | CRUD de destinos |
-| `/trips/[tripId]/packing` | `trips/[tripId]/packing/page.tsx` | "Más" | Lista de maleta |
+| `/trips/[tripId]/packing` | `trips/[tripId]/packing/page.tsx` | "Más" | Equipaje en dos vistas, "Por categoría" y "Por maleta" (recordada en la cookie `packingView`), con búsqueda y "Solo lo que falta por meter"; crear objetos en línea y editarlos en un diálogo; crear, editar, borrar (sacando o borrando sus objetos), desmarcar y compartir maletas; modo de selección con barra fija abajo (mover a una maleta, marcar, desmarcar, borrar); diálogos de maleta de destino y de copiar de otro viaje (`apps/web/src/components/packing/`) |
 | `/trips/[tripId]/documents` | `trips/[tripId]/documents/page.tsx` | "Más" | CRUD de documentos |
 | `/trips/[tripId]/tasks` | `trips/[tripId]/tasks/page.tsx` | "Más" | Tareas y reservas pendientes |
 | `/trips/[tripId]/dives` | `trips/[tripId]/dives/page.tsx` | "Más" | Vincular y desvincular inmersiones del viaje |
