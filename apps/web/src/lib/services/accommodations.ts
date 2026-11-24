@@ -1,13 +1,12 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { geocodeAccommodation } from "@/lib/geocode-items";
 import { accommodationInputSchema, type AccommodationInput } from "@/lib/agent-schemas";
 import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
 
 export async function createAccommodation(actor: Actor, tripId: string, input: AccommodationInput) {
   await requireTrip(actor, tripId);
@@ -52,6 +51,8 @@ export async function updateAccommodation(actor: Actor, tripId: string, id: stri
 
 export async function deleteAccommodation(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Accommodation", prisma.accommodation.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Accommodation", tripId, id }, (db) =>
+    orNotFound("Accommodation", db.accommodation.delete({ where: { id, tripId } })),
+  );
   revalidatePath(`/trips/${tripId}/accommodations`);
 }

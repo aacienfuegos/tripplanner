@@ -7,7 +7,7 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { NotFoundError, orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate, markOf } from "@/lib/services/audit";
 
 // What the database puts when an expense comes without a currency.
 const DEFAULT_CURRENCY = "EUR";
@@ -88,6 +88,8 @@ export async function toggleExpensePaid(actor: Actor, tripId: string, id: string
 
 export async function deleteExpense(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Expense", prisma.expense.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Expense", tripId, id }, (db) =>
+    orNotFound("Expense", db.expense.delete({ where: { id, tripId } })),
+  );
   revalidatePath(`/trips/${tripId}/expenses`);
 }

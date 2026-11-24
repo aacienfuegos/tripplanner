@@ -6,7 +6,7 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
 
 // El orden de la lista se deriva de arrivalDate en vez de pedirle al usuario
 // que reordene a mano — es lo que ya usa cityForDay() en el timeline del viaje.
@@ -63,6 +63,8 @@ export async function updateDestination(actor: Actor, tripId: string, id: string
 
 export async function deleteDestination(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Destination", prisma.destination.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Destination", tripId, id }, (db) =>
+    orNotFound("Destination", db.destination.delete({ where: { id, tripId } })),
+  );
   revalidateDestinationPaths(tripId);
 }

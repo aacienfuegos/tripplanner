@@ -8,7 +8,7 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate, markOf } from "@/lib/services/audit";
 
 export async function createActivity(actor: Actor, tripId: string, input: ActivityInput) {
   await requireTrip(actor, tripId);
@@ -51,6 +51,8 @@ export async function updateActivityStatus(actor: Actor, tripId: string, id: str
 
 export async function deleteActivity(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Activity", prisma.activity.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Activity", tripId, id }, (db) =>
+    orNotFound("Activity", db.activity.delete({ where: { id, tripId } })),
+  );
   revalidatePath(`/trips/${tripId}/activities`);
 }

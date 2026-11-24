@@ -7,10 +7,18 @@
 type Row = Record<string, unknown>;
 type Where = Record<string, unknown>;
 
+// A to-one relation filter, as `trip: { userId }`: the table that has it says
+// how to find the related row.
+export type Relations = Readonly<Record<string, (row: Row, where: Where) => boolean>>;
+
 function matchesField(value: unknown, cond: unknown): boolean {
   if (cond === null || typeof cond !== "object") return value === cond;
   const [key, ...rest] = Object.keys(cond);
   const arg = (cond as Record<string, unknown>)[key];
+  // A to-many relation stored on the row as the list of related rows.
+  if (rest.length === 0 && key === "some" && typeof arg === "object" && arg !== null) {
+    return Array.isArray(value) && value.some((item: Row) => matchesWhere(item, arg as Where));
+  }
   if (rest.length === 0 && key === "in" && Array.isArray(arg)) return value !== null && arg.includes(value);
   if (rest.length === 0 && key === "not") return arg === null ? value !== null : value !== null && value !== arg;
   const ops = Object.entries(cond as Record<string, unknown>);
@@ -29,13 +37,14 @@ function matchesField(value: unknown, cond: unknown): boolean {
   throw new Error(`fake db: unsupported filter ${JSON.stringify(cond)}`);
 }
 
-function matches(row: Row, where: Where = {}): boolean {
+export function matchesWhere(row: Row, where: Where = {}, relations: Relations = {}): boolean {
   return Object.entries(where).every(([key, cond]) => {
     if (cond === undefined) return true;
-    if (key === "OR" && Array.isArray(cond)) return cond.some((w: Where) => matches(row, w));
+    if (key === "OR" && Array.isArray(cond)) return cond.some((w: Where) => matchesWhere(row, w, relations));
+    if (relations[key] && typeof cond === "object" && cond !== null) return relations[key](row, cond as Where);
     // A compound unique key, as clipId_diveLogId.
     if (!(key in row) && typeof cond === "object" && cond !== null && key.split("_").every((k) => k in row)) {
-      return matches(row, cond as Where);
+      return matchesWhere(row, cond as Where, relations);
     }
     if (!(key in row)) throw new Error(`fake db: unknown field ${key}`);
     return matchesField(row[key], cond);
@@ -52,25 +61,25 @@ export const nextId = (prefix: string) => `${prefix}-new-${++sequence}`;
 // Prisma leaves a field out of the write when its value is undefined.
 const defined = (data: Row): Row => Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
 
-export function table(rows: Row[], defaults: () => Row) {
+type FindMany = { where?: Where; orderBy?: Record<string, "asc" | "desc">; skip?: number; take?: number };
+
+export function table(rows: Row[], defaults: () => Row, relations: Relations = {}) {
   const build = (data: Row) => ({ ...defaults(), ...defined(data) });
+  const matches = (row: Row, where?: Where) => matchesWhere(row, where, relations);
+  const findMany = async ({ where, orderBy, skip = 0, take }: FindMany = {}) => {
+    const found = rows.filter((r) => matches(r, where));
+    const [key, direction] = Object.entries(orderBy ?? {})[0] ?? [];
+    const sign = direction === "desc" ? -1 : 1;
+    const compare = (a: unknown, b: unknown) =>
+      typeof a === "string" && typeof b === "string" ? a.localeCompare(b) : Number(a) - Number(b);
+    const sorted = key ? found.sort((a, b) => compare(a[key], b[key]) * sign) : found;
+    return sorted.slice(skip, take === undefined ? undefined : skip + take);
+  };
   return {
     findUnique: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
-    findFirst: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
-    findMany: async ({
-      where,
-      orderBy,
-      skip = 0,
-      take,
-    }: { where?: Where; orderBy?: Record<string, "asc" | "desc">; skip?: number; take?: number } = {}) => {
-      const found = rows.filter((r) => matches(r, where));
-      const [key, direction] = Object.entries(orderBy ?? {})[0] ?? [];
-      const sign = direction === "desc" ? -1 : 1;
-      const compare = (a: unknown, b: unknown) =>
-        typeof a === "string" && typeof b === "string" ? a.localeCompare(b) : Number(a) - Number(b);
-      const sorted = key ? found.sort((a, b) => compare(a[key], b[key]) * sign) : found;
-      return sorted.slice(skip, take === undefined ? undefined : skip + take);
-    },
+    findFirst: async (args: FindMany) => (await findMany(args))[0] ?? null,
+    findMany,
+    count: async ({ where }: { where?: Where } = {}) => rows.filter((r) => matches(r, where)).length,
     create: async ({ data }: { data: Row }) => {
       const row = build(data);
       rows.push(row);

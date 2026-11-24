@@ -23,8 +23,8 @@ const defaults = {
   task: (): Row => ({ id: nextId("task"), tripId: "" }),
   suitcase: (): Row => ({ id: nextId("suitcase"), tripId: "" }),
   packingItem: (): Row => ({ id: nextId("item"), tripId: "", suitcaseId: null, packed: false }),
-  diveLog: (): Row => ({ id: nextId("dive"), userId: "", tripId: null, date: new Date(0), diveNumber: 0 }),
-  diveSite: (): Row => ({ id: nextId("site"), userId: "", address: null }),
+  diveLog: (): Row => ({ id: nextId("dive"), userId: "", tripId: null, date: new Date(0), diveNumber: 0, diveSiteId: null, equipment: [] }),
+  diveSite: (): Row => ({ id: nextId("site"), userId: "", address: null, diveAreaId: null }),
   diveArea: (): Row => ({ id: nextId("area"), userId: "" }),
   diveEquipment: (): Row => ({ id: nextId("equipment"), userId: "", name: "", status: "OWNED" }),
   diveEquipmentService: (): Row => ({ id: nextId("service"), userId: "", equipmentId: "" }),
@@ -57,24 +57,42 @@ const models = Object.fromEntries(keys.map((key) => [key, table(state[key], defa
   [K in keyof Tables]: ReturnType<typeof table>;
 };
 
+// The raw queries and the counts of the register, in the order they run: what
+// a test needs to see that the connection is locked before counting.
+export const dbCalls: string[] = [];
+
+const countEntries = models.agentAuditEntry.count;
+models.agentAuditEntry.count = async (args) => {
+  dbCalls.push("count agentAuditEntry");
+  return countEntries(args);
+};
+
+async function queryRaw(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]> {
+  dbCalls.push(`${strings.join("?")} ${JSON.stringify(values)}`);
+  return [];
+}
+
+const client = { ...models, $queryRaw: queryRaw };
+
 // Interactive transactions roll back on throw, like Prisma's. The array form
 // gets the writes already started, as Prisma's would get them queued.
-async function transaction<T>(fn: ((tx: typeof models) => Promise<T>) | readonly Promise<unknown>[]): Promise<T | unknown[]> {
+async function transaction<T>(fn: ((tx: typeof client) => Promise<T>) | readonly Promise<unknown>[]): Promise<T | unknown[]> {
   if (Array.isArray(fn)) return Promise.all(fn);
   if (typeof fn !== "function") throw new Error("fake db: unsupported transaction");
   const snapshot = structuredClone(state);
   try {
-    return await fn(models);
+    return await fn(client);
   } catch (error) {
     for (const key of keys) state[key].splice(0, Infinity, ...snapshot[key]);
     throw error;
   }
 }
 
-export const fakeServicePrisma = { ...models, $transaction: transaction };
+export const fakeServicePrisma = { ...client, $transaction: transaction };
 
 export const fakeServiceDb = {
   reset(seed: Partial<Tables>) {
+    dbCalls.length = 0;
     for (const key of keys) state[key].splice(0, Infinity, ...(seed[key] ?? []).map((row) => ({ ...defaults[key](), ...row })));
   },
   dump: () => structuredClone(state),

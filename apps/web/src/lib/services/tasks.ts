@@ -6,7 +6,7 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate, markOf } from "@/lib/services/audit";
 
 export async function createTask(actor: Actor, tripId: string, input: TaskInput) {
   await requireTrip(actor, tripId);
@@ -42,6 +42,8 @@ export async function toggleTaskDone(actor: Actor, tripId: string, id: string, d
 
 export async function deleteTask(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Task", prisma.task.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Task", tripId, id }, (db) =>
+    orNotFound("Task", db.task.delete({ where: { id, tripId } })),
+  );
   revalidatePath(`/trips/${tripId}/tasks`);
 }

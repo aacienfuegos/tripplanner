@@ -1,12 +1,11 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { documentInputSchema, type DocumentInput } from "@/lib/agent-schemas";
 import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
 
 export async function createDocument(actor: Actor, tripId: string, input: DocumentInput) {
   await requireTrip(actor, tripId);
@@ -36,6 +35,8 @@ export async function updateDocument(actor: Actor, tripId: string, id: string, i
 
 export async function deleteDocument(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Document", prisma.document.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Document", tripId, id }, (db) =>
+    orNotFound("Document", db.document.delete({ where: { id, tripId } })),
+  );
   revalidatePath(`/trips/${tripId}/documents`);
 }

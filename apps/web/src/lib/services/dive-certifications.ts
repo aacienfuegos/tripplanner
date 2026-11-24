@@ -1,10 +1,9 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { diveCertificationInputSchema, type DiveCertificationInput } from "@/lib/agent-schemas";
 import type { Actor } from "@/lib/services/actor";
 import { orNotFound, parseInput } from "@/lib/services/errors";
-import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
 import { toDate } from "@/lib/services/dates";
 
 export async function createDiveCertification(actor: Actor, input: DiveCertificationInput) {
@@ -35,6 +34,8 @@ export async function updateDiveCertification(actor: Actor, id: string, input: P
 }
 
 export async function deleteDiveCertification(actor: Actor, id: string) {
-  await orNotFound("Certification", prisma.diveCertification.delete({ where: { id, userId: actor.userId } }));
+  await auditedDelete(actor, { entity: "Certification", id }, (db) =>
+    orNotFound("Certification", db.diveCertification.delete({ where: { id, userId: actor.userId } })),
+  );
   revalidatePath("/dives");
 }

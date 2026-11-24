@@ -8,7 +8,7 @@ import { packingItemInputSchema, type PackingItemInput } from "@/lib/agent-schem
 import type { Actor } from "@/lib/services/actor";
 import { requireSuitcase, requireTrip } from "@/lib/services/access";
 import { NotFoundError, orNotFound, parseInput } from "@/lib/services/errors";
-import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate, markOf } from "@/lib/services/audit";
 
 const DIVE_EQUIPMENT_PACKING_CATEGORY = "Buceo";
 
@@ -73,7 +73,9 @@ export async function togglePackingItem(actor: Actor, tripId: string, id: string
 
 export async function deletePackingItem(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Packing item", prisma.packingItem.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Packing item", tripId, id }, (db) =>
+    orNotFound("Packing item", db.packingItem.delete({ where: { id, tripId } })),
+  );
   revalidatePacking(tripId);
 }
 
