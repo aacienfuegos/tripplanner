@@ -3,7 +3,15 @@ import { z } from "zod";
 import type { CallToolResult, StandardSchemaWithJSON, ToolAnnotations } from "@modelcontextprotocol/server";
 import type { AgentActor } from "@/lib/oauth/verify";
 import type { Scope } from "@/lib/services/actor";
-import { DuplicateError, InputError, LimitError, NotFoundError, ScopeError, parseInput } from "@/lib/services/errors";
+import {
+  ConflictError,
+  DuplicateError,
+  InputError,
+  LimitError,
+  NotFoundError,
+  ScopeError,
+  parseInput,
+} from "@/lib/services/errors";
 
 // What a tool needs to know about the connection beyond its actor: whether the
 // user is an admin with a media library, read once per request.
@@ -44,6 +52,12 @@ export function defineTool<I extends z.ZodType, O extends z.ZodType>(definition:
 
 export const READ: ToolAnnotations = { readOnlyHint: true, openWorldHint: false };
 export const CREATE: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+export const DELETE: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: false,
+};
 export const EDIT: ToolAnnotations = {
   readOnlyHint: false,
   destructiveHint: false,
@@ -146,6 +160,9 @@ export async function callTool(tool: ToolDefinition, context: ToolContext, args:
     if (error instanceof NotFoundError) return result({ code: "not_found", message: error.message }, true);
     if (error instanceof DuplicateError) return result({ code: "duplicate", existing: error.existing }, true);
     if (error instanceof LimitError) return result({ code: "limit", retryAfterSeconds: error.retryAfterSeconds }, true);
+    if (error instanceof ConflictError) {
+      return result({ code: "conflict", message: "It has linked records; nothing was deleted", linked: error.linked }, true);
+    }
     if (error instanceof ScopeError) return result({ code: "forbidden", message: "Not allowed for this connection" }, true);
     console.error("[mcp] tool_error", tool.name, error instanceof Error ? error.name : typeof error);
     return result({ code: "internal_error", message: "The tool failed" }, true);

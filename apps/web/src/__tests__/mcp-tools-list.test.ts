@@ -63,7 +63,10 @@ describe("which tools a connection gets (CA5, CA10, CA13)", () => {
             has(tool.scope) && (!tool.allTripsOnly || allTrips) && (!tool.mediaAdminOnly || mediaAdmin);
           expect(names.includes(tool.name), `${tool.name} with ${scopes.join(" ")}`).toBe(expected);
         }
-        if (!has("dives:read") && !has("dives:write")) expect(names.filter((name) => name.includes("dive"))).toEqual([]);
+        if (!has("dives:read") && !has("dives:write") && !has("dives:delete")) {
+          expect(names.filter((name) => name.includes("dive"))).toEqual([]);
+        }
+        if (!has("trips:delete")) expect(names.filter((name) => /^delete_(accommodation|activity)$/.test(name))).toEqual([]);
         if (!has("trips:write")) expect(names.filter((name) => /^(create|update)_(trip|accommodation)$/.test(name))).toEqual([]);
         // Always the catalog's order.
         expect(names).toEqual(order.filter((name) => names.includes(name)));
@@ -71,8 +74,26 @@ describe("which tools a connection gets (CA5, CA10, CA13)", () => {
     }
   });
 
-  it("no tool deletes a trip or a dive, and none deletes anything yet", () => {
-    expect(TOOLS.filter((tool) => tool.name.startsWith("delete_"))).toEqual([]);
+  it("deletes only with a delete scope, and no tool deletes a trip or a dive (CA13)", () => {
+    const deletes = TOOLS.filter((tool) => tool.name.startsWith("delete_"));
+    expect(deletes.map((tool) => tool.name)).toEqual([
+      "delete_destination",
+      "delete_flight",
+      "delete_accommodation",
+      "delete_activity",
+      "delete_document",
+      "delete_expense",
+      "delete_task",
+      "delete_packing_item",
+      "delete_dive_site",
+      "delete_dive_area",
+      "delete_equipment",
+      "delete_equipment_service",
+      "delete_certification",
+    ]);
+    for (const tool of deletes) expect(["trips:delete", "dives:delete"], tool.name).toContain(tool.scope);
+    expect(TOOLS.filter((tool) => tool.scope.endsWith(":delete") && !tool.name.startsWith("delete_"))).toEqual([]);
+    expect(TOOLS.some((tool) => tool.name === "delete_trip" || tool.name === "delete_dive")).toBe(false);
   });
 
   it("every tool has a snake_case name and a scope of the catalog", () => {

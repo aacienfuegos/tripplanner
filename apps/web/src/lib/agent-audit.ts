@@ -1,5 +1,5 @@
 import "server-only";
-import type { AgentAuditEntry } from "@prisma/client";
+import type { AgentAuditEntry, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AUDIT_RETENTION_MS } from "@/lib/services/audit";
 
@@ -43,4 +43,16 @@ export async function listAuditEntries(
     tripNames: new Map(trips.map((trip) => [trip.id, trip.name])),
     hasMore: rows.length > AUDIT_PAGE_SIZE,
   };
+}
+
+const LABEL_FIELDS = ["name", "title", "description", "flightNumber", "city", "level"] as const;
+
+// The name a deleted element had, from the row its entry keeps.
+export function deletedLabel(snapshot: Prisma.JsonValue | null): string | null {
+  if (typeof snapshot !== "object" || snapshot === null || Array.isArray(snapshot)) return null;
+  for (const field of LABEL_FIELDS) {
+    const value = snapshot[field];
+    if (typeof value === "string" && value.trim() !== "") return value;
+  }
+  return null;
 }

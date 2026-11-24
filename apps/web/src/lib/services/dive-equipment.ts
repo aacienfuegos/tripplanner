@@ -1,6 +1,5 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import {
   diveEquipmentInputSchema,
   diveEquipmentServiceInputSchema,
@@ -10,7 +9,7 @@ import {
 import type { Actor } from "@/lib/services/actor";
 import { requireEquipment } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
-import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
 import { toDate } from "@/lib/services/dates";
 
 export async function createDiveEquipment(actor: Actor, input: DiveEquipmentInput) {
@@ -54,8 +53,17 @@ export async function updateDiveEquipment(actor: Actor, id: string, input: Parti
   revalidatePath(`/dives/equipment/${id}`);
 }
 
+// An agent can't delete equipment used in a dive or with service records.
 export async function deleteDiveEquipment(actor: Actor, id: string) {
-  await orNotFound("Equipment", prisma.diveEquipment.delete({ where: { id, userId: actor.userId } }));
+  await auditedDelete(
+    actor,
+    { entity: "Equipment", id },
+    (db) => orNotFound("Equipment", db.diveEquipment.delete({ where: { id, userId: actor.userId } })),
+    async (db) => ({
+      dives: await db.diveLog.count({ where: { userId: actor.userId, equipment: { some: { id } } } }),
+      services: await db.diveEquipmentService.count({ where: { equipmentId: id, userId: actor.userId } }),
+    }),
+  );
   revalidatePath("/dives");
 }
 
@@ -72,9 +80,8 @@ export async function createDiveEquipmentService(actor: Actor, input: DiveEquipm
 }
 
 export async function deleteDiveEquipmentService(actor: Actor, id: string) {
-  const service = await orNotFound(
-    "Equipment service",
-    prisma.diveEquipmentService.delete({ where: { id, userId: actor.userId } }),
+  const service = await auditedDelete(actor, { entity: "Equipment service", id }, (db) =>
+    orNotFound("Equipment service", db.diveEquipmentService.delete({ where: { id, userId: actor.userId } })),
   );
   revalidatePath(`/dives/equipment/${service.equipmentId}`);
 }

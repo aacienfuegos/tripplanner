@@ -1,21 +1,23 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { geocodeAccommodation } from "@/lib/geocode-items";
 import { accommodationInputSchema, type AccommodationInput } from "@/lib/agent-schemas";
 import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
+
+// The columns of a new accommodation, also for an accepted suggestion.
+export function accommodationData(data: AccommodationInput) {
+  return { ...data, checkIn: toDate(data.checkIn), checkOut: toDate(data.checkOut) };
+}
 
 export async function createAccommodation(actor: Actor, tripId: string, input: AccommodationInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(accommodationInputSchema, input);
   const created = await auditedCreate(actor, { entity: "Accommodation", tripId }, (db, mark) =>
-    db.accommodation.create({
-      data: { ...data, ...mark, tripId, checkIn: toDate(data.checkIn), checkOut: toDate(data.checkOut) },
-    }),
+    db.accommodation.create({ data: { ...accommodationData(data), ...mark, tripId } }),
   );
   void geocodeAccommodation(created.id);
   revalidatePath(`/trips/${tripId}/accommodations`);
@@ -52,6 +54,8 @@ export async function updateAccommodation(actor: Actor, tripId: string, id: stri
 
 export async function deleteAccommodation(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Accommodation", prisma.accommodation.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Accommodation", tripId, id }, (db) =>
+    orNotFound("Accommodation", db.accommodation.delete({ where: { id, tripId } })),
+  );
   revalidatePath(`/trips/${tripId}/accommodations`);
 }

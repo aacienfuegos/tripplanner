@@ -8,13 +8,18 @@ import type { Actor } from "@/lib/services/actor";
 import { requireTrip } from "@/lib/services/access";
 import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
-import { auditedCreate, auditedUpdate, markOf } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate, markOf } from "@/lib/services/audit";
+
+// The columns of a new activity, also for an accepted suggestion.
+export function activityData(data: ActivityInput) {
+  return { ...data, scheduledAt: toDate(data.scheduledAt) };
+}
 
 export async function createActivity(actor: Actor, tripId: string, input: ActivityInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(activityInputSchema, input);
   const created = await auditedCreate(actor, { entity: "Activity", tripId }, (db, mark) =>
-    db.activity.create({ data: { ...data, ...mark, tripId, scheduledAt: toDate(data.scheduledAt) } }),
+    db.activity.create({ data: { ...activityData(data), ...mark, tripId } }),
   );
   void geocodeActivity(created.id);
   revalidatePath(`/trips/${tripId}/activities`);
@@ -51,6 +56,8 @@ export async function updateActivityStatus(actor: Actor, tripId: string, id: str
 
 export async function deleteActivity(actor: Actor, tripId: string, id: string) {
   await requireTrip(actor, tripId);
-  await orNotFound("Activity", prisma.activity.delete({ where: { id, tripId } }));
+  await auditedDelete(actor, { entity: "Activity", tripId, id }, (db) =>
+    orNotFound("Activity", db.activity.delete({ where: { id, tripId } })),
+  );
   revalidatePath(`/trips/${tripId}/activities`);
 }

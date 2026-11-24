@@ -1,7 +1,8 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { Actor } from "@/lib/services/actor";
-import { NotFoundError, type Entity } from "@/lib/services/errors";
+import { ConflictError, LimitError, NotFoundError, type Entity } from "@/lib/services/errors";
 
 // The register and the mark of what the agents write. An agent's write and
 // its entry go in one transaction; the web writes as it always did, without
@@ -11,6 +12,8 @@ type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 export type Db = typeof prisma | TxClient;
 
 export const AUDIT_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+export const DELETE_LIMIT = 20;
+export const DELETE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Columns the services derive on their own: they change with an edit but
 // aren't what the agent changed.
@@ -68,11 +71,13 @@ export function diffRows(before: Row, after: Row): AuditChanges {
 
 type AgentActor = Extract<Actor, { kind: "agent" }>;
 
+type AuditAction = "CREATED" | "UPDATED" | "DELETED" | "SUGGESTED";
+
 export function auditEntryData(
   actor: AgentActor,
   target: Target,
   entityId: string,
-  action: "CREATED" | "UPDATED",
+  action: AuditAction,
   changes?: AuditChanges,
 ) {
   return {
@@ -99,7 +104,7 @@ async function writeEntry(
   actor: AgentActor,
   target: Target,
   entityId: string,
-  action: "CREATED" | "UPDATED",
+  action: AuditAction,
   changes?: AuditChanges,
 ) {
   await tx.agentAuditEntry.create({ data: auditEntryData(actor, target, entityId, action, changes) });
@@ -134,5 +139,46 @@ export async function auditedUpdate<T extends Row>(
     const after = await update(tx, markOf(actor));
     await writeEntry(tx, actor, target, target.id, "UPDATED", diffRows(before, after));
     return after;
+  });
+}
+
+// A row as JSON, the way it is stored and read back: dates become ISO strings,
+// which Prisma takes again for a DateTime column.
+export function toJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+// An agent deletes one element per call, at most DELETE_LIMIT per connection in
+// DELETE_WINDOW_MS. The connection's row is locked before counting, so two
+// deletions of the same connection run one after the other and the second sees
+// the entry of the first. The entry keeps the whole row to restore it. `linked`
+// counts what stops the deletion (only for an agent: the web keeps deleting as
+// it always did), with the same owner filter as the delete.
+export async function auditedDelete<T extends Row & { id: string }>(
+  actor: Actor,
+  target: Target & { readonly id: string },
+  remove: (db: Db) => Promise<T>,
+  linked?: (db: Db) => Promise<Readonly<Record<string, number>>>,
+): Promise<T> {
+  if (actor.kind === "web") return remove(prisma);
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "AgentGrant" WHERE id = ${actor.grant.id} FOR UPDATE`;
+    const now = Date.now();
+    const recent = { grantId: actor.grant.id, action: "DELETED" as const, createdAt: { gte: new Date(now - DELETE_WINDOW_MS) } };
+    if ((await tx.agentAuditEntry.count({ where: recent })) >= DELETE_LIMIT) {
+      const oldest = await tx.agentAuditEntry.findFirst({ where: recent, orderBy: { createdAt: "asc" }, select: { createdAt: true } });
+      const freeAt = (oldest?.createdAt.getTime() ?? now) + DELETE_WINDOW_MS;
+      throw new LimitError(Math.max(1, Math.ceil((freeAt - now) / 1000)));
+    }
+    if (linked) {
+      const counts = Object.fromEntries(Object.entries(await linked(tx)).filter(([, n]) => n > 0));
+      if (Object.keys(counts).length > 0) throw new ConflictError(counts);
+    }
+    const removed = await remove(tx);
+    await tx.agentAuditEntry.create({
+      data: { ...auditEntryData(actor, target, target.id, "DELETED"), snapshot: toJson(removed) },
+    });
+    await purgeOldEntries(tx, actor.userId);
+    return removed;
   });
 }

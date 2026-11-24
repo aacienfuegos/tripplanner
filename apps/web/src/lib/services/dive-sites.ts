@@ -11,7 +11,7 @@ import {
 import type { Actor } from "@/lib/services/actor";
 import { resolveDiveAreaId } from "@/lib/services/access";
 import { NotFoundError, orNotFound, parseInput } from "@/lib/services/errors";
-import { auditedCreate, auditedUpdate } from "@/lib/services/audit";
+import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
 
 export async function createDiveSite(actor: Actor, input: DiveSiteInput) {
   const { diveAreaId, ...data } = parseInput(diveSiteInputSchema, input);
@@ -59,8 +59,14 @@ export async function updateDiveSite(actor: Actor, id: string, input: Partial<Di
   revalidatePath(`/dives/sites/${id}`);
 }
 
+// An agent can't delete a site with dives or an area with sites.
 export async function deleteDiveSite(actor: Actor, id: string) {
-  await orNotFound("Dive site", prisma.diveSite.delete({ where: { id, userId: actor.userId } }));
+  await auditedDelete(
+    actor,
+    { entity: "Dive site", id },
+    (db) => orNotFound("Dive site", db.diveSite.delete({ where: { id, userId: actor.userId } })),
+    async (db) => ({ dives: await db.diveLog.count({ where: { diveSiteId: id, userId: actor.userId } }) }),
+  );
   revalidatePath("/dives");
 }
 
@@ -86,6 +92,11 @@ export async function updateDiveArea(actor: Actor, id: string, input: Partial<Di
 }
 
 export async function deleteDiveArea(actor: Actor, id: string) {
-  await orNotFound("Dive area", prisma.diveArea.delete({ where: { id, userId: actor.userId } }));
+  await auditedDelete(
+    actor,
+    { entity: "Dive area", id },
+    (db) => orNotFound("Dive area", db.diveArea.delete({ where: { id, userId: actor.userId } })),
+    async (db) => ({ sites: await db.diveSite.count({ where: { diveAreaId: id, userId: actor.userId } }) }),
+  );
   revalidatePath("/dives");
 }

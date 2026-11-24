@@ -110,18 +110,19 @@ model Trip {
   updatedAt    DateTime   @updatedAt
   agentGrantId String?
 
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  destinations   Destination[]
-  flights        Flight[]
-  accommodations Accommodation[]
-  activities     Activity[]
-  documents      Document[]
-  expenses       Expense[]
-  packingItems   PackingItem[]
-  suitcases      Suitcase[]
-  tasks          Task[]
-  diveLogs       DiveLog[]
-  agentGrants    AgentGrantTrip[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destinations     Destination[]
+  flights          Flight[]
+  accommodations   Accommodation[]
+  activities       Activity[]
+  documents        Document[]
+  expenses         Expense[]
+  packingItems     PackingItem[]
+  suitcases        Suitcase[]
+  tasks            Task[]
+  diveLogs         DiveLog[]
+  agentGrants      AgentGrantTrip[]
+  agentSuggestions AgentSuggestion[]
 
   @@unique([userId, externalId])
 }
@@ -798,4 +799,34 @@ model AgentAuditEntry {
 
   @@index([userId, createdAt])
   @@index([grantId, action, createdAt])
+}
+
+enum AgentSuggestionKind {
+  ACCOMMODATION
+  ACTIVITY
+}
+
+enum AgentSuggestionStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+}
+
+// What an agent proposes for a trip without adding it: it waits here, out of
+// the map, the timeline and the expenses, until the user accepts it (resultId
+// is then the element created) or dismisses it.
+model AgentSuggestion {
+  id         String                @id @default(cuid())
+  tripId     String
+  grantId    String
+  kind       AgentSuggestionKind
+  payload    Json
+  status     AgentSuggestionStatus @default(PENDING)
+  createdAt  DateTime              @default(now())
+  resolvedAt DateTime?
+  resultId   String?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, status])
 }
