@@ -8,13 +8,16 @@ import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
 import { auditedCreate, auditedDelete, auditedUpdate } from "@/lib/services/audit";
 
+// The columns of a new accommodation, also for an accepted suggestion.
+export function accommodationData(data: AccommodationInput) {
+  return { ...data, checkIn: toDate(data.checkIn), checkOut: toDate(data.checkOut) };
+}
+
 export async function createAccommodation(actor: Actor, tripId: string, input: AccommodationInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(accommodationInputSchema, input);
   const created = await auditedCreate(actor, { entity: "Accommodation", tripId }, (db, mark) =>
-    db.accommodation.create({
-      data: { ...data, ...mark, tripId, checkIn: toDate(data.checkIn), checkOut: toDate(data.checkOut) },
-    }),
+    db.accommodation.create({ data: { ...accommodationData(data), ...mark, tripId } }),
   );
   void geocodeAccommodation(created.id);
   revalidatePath(`/trips/${tripId}/accommodations`);

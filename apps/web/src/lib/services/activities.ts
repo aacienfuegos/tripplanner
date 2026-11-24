@@ -10,11 +10,16 @@ import { orNotFound, parseInput } from "@/lib/services/errors";
 import { toDate } from "@/lib/services/dates";
 import { auditedCreate, auditedDelete, auditedUpdate, markOf } from "@/lib/services/audit";
 
+// The columns of a new activity, also for an accepted suggestion.
+export function activityData(data: ActivityInput) {
+  return { ...data, scheduledAt: toDate(data.scheduledAt) };
+}
+
 export async function createActivity(actor: Actor, tripId: string, input: ActivityInput) {
   await requireTrip(actor, tripId);
   const data = parseInput(activityInputSchema, input);
   const created = await auditedCreate(actor, { entity: "Activity", tripId }, (db, mark) =>
-    db.activity.create({ data: { ...data, ...mark, tripId, scheduledAt: toDate(data.scheduledAt) } }),
+    db.activity.create({ data: { ...activityData(data), ...mark, tripId } }),
   );
   void geocodeActivity(created.id);
   revalidatePath(`/trips/${tripId}/activities`);

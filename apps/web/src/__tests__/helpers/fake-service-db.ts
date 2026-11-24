@@ -1,4 +1,4 @@
-import { nextId, table } from "./fake-packing-db";
+import { matchesWhere, nextId, table } from "./fake-packing-db";
 
 // In-memory stand-in for the models the services touch, built on the packing
 // fake: it only understands the filters the services use and throws on any
@@ -46,6 +46,17 @@ const defaults = {
     snapshot: null,
     restoredAt: null,
   }),
+  agentSuggestion: (): Row => ({
+    id: nextId("suggestion"),
+    tripId: "",
+    grantId: "",
+    kind: "ACCOMMODATION",
+    payload: null,
+    status: "PENDING",
+    createdAt: new Date(),
+    resolvedAt: null,
+    resultId: null,
+  }),
 };
 
 type Tables = { [K in keyof typeof defaults]: Row[] };
@@ -53,7 +64,14 @@ type Tables = { [K in keyof typeof defaults]: Row[] };
 const state = Object.fromEntries(Object.keys(defaults).map((key) => [key, []])) as unknown as Tables;
 const keys = Object.keys(defaults) as (keyof Tables)[];
 
-const models = Object.fromEntries(keys.map((key) => [key, table(state[key], defaults[key])])) as {
+// A suggestion's `trip: { userId }` looks at its trip.
+const relations: Partial<Record<keyof Tables, Parameters<typeof table>[2]>> = {
+  agentSuggestion: {
+    trip: (row, where) => state.trip.some((trip) => trip.id === row.tripId && matchesWhere(trip, where)),
+  },
+};
+
+const models = Object.fromEntries(keys.map((key) => [key, table(state[key], defaults[key], relations[key])])) as {
   [K in keyof Tables]: ReturnType<typeof table>;
 };
 

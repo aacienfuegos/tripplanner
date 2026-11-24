@@ -4,6 +4,7 @@ import { diveCatalogTools } from "@/lib/mcp/tools/dive-catalog";
 import { diveTools } from "@/lib/mcp/tools/dives";
 import { diveDeleteTools, sectionDeleteTools } from "@/lib/mcp/tools/deletes";
 import { sectionTools } from "@/lib/mcp/tools/sections";
+import { suggestionTools } from "@/lib/mcp/tools/suggestions";
 import { tripTools } from "@/lib/mcp/tools/trips";
 
 // The whole catalog, in the order tools/list gives it. There is no tool to
@@ -12,6 +13,7 @@ export const TOOLS: readonly ToolDefinition[] = [
   ...tripTools,
   ...sectionTools,
   ...sectionDeleteTools,
+  ...suggestionTools,
   ...diveTools,
   ...diveCatalogTools,
   ...diveDeleteTools,
