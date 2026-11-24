@@ -1,55 +1,31 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { accommodationSchema } from "@/lib/schemas";
-import { geocodeAccommodation } from "@/lib/geocode-items";
-import { requireTripOwner } from "@/lib/action-auth";
+import type { AccommodationInput } from "@/lib/agent-schemas";
+import { redirectIfTripNotFound, webActor } from "@/lib/services/actor";
+import * as accommodations from "@/lib/services/accommodations";
+
+function toInput(formData: FormData): AccommodationInput {
+  const data = accommodationSchema.parse(Object.fromEntries(formData));
+  return {
+    ...data,
+    price: data.price ? parseFloat(data.price) : null,
+    pricePerNight: data.pricePerNight ? parseFloat(data.pricePerNight) : null,
+    confirmationUrl: data.confirmationUrl || null,
+  };
+}
 
 export async function createAccommodation(tripId: string, formData: FormData) {
-  await requireTripOwner(tripId);
-  const data = accommodationSchema.parse(Object.fromEntries(formData));
-
-  const created = await prisma.accommodation.create({
-    data: {
-      tripId,
-      ...data,
-      checkIn: new Date(data.checkIn),
-      checkOut: new Date(data.checkOut),
-      price: data.price ? parseFloat(data.price) : null,
-      pricePerNight: data.pricePerNight ? parseFloat(data.pricePerNight) : null,
-      confirmationUrl: data.confirmationUrl || null,
-    },
-  });
-
-  void geocodeAccommodation(created.id);
-  revalidatePath(`/trips/${tripId}/accommodations`);
+  const actor = await webActor();
+  await redirectIfTripNotFound(accommodations.createAccommodation(actor, tripId, toInput(formData)));
 }
 
 export async function updateAccommodation(tripId: string, id: string, formData: FormData) {
-  await requireTripOwner(tripId);
-  const data = accommodationSchema.parse(Object.fromEntries(formData));
-
-  await prisma.accommodation.update({
-    where: { id, tripId },
-    data: {
-      ...data,
-      checkIn: new Date(data.checkIn),
-      checkOut: new Date(data.checkOut),
-      price: data.price ? parseFloat(data.price) : null,
-      pricePerNight: data.pricePerNight ? parseFloat(data.pricePerNight) : null,
-      confirmationUrl: data.confirmationUrl || null,
-      latitude: null,
-      longitude: null,
-    },
-  });
-
-  void geocodeAccommodation(id);
-  revalidatePath(`/trips/${tripId}/accommodations`);
+  const actor = await webActor();
+  await redirectIfTripNotFound(accommodations.updateAccommodation(actor, tripId, id, toInput(formData)));
 }
 
 export async function deleteAccommodation(tripId: string, id: string) {
-  await requireTripOwner(tripId);
-  await prisma.accommodation.delete({ where: { id, tripId } });
-  revalidatePath(`/trips/${tripId}/accommodations`);
+  const actor = await webActor();
+  await redirectIfTripNotFound(accommodations.deleteAccommodation(actor, tripId, id));
 }

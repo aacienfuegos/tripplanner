@@ -1,88 +1,34 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { tripSchema, tripStatusSchema } from "@/lib/schemas";
-import { requireUser } from "@/lib/action-auth";
-import { recalculateExpenseConversions } from "@/actions/expenses";
+import { tripSchema } from "@/lib/schemas";
+import type { TripInput } from "@/lib/agent-schemas";
+import { redirectIfTripNotFound, webActor } from "@/lib/services/actor";
+import * as trips from "@/lib/services/trips";
+
+function toInput(formData: FormData): TripInput {
+  const data = tripSchema.parse(Object.fromEntries(formData));
+  return { ...data, budget: data.budget ? parseFloat(data.budget) : null };
+}
 
 export async function createTrip(formData: FormData) {
-  const userId = await requireUser();
-  const raw = Object.fromEntries(formData);
-  const data = tripSchema.parse(raw);
-
-  const trip = await prisma.trip.create({
-    data: {
-      userId,
-      name: data.name,
-      description: data.description,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
-      currency: data.currency,
-      budget: data.budget ? parseFloat(data.budget) : null,
-      coverImage: data.coverImage,
-    },
-  });
-
-  revalidatePath("/trips");
+  const actor = await webActor();
+  const trip = await trips.createTrip(actor, toInput(formData));
   redirect(`/trips/${trip.id}`);
 }
 
 export async function updateTrip(tripId: string, formData: FormData) {
-  const userId = await requireUser();
-  await assertTripOwner(tripId, userId);
-
-  const raw = Object.fromEntries(formData);
-  const data = tripSchema.parse(raw);
-
-  const previous = await prisma.trip.findUnique({ where: { id: tripId }, select: { currency: true } });
-
-  await prisma.trip.update({
-    where: { id: tripId, userId },
-    data: {
-      name: data.name,
-      description: data.description,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
-      currency: data.currency,
-      budget: data.budget ? parseFloat(data.budget) : null,
-      coverImage: data.coverImage,
-    },
-  });
-
-  if (previous && previous.currency !== data.currency) {
-    await recalculateExpenseConversions(tripId, data.currency);
-    revalidatePath(`/trips/${tripId}/expenses`);
-  }
-
-  revalidatePath(`/trips/${tripId}`);
-  revalidatePath("/trips");
+  const actor = await webActor();
+  await redirectIfTripNotFound(trips.updateTrip(actor, tripId, toInput(formData)));
 }
 
 export async function deleteTrip(tripId: string) {
-  const userId = await requireUser();
-  await assertTripOwner(tripId, userId);
-
-  await prisma.trip.delete({ where: { id: tripId, userId } });
-  revalidatePath("/trips");
+  const actor = await webActor();
+  await redirectIfTripNotFound(trips.deleteTrip(actor, tripId));
   redirect("/trips");
 }
 
 export async function updateTripStatus(tripId: string, status: string) {
-  const userId = await requireUser();
-  await assertTripOwner(tripId, userId);
-  const parsed = tripStatusSchema.parse(status);
-
-  await prisma.trip.update({
-    where: { id: tripId, userId },
-    data: { status: parsed },
-  });
-  revalidatePath(`/trips/${tripId}`);
-  revalidatePath("/trips");
-}
-
-async function assertTripOwner(tripId: string, userId: string) {
-  const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { userId: true } });
-  if (!trip || trip.userId !== userId) redirect("/trips");
+  const actor = await webActor();
+  await redirectIfTripNotFound(trips.updateTripStatus(actor, tripId, status));
 }

@@ -1,40 +1,26 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { documentSchema } from "@/lib/schemas";
-import { requireTripOwner } from "@/lib/action-auth";
+import type { DocumentInput } from "@/lib/agent-schemas";
+import { redirectIfTripNotFound, webActor } from "@/lib/services/actor";
+import * as documents from "@/lib/services/documents";
+
+function toInput(formData: FormData): DocumentInput {
+  const data = documentSchema.parse(Object.fromEntries(formData));
+  return { ...data, fileUrl: data.fileUrl || null, expiresAt: data.expiresAt || null };
+}
 
 export async function createDocument(tripId: string, formData: FormData) {
-  await requireTripOwner(tripId);
-  const data = documentSchema.parse(Object.fromEntries(formData));
-  await prisma.document.create({
-    data: {
-      tripId,
-      ...data,
-      fileUrl: data.fileUrl || null,
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
-    },
-  });
-  revalidatePath(`/trips/${tripId}/documents`);
+  const actor = await webActor();
+  await redirectIfTripNotFound(documents.createDocument(actor, tripId, toInput(formData)));
 }
 
 export async function updateDocument(tripId: string, id: string, formData: FormData) {
-  await requireTripOwner(tripId);
-  const data = documentSchema.parse(Object.fromEntries(formData));
-  await prisma.document.update({
-    where: { id, tripId },
-    data: {
-      ...data,
-      fileUrl: data.fileUrl || null,
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
-    },
-  });
-  revalidatePath(`/trips/${tripId}/documents`);
+  const actor = await webActor();
+  await redirectIfTripNotFound(documents.updateDocument(actor, tripId, id, toInput(formData)));
 }
 
 export async function deleteDocument(tripId: string, id: string) {
-  await requireTripOwner(tripId);
-  await prisma.document.delete({ where: { id, tripId } });
-  revalidatePath(`/trips/${tripId}/documents`);
+  const actor = await webActor();
+  await redirectIfTripNotFound(documents.deleteDocument(actor, tripId, id));
 }

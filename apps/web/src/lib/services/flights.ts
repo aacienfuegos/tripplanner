@@ -1,0 +1,39 @@
+import "server-only";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { flightInputSchema, type FlightInput } from "@/lib/agent-schemas";
+import type { Actor } from "@/lib/services/actor";
+import { requireTrip } from "@/lib/services/access";
+import { orNotFound, parseInput } from "@/lib/services/errors";
+import { toDate } from "@/lib/services/dates";
+
+// Flights aren't geocoded here: the map fills in the missing coordinates.
+
+export async function createFlight(actor: Actor, tripId: string, input: FlightInput) {
+  await requireTrip(actor, tripId);
+  const data = parseInput(flightInputSchema, input);
+  const created = await prisma.flight.create({
+    data: { ...data, tripId, departureAt: toDate(data.departureAt), arrivalAt: toDate(data.arrivalAt) },
+  });
+  revalidatePath(`/trips/${tripId}/flights`);
+  return created;
+}
+
+export async function updateFlight(actor: Actor, tripId: string, id: string, input: Partial<FlightInput>) {
+  await requireTrip(actor, tripId);
+  const data = parseInput(flightInputSchema.partial(), input);
+  await orNotFound(
+    "Flight",
+    prisma.flight.update({
+      where: { id, tripId },
+      data: { ...data, departureAt: toDate(data.departureAt), arrivalAt: toDate(data.arrivalAt) },
+    }),
+  );
+  revalidatePath(`/trips/${tripId}/flights`);
+}
+
+export async function deleteFlight(actor: Actor, tripId: string, id: string) {
+  await requireTrip(actor, tripId);
+  await orNotFound("Flight", prisma.flight.delete({ where: { id, tripId } }));
+  revalidatePath(`/trips/${tripId}/flights`);
+}
