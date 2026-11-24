@@ -91,8 +91,10 @@ Fuente: `apps/web/src/app/(app)/dives/` y `apps/web/src/actions/dive*.ts`.
 - Hay: viajes con vuelos, alojamientos, actividades, gastos, maleta, documentos, tareas,
   inmersiones vinculadas y mapa (`apps/android/app/trips/[id]/`); módulo de buceo con inmersiones,
   sitios, equipo, certificaciones y estadísticas (`apps/android/app/dives/`); importación con IA
-  en modo manual de tres pasos (`apps/android/src/components/import/`); ajustes de tema, idioma y
-  plan (`apps/android/app/settings.tsx`).
+  en modo manual de tres pasos (`apps/android/src/components/import/`), también con la maleta de
+  cada objeto como en la web (`apps/android/src/db/packing.ts`); ajustes de tema, idioma, sistema
+  de unidades (métrico o imperial, para el peso de las maletas) y plan
+  (`apps/android/app/settings.tsx`, `apps/android/src/contexts/UnitsContext.tsx`).
 - No hay: cuenta ni autenticación; destinos como sección (no existe tabla, ver `docs/datos.md`);
   importación de Diving Log; vídeos de inmersión; panel de administración.
 - Límite gratuito: un viaje (`FREE_TRIP_LIMIT` en `apps/android/src/lib/pro-limits.ts`). Con más,

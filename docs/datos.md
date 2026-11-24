@@ -59,7 +59,7 @@ cliente, ver `CLAUDE.md`.
 
 - Fichero `tripplanner.db` abierto con `expo-sqlite` en `apps/android/src/db/database.ts`, con
   `journal_mode = WAL` y `foreign_keys = ON`.
-- Versión actual del esquema: **8** (`PRAGMA user_version`, última migración del mismo fichero).
+- Versión actual del esquema: **9** (`PRAGMA user_version`, última migración del mismo fichero).
   Las migraciones se encadenan por versión y una publicada no se edita (`CLAUDE.md`, "Base de
   datos SQLite").
 - Columnas en snake_case y tipos TypeScript con los mismos nombres (`CLAUDE.md`). Identificadores
@@ -68,15 +68,23 @@ cliente, ver `CLAUDE.md`.
   referencias de reserva, notas) van cifrados con una clave guardada en el Keystore
   (`apps/android/src/crypto/fieldEncryption.ts`, usado por `flights.ts`, `accommodations.ts`,
   `activities.ts`, `documents.ts` e `import.ts` de `apps/android/src/db/`).
-- Preferencias (tema e idioma) en AsyncStorage, no en SQLite
-  (`apps/android/src/contexts/ThemeContext.tsx`, `apps/android/src/contexts/I18nContext.tsx`).
+- Preferencias (tema, idioma y sistema de unidades) en AsyncStorage, no en SQLite
+  (`apps/android/src/contexts/ThemeContext.tsx`, `apps/android/src/contexts/I18nContext.tsx`,
+  `apps/android/src/contexts/UnitsContext.tsx`). El sistema de unidades es métrico si no hay nada
+  guardado (clave `@tripplanner/unit-system`).
+- `packing_items` puede estar en una maleta (`suitcase_id`, versión 9) del mismo viaje. Como en la
+  web, la base de datos no comprueba que la maleta sea del mismo viaje: lo comprueba
+  `requireSuitcaseInTrip` antes de cada escritura que recibe una maleta, y toda escritura en bloque
+  filtra por `trip_id` (`apps/android/src/db/packing.ts`, `apps/android/src/db/suitcases.ts`). El
+  peso se guarda en gramos enteros (`weight_grams`), como en la web.
 
 Correspondencia de tablas con los modelos web:
 
 | Tabla Android | Modelo web | Versión |
 |---|---|---|
 | `trips` | `Trip` | 1 |
-| `flights`, `accommodations`, `activities`, `expenses`, `packing_items`, `documents` | `Flight`, `Accommodation`, `Activity`, `Expense`, `PackingItem`, `Document` | 1 (coordenadas en 5) |
+| `suitcases` | `Suitcase` | 9 |
+| `flights`, `accommodations`, `activities`, `expenses`, `packing_items`, `documents` | `Flight`, `Accommodation`, `Activity`, `Expense`, `PackingItem`, `Document` | 1 (coordenadas en 5, maleta del objeto en 9) |
 | `tasks` | `Task` | 2 |
 | `dive_areas`, `dive_sites`, `dive_equipment`, `dive_equipment_service`, `dive_certifications`, `dive_logs` | `DiveArea`, `DiveSite`, `DiveEquipment`, `DiveEquipmentService`, `DiveCertification`, `DiveLog` | 3 (cambios en 4, 7 y 8) |
 | `dive_log_equipment` | Relación implícita `DiveLog` y `DiveEquipment` | 3 |
@@ -84,8 +92,11 @@ Correspondencia de tablas con los modelos web:
 | (no existe) | `Destination`, modelos de auth, `Settings`, `MediaClip`, `MediaClipLink`, `MediaSiteOffset` | |
 
 Los borrados siguen la misma idea que en la web: cascada de `trips` a sus hijos y de `dive_logs`
-a sus muestras y equipo enlazado, y a nulo de `dive_logs` hacia `trips` y `dive_sites`, y de
-`dive_sites` hacia `dive_areas` (cláusulas `ON DELETE` de `apps/android/src/db/database.ts`).
+a sus muestras y equipo enlazado, y a nulo de `dive_logs` hacia `trips` y `dive_sites`, de
+`dive_sites` hacia `dive_areas` y de `packing_items` hacia `suitcases` (cláusulas `ON DELETE` de
+`apps/android/src/db/database.ts`). Al borrar una maleta desde la app, como en la web, sus objetos
+quedan sin maleta y desmarcados o se borran con ella (`deleteSuitcase` en
+`apps/android/src/db/suitcases.ts`).
 
 ## Autenticación (web)
 
