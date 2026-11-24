@@ -7,6 +7,7 @@ import {
   importPackingItemSchema,
   importDocumentSchema,
   importPayloadSchema,
+  generateImportPrompt,
 } from "@tripplanner/shared";
 
 // ─── importFlightSchema ───────────────────────────────────────────────────────
@@ -195,6 +196,34 @@ describe("importPackingItemSchema", () => {
 
   it("rejects zero or negative quantity", () => {
     expect(importPackingItemSchema.safeParse({ ...valid, quantity: 0 }).success).toBe(false);
+  });
+
+  it("parses an item without suitcase as before (CA19)", () => {
+    const result = importPackingItemSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.suitcase).toBeUndefined();
+  });
+
+  it("accepts the suitcase name, trimmed (CA17)", () => {
+    const result = importPackingItemSchema.safeParse({ ...valid, suitcase: "  Cabina " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.suitcase).toBe("Cabina");
+  });
+
+  it("accepts an empty or null suitcase, which import treats as no bag", () => {
+    expect(importPackingItemSchema.safeParse({ ...valid, suitcase: "" }).success).toBe(true);
+    expect(importPackingItemSchema.safeParse({ ...valid, suitcase: null }).success).toBe(true);
+  });
+
+  it("rejects a suitcase that is not a string", () => {
+    expect(importPackingItemSchema.safeParse({ ...valid, suitcase: 3 }).success).toBe(false);
+  });
+});
+
+describe("generateImportPrompt (CA20)", () => {
+  it("asks for the suitcase of each packing item", () => {
+    const packingBlock = generateImportPrompt().split('"packing"')[1].split('"documents"')[0];
+    expect(packingBlock).toContain('"suitcase"');
   });
 });
 

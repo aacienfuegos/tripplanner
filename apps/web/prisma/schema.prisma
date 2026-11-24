@@ -112,6 +112,7 @@ model Trip {
   documents      Document[]
   expenses       Expense[]
   packingItems   PackingItem[]
+  suitcases      Suitcase[]
   tasks          Task[]
   diveLogs       DiveLog[]
 
@@ -318,14 +319,41 @@ enum TaskPriority {
 // ─── Packing List ────────────────────────────────────────────────────────────
 
 model PackingItem {
-  id       String  @id @default(cuid())
-  tripId   String
-  category String
-  name     String
-  packed   Boolean @default(false)
-  quantity Int     @default(1)
+  id         String  @id @default(cuid())
+  tripId     String
+  suitcaseId String?
+  category   String
+  name       String
+  packed     Boolean @default(false)
+  quantity   Int     @default(1)
 
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  // The database doesn't check that the bag belongs to the same trip: a composite
+  // key would null tripId on SetNull. The actions in src/actions/ enforce it.
+  suitcase Suitcase? @relation(fields: [suitcaseId], references: [id], onDelete: SetNull)
+
+  @@index([suitcaseId])
+}
+
+enum SuitcaseType {
+  CABIN
+  CHECKED
+  BACKPACK
+  OTHER
+}
+
+model Suitcase {
+  id          String       @id @default(cuid())
+  tripId      String
+  name        String
+  type        SuitcaseType @default(OTHER)
+  weightGrams Int?
+  createdAt   DateTime     @default(now())
+
+  trip  Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  items PackingItem[]
+
+  @@index([tripId])
 }
 
 // ─── Dive Log ────────────────────────────────────────────────────────────────

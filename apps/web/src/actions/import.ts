@@ -11,9 +11,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { importPayloadSchema, ImportPayload } from "@tripplanner/shared";
+import { foldText, importPayloadSchema, ImportPayload } from "@tripplanner/shared";
 import { requireTripOwner } from "@/lib/action-auth";
 import { normalize, isFuzzyMatch } from "@/lib/fuzzy-match";
+import { ensureSuitcases } from "@/lib/suitcases";
 
 export type ImportResult = {
   flights: number;
@@ -109,11 +110,17 @@ export async function bulkImport(tripId: string, payload: ImportPayload): Promis
     }
 
     if (data.packing.length > 0) {
+      const { ids: suitcaseIds } = await ensureSuitcases(
+        tx,
+        tripId,
+        data.packing.map((p) => ({ name: p.suitcase, type: "OTHER" as const })),
+      );
       const rows: Prisma.PackingItemCreateManyInput[] = data.packing.map((p) => ({
         tripId,
-        name:     p.name,
-        category: p.category,
-        quantity: p.quantity,
+        name:       p.name,
+        category:   p.category,
+        quantity:   p.quantity,
+        suitcaseId: p.suitcase ? (suitcaseIds.get(foldText(p.suitcase)) ?? null) : null,
       }));
       const { count } = await tx.packingItem.createMany({ data: rows });
       result.packing = count;

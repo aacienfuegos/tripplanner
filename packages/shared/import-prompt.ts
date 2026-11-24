@@ -67,7 +67,8 @@ const SCHEMA_AND_EXAMPLE = `SCHEMA:
     {
       "name": "string (required) — item name",
       "category": "string (required) — e.g. Clothing, Electronics, Documents, Toiletries",
-      "quantity": "number — how many  (default: 1)"
+      "quantity": "number — how many  (default: 1)",
+      "suitcase": "string — name of the bag it goes in, only if the source says so (e.g. Carry-on, Big suitcase)"
     }
   ],
   "documents": [

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CURRENCIES, ISO_3166_ALPHA2_CODES } from "@tripplanner/shared";
+import { CURRENCIES, ISO_3166_ALPHA2_CODES, MAX_WEIGHT_GRAMS, SUITCASE_TYPES } from "@tripplanner/shared";
 
 // País: siempre código ISO 3166-1 alpha-2, nunca texto libre — el nombre a
 // mostrar se resuelve por locale en el momento del render (ver #264).
@@ -90,10 +90,22 @@ export const documentSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const idSchema = z.string().min(1);
+export const nullableIdSchema = idSchema.nullable();
+// Ids for bulk actions come from the client: each write still filters by tripId.
+export const idListSchema = z.array(idSchema).min(1).max(1000);
+
 export const packingItemSchema = z.object({
-  name: z.string().min(1),
-  category: z.string().min(1),
-  quantity: z.string().default("1"),
+  name: z.string().trim().min(1, "El nombre es obligatorio"),
+  category: z.string().trim().min(1),
+  quantity: z.coerce.number().int().min(1).max(9999).default(1),
+  suitcaseId: z.string().nullish().transform((v) => v || null),
+});
+
+export const suitcaseSchema = z.object({
+  name: z.string().trim().min(1, "El nombre es obligatorio"),
+  type: z.enum(SUITCASE_TYPES).default("OTHER"),
+  weightGrams: z.number().int().min(0).max(MAX_WEIGHT_GRAMS).nullable().default(null),
 });
 
 export const taskSchema = z.object({

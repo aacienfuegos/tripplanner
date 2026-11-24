@@ -13,12 +13,17 @@ Fuente: `apps/web/prisma/schema.prisma`. Los identificadores son cadenas `cuid()
 | Grupo | Modelos | Relación con el usuario |
 |---|---|---|
 | Auth | `User`, `Account`, `Session`, `VerificationToken`, `Settings` | `Account` y `Session` cuelgan de `User`. `VerificationToken` (enlaces por email) no tiene relación. `Settings` es global, no de un usuario |
-| Viajes | `Trip`; hijos `Destination`, `Flight`, `Accommodation`, `Activity`, `Document`, `Expense`, `Task`, `PackingItem` | `Trip` pertenece a un `User`; los hijos, a un `Trip` |
+| Viajes | `Trip`; hijos `Destination`, `Flight`, `Accommodation`, `Activity`, `Document`, `Expense`, `Task`, `PackingItem`, `Suitcase` | `Trip` pertenece a un `User`; los hijos, a un `Trip` |
 | Buceo | `DiveArea`, `DiveSite`, `DiveLog`, `DiveProfileSample`, `DiveEquipment`, `DiveEquipmentService`, `DiveCertification` | Todos llevan `userId` salvo `DiveProfileSample`, que cuelga de `DiveLog` |
 | Vídeos | `MediaClip`, `MediaClipLink`, `MediaSiteOffset` | `MediaClip` y `MediaSiteOffset` llevan `userId`; `MediaClipLink` une un clip con una inmersión |
 
 Relaciones entre modelos, a alto nivel:
 
+- `PackingItem` puede estar en una `Suitcase` (maleta) del mismo viaje. La base de datos no
+  comprueba que la maleta sea del mismo viaje que el objeto; lo comprueban las acciones de
+  `apps/web/src/actions/packing.ts`, `suitcases.ts` e `import.ts`, que filtran todo identificador
+  que llega del cliente por el viaje. El peso de la maleta se guarda en gramos enteros
+  (`weightGrams`, de 0 a 1000 kg) y se muestra en la unidad del perfil del usuario.
 - `DiveSite` puede pertenecer a una `DiveArea`; `DiveLog` puede estar en un `DiveSite` y vinculado
   a un `Trip`.
 - `DiveLog` y `DiveEquipment` tienen una relación muchos a muchos implícita de Prisma (campo
@@ -35,11 +40,14 @@ Leídos de los `onDelete` del esquema:
 
 - **En cascada.** Borrar un `User` borra sus `Account`, `Session`, `Trip`, `DiveArea`,
   `DiveSite`, `DiveLog`, `DiveEquipment`, `DiveEquipmentService`, `DiveCertification`,
-  `MediaClip` y `MediaSiteOffset`. Borrar un `Trip` borra sus ocho modelos hijos. Borrar un
+  `MediaClip` y `MediaSiteOffset`. Borrar un `Trip` borra sus nueve modelos hijos. Borrar un
   `DiveLog` borra sus `DiveProfileSample` y `MediaClipLink`; borrar un `DiveEquipment`, su
   historial; borrar un `MediaClip`, sus `MediaClipLink`.
 - **A nulo.** Borrar un `Trip` deja sus inmersiones sin viaje; borrar un `DiveSite`, sus
-  inmersiones sin sitio; borrar una `DiveArea`, sus sitios sin área.
+  inmersiones sin sitio; borrar una `DiveArea`, sus sitios sin área; borrar una `Suitcase`, sus
+  objetos sin maleta. Al borrar una maleta desde la app, la acción elige qué pasa con sus objetos:
+  quedan sin maleta y desmarcados, o se borran con ella (`deleteSuitcase` en
+  `apps/web/src/actions/suitcases.ts`).
 
 ### Migraciones
 

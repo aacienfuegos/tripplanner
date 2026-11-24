@@ -58,6 +58,9 @@ Fuente: `apps/web/src/app/(app)/trips/` y `apps/web/src/actions/`.
   (`apps/web/src/components/import/ImportWizard.tsx`, `PromptStep.tsx`, `UploadStep.tsx`,
   `ReviewStep.tsx`; prompt en `packages/shared/import-prompt.ts`).
 - Detección de duplicados y alta en bloque (`apps/web/src/actions/import.ts`).
+- Los objetos de equipaje pueden traer el nombre de su maleta (campo `suitcase`). Si el viaje ya
+  tiene una maleta con ese nombre, sin distinguir mayúsculas ni tildes, van a ella; si no, se crea
+  una, de tipo Otro y sin peso, una sola por nombre. Sin el campo, como antes: quedan sin maleta.
 
 ### Buceo (web)
 
