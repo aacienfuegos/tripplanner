@@ -4,6 +4,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { fakeOAuthDb } from "./helpers/fake-oauth-db";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("@/lib/geocode-items", () => ({ geocodeAccommodation: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/action-auth", () => ({ requireUser: vi.fn() }));
 vi.mock("@/lib/prisma", async () => ({ prisma: (await import("./helpers/fake-oauth-db")).fakeOAuthPrisma }));
@@ -20,9 +22,11 @@ import { prepareAuthorization } from "@/lib/oauth/authorize";
 import { decideConsent } from "@/lib/oauth/consent";
 import { verifyAccessToken } from "@/lib/oauth/verify";
 import { POST as token } from "@/app/api/oauth/token/route";
+import { POST as mcp } from "@/app/api/mcp/route";
+import { mcpRequest, rpc, toolResult } from "./helpers/mcp-client";
 
-// A test MCP client doing the whole flow with PKCE, as the base of CA1 (the
-// MCP call itself comes with /api/mcp in phase 3).
+// A test MCP client doing the whole flow with PKCE and then calling the MCP
+// server with its token (CA1).
 
 const ISSUER = "https://trips.example.com";
 const USER = "user-a";
@@ -118,7 +122,7 @@ describe.each([
   ["a manually registered client", manualClientId],
   ["a CIMD client", async () => CIMD_ID],
 ])("the whole flow with %s (CA1)", (_label, clientId) => {
-  it("authorizes, exchanges, refreshes and, once revoked, the refresh fails", async () => {
+  it("authorizes, exchanges, refreshes, lists and creates over MCP and, once revoked, both fail", async () => {
     const id = await clientId();
     const { tokens, grantId, secrets } = await runFlow(id);
 
@@ -131,7 +135,23 @@ describe.each([
     for (const secret of secrets) expect(stored).not.toContain(secret);
     expect(fakeOAuthDb.rows("agentGrant").find((g) => g.id === grantId)).toMatchObject({ name: "Investigador", allTrips: false });
 
+    const listed = await toolResult(await mcp(mcpRequest(tokens.access_token, rpc("tools/call", { name: "list_trips", arguments: {} }))));
+    expect(listed.structuredContent.items).toEqual([expect.objectContaining({ id: "trip-1", name: "Japón" })]);
+
+    const hotel = { tripId: "trip-1", name: "Hotel Kioto", city: "Kioto", checkIn: "2026-04-01", checkOut: "2026-04-05" };
+    const created = await toolResult(
+      await mcp(mcpRequest(tokens.access_token, rpc("tools/call", { name: "create_accommodation", arguments: hotel }))),
+    );
+    expect(created.isError).toBeUndefined();
+    expect(fakeOAuthDb.rows("accommodation")).toEqual([
+      expect.objectContaining({ tripId: "trip-1", name: "Hotel Kioto", agentGrantId: grantId }),
+    ]);
+    expect(fakeOAuthDb.rows("agentAuditEntry")).toEqual([
+      expect.objectContaining({ userId: USER, grantId, action: "CREATED", entityType: "Accommodation" }),
+    ]);
+
     await expect(revokeAgentConnection(grantId)).resolves.toEqual({ ok: true });
+    expect((await mcp(mcpRequest(tokens.access_token, rpc("tools/list")))).status).toBe(401);
     const afterRevoke = await tokenCall({ grant_type: "refresh_token", refresh_token: tokens.refresh_token, client_id: id });
     expect(afterRevoke.status).toBe(400);
     expect(await afterRevoke.json()).toEqual({ error: "invalid_grant" });
