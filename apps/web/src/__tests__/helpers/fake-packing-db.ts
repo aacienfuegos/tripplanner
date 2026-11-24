@@ -57,14 +57,19 @@ export function table(rows: Row[], defaults: () => Row) {
   return {
     findUnique: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
     findFirst: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
-    findMany: async ({ where, orderBy, take }: { where?: Where; orderBy?: Record<string, "asc" | "desc">; take?: number } = {}) => {
+    findMany: async ({
+      where,
+      orderBy,
+      skip = 0,
+      take,
+    }: { where?: Where; orderBy?: Record<string, "asc" | "desc">; skip?: number; take?: number } = {}) => {
       const found = rows.filter((r) => matches(r, where));
       const [key, direction] = Object.entries(orderBy ?? {})[0] ?? [];
       const sign = direction === "desc" ? -1 : 1;
       const compare = (a: unknown, b: unknown) =>
         typeof a === "string" && typeof b === "string" ? a.localeCompare(b) : Number(a) - Number(b);
       const sorted = key ? found.sort((a, b) => compare(a[key], b[key]) * sign) : found;
-      return take === undefined ? sorted : sorted.slice(0, take);
+      return sorted.slice(skip, take === undefined ? undefined : skip + take);
     },
     create: async ({ data }: { data: Row }) => {
       const row = build(data);

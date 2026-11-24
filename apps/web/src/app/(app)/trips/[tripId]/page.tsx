@@ -16,6 +16,8 @@ import { TripStatusBadge } from "@/components/trips/trip-status-badge";
 import { TripNav } from "@/components/trips/trip-nav";
 import { ImportTrigger } from "@/components/import/ImportTrigger";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentBadge, AgentLabelsProvider } from "@/components/agents/agent-badge";
 import { formatCurrency } from "@/lib/currency";
 import type { Flight, Accommodation, Activity } from "@prisma/client";
 
@@ -76,6 +78,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
   if (!trip || trip.userId !== session!.user!.id) notFound();
 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
+  const agentLabels = await getAgentLabels(trip.userId, [trip]);
 
   // ── Build timeline ──────────────────────────────────────────────────────
 
@@ -156,6 +159,9 @@ export default async function TripDetailPage({ params }: { params: Promise<{ tri
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-none">{trip.name}</h1>
               <TripStatusBadge status={trip.status} locale={t.locale} />
+              <AgentLabelsProvider labels={agentLabels}>
+                <AgentBadge id={trip.id} />
+              </AgentLabelsProvider>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">

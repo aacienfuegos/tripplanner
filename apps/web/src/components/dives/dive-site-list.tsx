@@ -16,6 +16,7 @@ import { DiveSitesMapView, type DiveSitePoint } from "./DiveSitesMapView";
 import { deleteDiveArea, deleteDiveSite } from "@/actions/dive-sites";
 import type { DiveArea, DiveSiteWithArea } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 type SiteWithCount = DiveSiteWithArea & { _count: { diveLogs: number } };
 
@@ -121,6 +122,7 @@ export function DiveSiteList({
                   ) : (
                     <span className="font-semibold text-muted-foreground">{t.diveAreaNone}</span>
                   )}
+                  {area && <AgentBadge id={area.id} />}
                   {area?.country && (
                     <Badge variant="outline" className="text-xs">
                       {countryCodeToName(area.country, locale)}
@@ -155,6 +157,7 @@ export function DiveSiteList({
                       <div className="flex items-start justify-between gap-2">
                         <Link href={`/dives/sites/${site.id}`} className="flex-1 min-w-0 space-y-1">
                           <p className="font-medium truncate">{site.name}</p>
+                          <AgentBadge id={site.id} />
                           {(site.region || site.country) && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <MapPin className="h-3 w-3 shrink-0" />

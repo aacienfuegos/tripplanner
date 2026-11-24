@@ -16,6 +16,7 @@ import type { Flight } from "@/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/currency";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 export function FlightsList({ tripId, flights, tripStartDate, currency }: { tripId: string; flights: Flight[]; tripStartDate: Date; currency: string }) {
   const { t } = useT();
@@ -61,6 +62,7 @@ export function FlightsList({ tripId, flights, tripStartDate, currency }: { trip
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       <span className="font-semibold text-lg">{flight.destination}</span>
                       <Badge variant="secondary">{flight.class}</Badge>
+                      <AgentBadge id={flight.id} />
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">
                       <p>

@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { TripStatusBadge } from "@/components/trips/trip-status-badge";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentBadge, AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function TripsPage() {
   const session = await auth();
@@ -24,6 +26,7 @@ export default async function TripsPage() {
   ]);
 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
+  const agentLabels = await getAgentLabels(session!.user!.id!, trips);
 
   return (
     <div className="space-y-6">
@@ -48,39 +51,42 @@ export default async function TripsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {trips.map((trip) => (
-            <Link key={trip.id} href={`/trips/${trip.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                <CardContent className="pt-5 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-base leading-tight">{trip.name}</h3>
-                    <TripStatusBadge status={trip.status} locale={t.locale} />
-                  </div>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5 shrink-0" />
-                    {format(trip.startDate, "d MMM", { locale: dfLocale })} —{" "}
-                    {format(trip.endDate, "d MMM yyyy", { locale: dfLocale })}
-                  </p>
-                  {trip.destinations.length > 0 && (
+        <AgentLabelsProvider labels={agentLabels}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {trips.map((trip) => (
+              <Link key={trip.id} href={`/trips/${trip.id}`}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardContent className="pt-5 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-base leading-tight">{trip.name}</h3>
+                      <TripStatusBadge status={trip.status} locale={t.locale} />
+                    </div>
+                    <AgentBadge id={trip.id} />
                     <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      {trip.destinations.map((d) => d.city).join(" → ")}
+                      <Calendar className="h-3.5 w-3.5 shrink-0" />
+                      {format(trip.startDate, "d MMM", { locale: dfLocale })} —{" "}
+                      {format(trip.endDate, "d MMM yyyy", { locale: dfLocale })}
                     </p>
-                  )}
-                  <div className="flex gap-4 pt-1 text-xs text-muted-foreground border-t">
-                    <span className="flex items-center gap-1">
-                      <Plane className="h-3 w-3" />
-                      {trip._count.flights} {t.flights.toLowerCase()}
-                    </span>
-                    <span>{trip._count.accommodations} {t.accomAbbrev}</span>
-                    <span>{trip._count.activities} {t.activAbbrev}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                    {trip.destinations.length > 0 && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        {trip.destinations.map((d) => d.city).join(" → ")}
+                      </p>
+                    )}
+                    <div className="flex gap-4 pt-1 text-xs text-muted-foreground border-t">
+                      <span className="flex items-center gap-1">
+                        <Plane className="h-3 w-3" />
+                        {trip._count.flights} {t.flights.toLowerCase()}
+                      </span>
+                      <span>{trip._count.accommodations} {t.accomAbbrev}</span>
+                      <span>{trip._count.activities} {t.activAbbrev}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </AgentLabelsProvider>
       )}
     </div>
   );

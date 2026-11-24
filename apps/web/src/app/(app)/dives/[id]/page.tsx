@@ -21,6 +21,8 @@ import { getDiveMedia } from "@/lib/dive-media";
 import { formatDiveDate } from "@/lib/dive-date";
 import { diveTypeLabel } from "@/lib/dive-type";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentBadge, AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function DiveLogDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -39,6 +41,7 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
     prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } }),
   ]);
   if (!dive) notFound();
+  const agentLabels = await getAgentLabels(userId, [dive]);
 
   const profile = resolveDiveProfile(dive, samples);
   // Los clips asociados, situados sobre el eje temporal del perfil. El desfase
@@ -73,6 +76,9 @@ export default async function DiveLogDetailPage({ params }: { params: Promise<{ 
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">#{dive.diveNumber}</Badge>
             <h1 className="text-2xl font-bold">{dive.diveSite?.name ?? t.diveSiteNone}</h1>
+            <AgentLabelsProvider labels={agentLabels}>
+              <AgentBadge id={dive.id} />
+            </AgentLabelsProvider>
             {dive.decoRequired && (
               <Badge variant="destructive" className="gap-1">
                 <ShieldAlert className="h-3 w-3" /> {t.diveDecoRequired}

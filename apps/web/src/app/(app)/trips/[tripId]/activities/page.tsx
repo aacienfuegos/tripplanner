@@ -6,6 +6,8 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { Star } from "lucide-react";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function ActivitiesPage({ params }: { params: Promise<{ tripId: string }> }) {
   const { tripId } = await params;
@@ -18,7 +20,10 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ tri
     getT(),
   ]);
   if (!trip || trip.userId !== session!.user!.id) notFound();
-  const counts = await getTripNavCounts(tripId);
+  const [counts, agentLabels] = await Promise.all([
+    getTripNavCounts(tripId),
+    getAgentLabels(trip.userId, trip.activities),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -30,7 +35,9 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ tri
         icon={<Star className="h-5 w-5" />}
         counts={counts}
       />
-      <ActivitiesList tripId={trip.id} activities={trip.activities} tripStartDate={trip.startDate} currency={trip.currency} />
+      <AgentLabelsProvider labels={agentLabels}>
+        <ActivitiesList tripId={trip.id} activities={trip.activities} tripStartDate={trip.startDate} currency={trip.currency} />
+      </AgentLabelsProvider>
     </div>
   );
 }

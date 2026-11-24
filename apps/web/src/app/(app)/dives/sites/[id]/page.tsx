@@ -13,6 +13,8 @@ import { DiveSiteDetailActions } from "@/components/dives/dive-site-detail-actio
 import { formatDiveDate } from "@/lib/dive-date";
 import { getT } from "@/lib/locale";
 import type { WebTKeys } from "@/i18n";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentBadge, AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 function waterTypeLabel(waterType: "SALT" | "FRESH" | "BRACKISH" | "CHLORINATED", t: WebTKeys): string {
   switch (waterType) {
@@ -38,6 +40,7 @@ export default async function DiveSiteDetailPage({ params }: { params: Promise<{
     prisma.diveLog.findMany({ where: { userId, diveSiteId: id }, orderBy: { date: "desc" } }),
   ]);
   if (!site) notFound();
+  const agentLabels = await getAgentLabels(userId, [site]);
 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const depths = dives.map((d) => d.depthMax);
@@ -59,6 +62,9 @@ export default async function DiveSiteDetailPage({ params }: { params: Promise<{
           <div className="flex items-center gap-2 flex-wrap">
             <MapPin className="h-5 w-5 text-primary" />
             <h1 className="text-2xl font-bold">{site.name}</h1>
+            <AgentLabelsProvider labels={agentLabels}>
+              <AgentBadge id={site.id} />
+            </AgentLabelsProvider>
           </div>
           <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
             {site.diveArea && (

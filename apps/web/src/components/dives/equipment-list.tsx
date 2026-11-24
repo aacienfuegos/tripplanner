@@ -16,6 +16,7 @@ import { equipmentCategoryLabels } from "@/lib/equipment-category";
 import { isServiceDue } from "@/lib/equipment-service";
 import type { DiveEquipmentWithCount } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 export function EquipmentList({ equipment }: { equipment: DiveEquipmentWithCount[] }) {
   const { t } = useT();
@@ -69,6 +70,7 @@ export function EquipmentList({ equipment }: { equipment: DiveEquipmentWithCount
               <div className="flex items-start justify-between gap-2">
                 <Link href={`/dives/equipment/${e.id}`} className="flex-1 min-w-0 space-y-1">
                   <p className="font-medium truncate">{e.name}</p>
+                  <AgentBadge id={e.id} />
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <Badge variant="outline" className="text-xs">
                       {categoryLabels[e.category]}

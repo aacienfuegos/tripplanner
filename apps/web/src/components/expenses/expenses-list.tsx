@@ -15,6 +15,7 @@ import { deleteExpense, toggleExpensePaid } from "@/actions/expenses";
 import type { Expense } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/currency";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 interface Props {
   tripId: string;
@@ -138,6 +139,7 @@ export function ExpensesList({ tripId, expenses, currency, budget, total, paid, 
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{e.description}</span>
                       <Badge variant="outline" className="text-xs shrink-0 max-sm:hidden">{catLabels[e.category] ?? e.category}</Badge>
+                      <AgentBadge id={e.id} />
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       <span className="sm:hidden">{catLabels[e.category] ?? e.category} · </span>

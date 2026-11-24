@@ -14,6 +14,8 @@ import { equipmentCategoryLabel } from "@/lib/equipment-category";
 import { isServiceDue } from "@/lib/equipment-service";
 import { formatDiveDate } from "@/lib/dive-date";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentBadge, AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function DiveEquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,6 +28,7 @@ export default async function DiveEquipmentDetailPage({ params }: { params: Prom
     prisma.diveEquipmentService.findMany({ where: { userId, equipmentId: id }, orderBy: { date: "desc" } }),
   ]);
   if (!equipment) notFound();
+  const agentLabels = await getAgentLabels(userId, [equipment], services);
 
   const dfLocale = t.locale === "es" ? esLocale : enUS;
   const currencyFormatter = new Intl.NumberFormat(t.locale === "es" ? "es-ES" : "en-US", {
@@ -44,6 +47,9 @@ export default async function DiveEquipmentDetailPage({ params }: { params: Prom
           <div className="flex items-center gap-2 flex-wrap">
             <Anchor className="h-5 w-5 text-primary" />
             <h1 className="text-2xl font-bold">{equipment.name}</h1>
+            <AgentLabelsProvider labels={agentLabels}>
+              <AgentBadge id={equipment.id} />
+            </AgentLabelsProvider>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             <Badge variant="outline">{equipmentCategoryLabel(equipment.category, t)}</Badge>
@@ -74,7 +80,9 @@ export default async function DiveEquipmentDetailPage({ params }: { params: Prom
         <EquipmentDetailActions equipment={equipment} />
       </div>
 
-      <EquipmentServiceList equipmentId={equipment.id} services={services} />
+      <AgentLabelsProvider labels={agentLabels}>
+        <EquipmentServiceList equipmentId={equipment.id} services={services} />
+      </AgentLabelsProvider>
 
       {dives.length === 0 ? (
         <Card className="border-dashed">

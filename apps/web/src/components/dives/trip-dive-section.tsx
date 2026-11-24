@@ -17,6 +17,7 @@ import { linkDiveToTrip, unlinkDiveFromTrip } from "@/actions/dives";
 import type { DiveLogWithSite, DiveSite, DiveEquipment } from "@/types";
 import { useT } from "@/contexts/LanguageContext";
 import { formatDiveDate } from "@/lib/dive-date";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 interface Props {
   tripId: string;
@@ -111,6 +112,7 @@ export function TripDiveSection({ tripId, dives, availableDives, sites, equipmen
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="secondary">#{dive.diveNumber}</Badge>
                       <span className="font-semibold">{dive.diveSite?.name ?? t.diveSiteNone}</span>
+                      <AgentBadge id={dive.id} />
                     </div>
                     <div className="text-sm text-muted-foreground space-y-0.5">
                       <p>{formatDiveDate(dive.date, dfLocale)}</p>

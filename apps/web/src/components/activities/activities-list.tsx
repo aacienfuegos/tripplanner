@@ -16,6 +16,7 @@ import type { Activity, BookingStatus } from "@/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { useT } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/currency";
+import { AgentBadge } from "@/components/agents/agent-badge";
 
 const statusVariants: Record<BookingStatus, "default" | "secondary" | "outline" | "destructive"> = {
   PENDING: "secondary", RESERVED: "default", CONFIRMED: "default", CANCELLED: "destructive",
@@ -87,6 +88,7 @@ export function ActivitiesList({ tripId, activities, tripStartDate, currency }: 
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{act.name}</span>
                       <Badge variant="outline">{typeLabels[act.type]}</Badge>
+                      <AgentBadge id={act.id} />
                       <button onClick={() => cycleStatus(act)} className="-my-1.5 py-1.5">
                         <Badge variant={statusVariants[act.status]} className="cursor-pointer">
                           {statusLabels[act.status]}

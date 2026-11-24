@@ -7,6 +7,8 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getTripNavCounts } from "@/lib/trip-nav-counts";
 import { ClipboardList } from "lucide-react";
 import { getT } from "@/lib/locale";
+import { getAgentLabels } from "@/lib/agent-labels";
+import { AgentLabelsProvider } from "@/components/agents/agent-badge";
 
 export default async function TasksPage({ params }: { params: Promise<{ tripId: string }> }) {
   const { tripId } = await params;
@@ -26,7 +28,10 @@ export default async function TasksPage({ params }: { params: Promise<{ tripId: 
     getT(),
   ]);
   if (!trip || trip.userId !== session.user.id) notFound();
-  const counts = await getTripNavCounts(tripId);
+  const [counts, agentLabels] = await Promise.all([
+    getTripNavCounts(tripId),
+    getAgentLabels(trip.userId, trip.tasks),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -44,7 +49,9 @@ export default async function TasksPage({ params }: { params: Promise<{ tripId: 
         accommodations={trip.accommodations}
         activities={trip.activities}
       />
-      <TasksList tripId={trip.id} tasks={trip.tasks} />
+      <AgentLabelsProvider labels={agentLabels}>
+        <TasksList tripId={trip.id} tasks={trip.tasks} />
+      </AgentLabelsProvider>
     </div>
   );
 }
