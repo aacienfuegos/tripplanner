@@ -320,4 +320,24 @@ export function initDatabase(): void {
       PRAGMA user_version = 8;
     `);
   }
+
+  if (user_version < 9) {
+    // Maletas del equipaje (plan de CIE-1353). Los objetos que ya había quedan
+    // con suitcase_id a NULL ("Sin maleta") y su marca de metido intacta.
+    // SQLite admite ADD COLUMN con REFERENCES porque el valor por defecto es NULL.
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS suitcases (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        trip_id      INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        name         TEXT    NOT NULL,
+        type         TEXT    NOT NULL DEFAULT 'OTHER',
+        weight_grams INTEGER,
+        created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      ALTER TABLE packing_items ADD COLUMN suitcase_id INTEGER REFERENCES suitcases(id) ON DELETE SET NULL;
+
+      PRAGMA user_version = 9;
+    `);
+  }
 }

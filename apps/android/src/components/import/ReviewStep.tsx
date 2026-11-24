@@ -72,7 +72,7 @@ function itemLabel(section: SectionKey, item: ImportPayload[SectionKey][number])
     }
     case "packing": {
       const p = item as ImportPackingItem;
-      return `${p.name}${p.quantity > 1 ? ` ×${p.quantity}` : ""} (${p.category})`;
+      return `${p.name}${p.quantity > 1 ? ` ×${p.quantity}` : ""} (${p.category})${p.suitcase ? ` · ${p.suitcase}` : ""}`;
     }
     case "documents": {
       const d = item as ImportDocument;
